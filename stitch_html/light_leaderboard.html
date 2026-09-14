@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Campus Leaderboard • SkillLoop</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface": "#34284f",
+            "secondary-fixed-dim": "#ceb9ff",
+            "error-dim": "#a70138",
+            "on-primary-fixed": "#000000",
+            "tertiary-dim": "#8b2a5f",
+            "primary-fixed": "#9e93ff",
+            "surface": "#fbf4ff",
+            "surface-tint": "#543ce0",
+            "on-surface-variant": "#62557f",
+            "on-error": "#ffefef",
+            "surface-container-low": "#f6edff",
+            "inverse-primary": "#8c7fff",
+            "error-container": "#f74b6d",
+            "on-tertiary-fixed": "#360021",
+            "inverse-on-surface": "#a496c4",
+            "secondary": "#6847af",
+            "outline-variant": "#b5a6d5",
+            "on-primary-fixed-variant": "#250094",
+            "surface-container-lowest": "#ffffff",
+            "on-background": "#34284f",
+            "on-primary": "#f5f0ff",
+            "on-secondary-fixed": "#3f1985",
+            "outline": "#7d709b",
+            "surface-container": "#efe3ff",
+            "primary": "#543ce0",
+            "on-secondary": "#f8f0ff",
+            "secondary-container": "#dbc9ff",
+            "background": "#fbf4ff",
+            "on-primary-container": "#1d007a",
+            "surface-variant": "#e5d6ff",
+            "tertiary": "#99366c",
+            "error": "#b41340",
+            "inverse-surface": "#12062c",
+            "tertiary-fixed": "#ff8bc3",
+            "surface-container-high": "#eaddff",
+            "on-tertiary-container": "#62023f",
+            "on-tertiary": "#ffeff3",
+            "on-tertiary-fixed-variant": "#6e1048",
+            "tertiary-container": "#ff8bc3",
+            "on-secondary-container": "#53319a",
+            "surface-container-highest": "#e5d6ff",
+            "secondary-dim": "#5b3aa3",
+            "tertiary-fixed-dim": "#f07db6",
+            "on-secondary-fixed-variant": "#5c3ba4",
+            "surface-bright": "#fbf4ff",
+            "secondary-fixed": "#dbc9ff",
+            "primary-dim": "#482cd4",
+            "on-error-container": "#510017",
+            "primary-fixed-dim": "#8f83ff",
+            "primary-container": "#9e93ff",
+            "surface-dim": "#ddccff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Plus Jakarta Sans"],
+            "display": ["Plus Jakarta Sans"],
+            "body": ["Inter"],
+            "label": ["Public Sans"]
+          }
+        },
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .badge-shimmer {
+      background-size: 200% auto;
+      animation: shine 4s linear infinite;
+    }
+    @keyframes shine {
+      to {
+        background-position: 200% center;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased selection:bg-secondary-container selection:text-on-secondary-container min-h-screen flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<header class="sticky top-0 z-50 w-full flex items-center justify-between px-6 lg:px-12 py-3 bg-surface-container-lowest dark:bg-inverse-surface border-b border-outline-variant/30 dark:border-outline/20 shadow-sm dark:shadow-none">
+<!-- Brand Logo -->
+<div class="flex items-center gap-8">
+<a class="font-display font-extrabold text-xl text-primary dark:text-inverse-primary tracking-tight flex items-center gap-2" href="#">
+<span class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center font-display font-black text-base shadow-sm">SL</span>
+        SkillLoop
+      </a>
+<!-- Desktop Navigation Cluster -->
+<nav class="hidden md:flex items-center gap-6 font-headline font-semibold text-sm tracking-normal">
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-on-surface dark:hover:text-surface-bright py-1 transition-colors" href="#">Quizzes</a>
+<!-- Active Nav: Leaderboard -->
+<a class="text-primary dark:text-inverse-primary font-bold border-b-2 border-primary dark:border-inverse-primary py-1" href="#">Leaderboard</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-on-surface dark:hover:text-surface-bright py-1 transition-colors" href="#">Swap Hub</a>
+<a class="text-on-surface-variant dark:text-outline-variant font-medium hover:text-on-surface dark:hover:text-surface-bright py-1 transition-colors" href="#">Marketplace</a>
+</nav>
+</div>
+<!-- Trailing Actions Cluster -->
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-primary font-headline font-semibold text-xs transition-transform duration-100 active:scale-95 hover:bg-surface-variant">
+<span class="material-symbols-outlined text-primary text-base" data-icon="toll" style="font-variation-settings: 'FILL' 1;">toll</span>
+        32 Credits
+      </button>
+<button aria-label="Notifications" class="p-2 text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors duration-150 rounded-lg relative">
+<span class="material-symbols-outlined text-xl" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface-container-lowest"></span>
+</button>
+<div class="flex items-center gap-2 pl-2 border-l border-outline-variant/30">
+<img alt="User profile avatar with mentor badge" class="w-8 h-8 rounded-full ring-2 ring-primary/20 object-cover" data-alt="Warm soft-lit studio headshot of a friendly university computer science student smiling, wearing a lilac knit sweater, set against a bright minimalist campus workshop backdrop in clean high-key lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAbx30N4smZo8k9IqehFUd9WICqGTsMxWlG2CwekZlQPzHzYIgDxECWjFSUj-A8xPgoBjct6M-VTJeau8WvAGQj9XdlYfz4rZjnKEpIsCRW1DTFHRwn5bOcB5PHTecMSFKIR9vmCRoqDqyXbn_GCJHfC4EbwQ7loGYsvxIfPTHUWLN_uV3KTmgnc-sZ-T2xFxR2FSUOkhjkK8tsYpczzxf-bnTpPwbNBmnsItdgNM6h8JMJvwHYKLKMUJrJMNlf-egHSkE6yecgbDW"/>
+<span class="hidden sm:inline-block font-headline text-xs font-semibold text-on-surface">Emma V.</span>
+</div>
+</div>
+</header>
+<!-- Main Hero & Canvas -->
+<main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-12 py-8 md:py-12 space-y-10">
+<!-- Header Section -->
+<div class="text-center md:text-left flex flex-col md:flex-row md:items-end justify-between gap-6 relative">
+<!-- Background Ambient Glow -->
+<div class="absolute -top-12 -left-12 w-64 h-64 bg-secondary-container/40 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+<div class="absolute -top-10 right-10 w-48 h-48 bg-tertiary-container/30 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+<div class="max-w-2xl space-y-3">
+<!-- Badge -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/40 shadow-xs">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label text-xs font-semibold text-primary tracking-wide">Campus Skill Exchange • Spring Season Live</span>
+<span class="material-symbols-outlined text-xs text-primary" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl text-on-surface tracking-tight leading-tight">
+          Campus Leaderboard
+        </h1>
+<p class="font-body text-sm sm:text-base text-on-surface-variant leading-relaxed">
+          Recognizing top peer mentors and skill exchangers across campus nodes this month. Validate skills, teach peers, and climb the ranks.
+        </p>
+</div>
+<!-- Scope / Filter Controls -->
+<div class="flex flex-col sm:flex-row items-center md:items-end gap-3 self-stretch md:self-auto">
+<!-- Time Filter Pill -->
+<div class="inline-flex p-1 rounded-full bg-surface-container-low border border-outline-variant/30 shadow-inner w-full sm:w-auto justify-center">
+<button class="px-3.5 py-1.5 text-xs font-headline font-medium text-on-surface-variant rounded-full hover:text-on-surface transition-colors">This Week</button>
+<button class="px-3.5 py-1.5 text-xs font-headline font-bold text-on-primary bg-primary rounded-full shadow-xs">This Month</button>
+<button class="px-3.5 py-1.5 text-xs font-headline font-medium text-on-surface-variant rounded-full hover:text-on-surface transition-colors">All Time</button>
+</div>
+<!-- Department Filter Dropdown -->
+<div class="relative w-full sm:w-auto">
+<select class="w-full sm:w-auto appearance-none bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-label text-xs font-semibold rounded-full pl-4 pr-9 py-2 shadow-xs hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
+<option>All Campus</option>
+<option>Engineering &amp; CS</option>
+<option>Design &amp; Arts</option>
+<option>Sciences</option>
+</select>
+<span class="material-symbols-outlined pointer-events-none absolute right-3 top-2 text-on-surface-variant text-sm" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Top 3 Podium Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 items-end">
+<!-- Rank #2: Silver Treatment (Marcus Vance) -->
+<div class="relative order-2 md:order-1 bg-surface-container-lowest rounded-2xl p-6 border-2 border-slate-300 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center group">
+<!-- Silver Medal Header Pill -->
+<div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-gradient-to-r from-slate-200 via-white to-slate-200 border border-slate-300 text-slate-700 font-headline font-bold text-xs shadow-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-slate-500" data-icon="military_tech" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+          Rank #2 • Silver Peer
+        </div>
+<!-- Avatar Ring -->
+<div class="relative mt-2 mb-3">
+<img alt="Marcus Vance avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-slate-200 group-hover:scale-105 transition-transform duration-200" data-alt="Vibrant portrait of Marcus Vance, an enthusiastic male university design student with glasses and short textured hair, illuminated by soft studio lighting with cool metallic silver accent tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCT4JAaZUqIJKDl3VdEpEjfOph4fmfYY7MD6xdl9Wdys5N8h37gFWVEKjTq-srRL_Mz3IKTAPz60ru__iPS6LkC9k1hNglxfDEPJIpcC9OVr4T-jipTAeX8LHIkTwIl9wAZ-bZ9sFSqYXZ63y__0PSxrwrQn0IWxvJZYB99ym7JWz62dkRUupUdFhdsNx1mcHxCuwlvkLaMdNAjqGchjiIR8TjjW32QW2OwNnzrxuHbq97fUZvFFnpbsro_FKS4jSVB4DneKAbeuL7p"/>
+<span class="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-slate-700 text-white font-headline text-xs font-extrabold flex items-center justify-center shadow-xs">2</span>
+</div>
+<h3 class="font-headline font-bold text-base text-on-surface">Marcus Vance</h3>
+<p class="font-label text-xs font-semibold text-secondary mb-2">Level 4 Senior Peer</p>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-2 w-full my-3 py-2 px-3 bg-surface-container-low rounded-xl border border-outline-variant/20 text-center">
+<div>
+<span class="block font-headline font-extrabold text-sm text-on-surface">15,220</span>
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">Total XP</span>
+</div>
+<div class="border-l border-outline-variant/30">
+<span class="block font-headline font-extrabold text-sm text-on-surface">36</span>
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">Sessions</span>
+</div>
+</div>
+<!-- Mastered Skills Tags -->
+<div class="flex flex-wrap gap-1.5 justify-center mt-1">
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label text-[11px] font-medium">Figma &amp; Systems</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label text-[11px] font-medium">UI/UX</span>
+</div>
+</div>
+<!-- Rank #1: Gold Treatment Spotlight (Elena Rostova) -->
+<div class="relative order-1 md:order-2 bg-gradient-to-b from-amber-50/70 via-surface-container-lowest to-surface-container-lowest rounded-2xl p-7 border-2 border-amber-300 shadow-xl ring-2 ring-amber-200/50 hover:shadow-2xl transition-all duration-300 flex flex-col items-center text-center transform md:-translate-y-4 group">
+<!-- Ambient Gold Glow -->
+<div class="absolute inset-0 bg-radial from-amber-200/20 to-transparent rounded-2xl pointer-events-none"></div>
+<!-- Gold Crown Pill -->
+<div class="absolute -top-4 px-4 py-1 rounded-full bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 border border-amber-400 text-amber-950 font-headline font-black text-xs shadow-md flex items-center gap-1.5 animate-bounce">
+<span class="material-symbols-outlined text-amber-700 text-base" data-icon="workspace_premium" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+          Rank #1 • Campus Champion
+        </div>
+<!-- Avatar with Crown Accents -->
+<div class="relative mt-3 mb-3">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 text-amber-500 drop-shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="crown" style="font-variation-settings: 'FILL' 1;">crown</span>
+</div>
+<img alt="Elena Rostova avatar" class="w-24 h-24 rounded-full object-cover ring-4 ring-amber-300 group-hover:scale-105 transition-transform duration-200" data-alt="Portrait of Elena Rostova, an accomplished female computer science student with a bright, welcoming smile, warm golden rim lighting, wearing a stylish lilac blazer in a high-tech modern campus commons." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDINdHJlKTY1Z3eb5Wea8EmJX-FE9v8ZFsg0kGmSV4Wc1gXpWDovhosPvsDcKDA1qgGaZ2hb0SZqDahODSxwkHZ_dTWoNW_HJZYHIhATBZErqejn0prt_Ks-6SMOHdD-gbDPzKUC4schGGxH1q2zOF4gd4X9FSnSZFJDjEPBXnU5EKfk-Y9UQLFQhZkOCpXpuOQdkXQ6yWnjiVcvdu6meDu-V3Vm8Rk4W0SgE2GJwwSweT-4qHgA3jaBsCQcizLubSTbsqHTUHcuwak"/>
+<span class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-amber-500 text-amber-950 font-headline text-xs font-black flex items-center justify-center shadow-md">1</span>
+</div>
+<h3 class="font-headline font-extrabold text-lg text-on-surface flex items-center gap-1">
+          Elena Rostova
+          <span class="material-symbols-outlined text-primary text-base" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</h3>
+<p class="font-label text-xs font-bold text-amber-700 mb-2">Level 5 Master Mentor</p>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-2 w-full my-3 py-2.5 px-3 bg-amber-50/80 rounded-xl border border-amber-200 text-center">
+<div>
+<span class="block font-headline font-extrabold text-base text-amber-950">18,450</span>
+<span class="font-label text-[10px] text-amber-800 uppercase tracking-wider font-semibold">Total XP</span>
+</div>
+<div class="border-l border-amber-200">
+<span class="block font-headline font-extrabold text-base text-amber-950">42</span>
+<span class="font-label text-[10px] text-amber-800 uppercase tracking-wider font-semibold">Sessions</span>
+</div>
+</div>
+<!-- Mastered Skills Tags -->
+<div class="flex flex-wrap gap-1.5 justify-center mt-1">
+<span class="px-2.5 py-0.5 rounded-md bg-amber-100/70 border border-amber-200 text-amber-900 font-label text-[11px] font-semibold">Python &amp; ML</span>
+<span class="px-2.5 py-0.5 rounded-md bg-amber-100/70 border border-amber-200 text-amber-900 font-label text-[11px] font-semibold">PyTorch</span>
+</div>
+</div>
+<!-- Rank #3: Bronze Treatment (Kenji Sato) -->
+<div class="relative order-3 bg-surface-container-lowest rounded-2xl p-6 border-2 border-amber-600/40 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center group">
+<!-- Bronze Medal Header Pill -->
+<div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-gradient-to-r from-orange-100 via-amber-100 to-orange-100 border border-amber-600/40 text-amber-900 font-headline font-bold text-xs shadow-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-amber-700" data-icon="military_tech" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+          Rank #3 • Bronze Lead
+        </div>
+<!-- Avatar Ring -->
+<div class="relative mt-2 mb-3">
+<img alt="Kenji Sato avatar" class="w-20 h-20 rounded-full object-cover ring-4 ring-orange-200 group-hover:scale-105 transition-transform duration-200" data-alt="Portrait of Kenji Sato, a focused creative music technology student with casual modern aesthetic and headphones around his neck, lit with warm bronze and amber side lighting in an audio production studio." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAI7Plt3VDIAndz4V5LcQpXtM4SVM7UqUdR1RSw5JnDNCuXEFGeh61z6CW9P9zGj1M9Uu1JGFMgNlW-n4HSfclC24mpJhGk16obR-fV5dGw8n07oYCY5K5tvvW6SKd3rr-L6gNFan8JcaceEP5fDgEBI5mUtasVcHL3ze6DT3-1jt86R4P7Zqa5RJj1frz88B0KV-cGt2xmz2256WYSY84tEr8fZd-3fjRky1nEui6f0prMbTeYsPOJ2xKTrChiI_kG-jO74OtOMIq6"/>
+<span class="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-amber-700 text-white font-headline text-xs font-extrabold flex items-center justify-center shadow-xs">3</span>
+</div>
+<h3 class="font-headline font-bold text-base text-on-surface">Kenji Sato</h3>
+<p class="font-label text-xs font-semibold text-secondary mb-2">Level 4 Audio Lead</p>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-2 w-full my-3 py-2 px-3 bg-surface-container-low rounded-xl border border-outline-variant/20 text-center">
+<div>
+<span class="block font-headline font-extrabold text-sm text-on-surface">13,910</span>
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">Total XP</span>
+</div>
+<div class="border-l border-outline-variant/30">
+<span class="block font-headline font-extrabold text-sm text-on-surface">31</span>
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">Sessions</span>
+</div>
+</div>
+<!-- Mastered Skills Tags -->
+<div class="flex flex-wrap gap-1.5 justify-center mt-1">
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label text-[11px] font-medium">Jazz Harmony</span>
+<span class="px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant font-label text-[11px] font-medium">Ableton</span>
+</div>
+</div>
+</div>
+<!-- Main Layout: Leaderboard Table (Left/Center) + Gamification Aside (Right) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Leaderboard Table Section (8 Cols) -->
+<section class="lg:col-span-8 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden">
+<!-- Table Control Toolbar -->
+<div class="p-4 sm:p-5 border-b border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface-container-low/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="trophy" style="font-variation-settings: 'FILL' 1;">trophy</span>
+<h2 class="font-headline font-bold text-base text-on-surface">Top 10 Campus Contributors</h2>
+</div>
+<span class="font-label text-xs text-on-surface-variant">Live sync • Updated 12 mins ago</span>
+</div>
+<!-- Desktop / Tablet Table View -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[620px]">
+<thead>
+<tr class="border-b border-outline-variant/20 text-[11px] font-headline uppercase tracking-wider text-on-surface-variant bg-surface-container-lowest">
+<th class="py-3.5 px-4 font-semibold w-16 text-center">Rank</th>
+<th class="py-3.5 px-4 font-semibold">Peer Member</th>
+<th class="py-3.5 px-4 font-semibold">Department</th>
+<th class="py-3.5 px-4 font-semibold">Top Skills</th>
+<th class="py-3.5 px-4 font-semibold text-center">Sessions</th>
+<th class="py-3.5 px-4 font-semibold text-right pr-6">Total XP</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20 font-body text-xs">
+<!-- Row #1: Elena Rostova (Gold Tint) -->
+<tr class="bg-amber-50/40 hover:bg-amber-50/80 transition-colors">
+<td class="py-3.5 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400/30 text-amber-900 font-headline font-black text-xs border border-amber-400">1</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Elena Rostova miniature" class="w-9 h-9 rounded-full object-cover ring-2 ring-amber-300" data-alt="Small avatar icon of Elena Rostova, female student smiling warmly, soft clean lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_8LZ7Y_gjeZ7RtyEX3MIyi-Pq9GafH4Nfvu4cp2Kh0DrhrpJd0YjMKo2O3IWKaU4TemSnryjpwN-5tpBIgKHwgxy5Eci81qf9G4Qn884hJgXfNtdtUCSv-8eSX0tokbwlc42flPjYlhv1wQ-jaWwaGp9NnhHW2gYT0pWTSkKV5-D_uwiCfz9OAQOR6hAao-CPJ8VQadyB2rGMZIB61ZR9Jt45dTmsJ_5z58xtdmjAwojooFyJ8oxamiXbgFURJv09v7LVEJJ8NwX4"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Elena Rostova
+                        <span class="material-symbols-outlined text-amber-600 text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@elena_ml • Sem 6</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Computer Science</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-semibold">Python</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-semibold">PyTorch</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface">42</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-black text-amber-900">18,450 XP</td>
+</tr>
+<!-- Row #2: Marcus Vance (Silver Tint) -->
+<tr class="bg-slate-50/70 hover:bg-slate-100/80 transition-colors">
+<td class="py-3.5 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 text-slate-800 font-headline font-bold text-xs border border-slate-300">2</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Marcus Vance miniature" class="w-9 h-9 rounded-full object-cover ring-2 ring-slate-300" data-alt="Small avatar icon of Marcus Vance, male student with glasses in cool tone light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBuk2SpFeTXcmrfBtOYhk6o5VJoS3NVYgsa0whl2KIj_h5qZthXn7m7gKhoRzoTGUU0vXfp1piBm0-T09BdLtKRwOtVhRtROf5QoQfkj8yvBOY6hH4fAaD4V4MI8lBx1JrB7Q4TydT5QMl3G4_bIElAhO_k5Yx4TuMyUdjD8FShF8SDFLu8BaH9LgIikMAIB0_hCsOpe2xTYmrGo5OnZUj6mzORtMHVTfYdF984rTz2iBfF0MZI2tMaO7HMMa6UvPEGww63sZuSI28"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Marcus Vance
+                        <span class="material-symbols-outlined text-slate-500 text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@marcus_v • Sem 4</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Design &amp; HCI</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-semibold">Figma</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-semibold">Design Systems</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface">36</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-black text-slate-800">15,220 XP</td>
+</tr>
+<!-- Row #3: Kenji Sato (Bronze Tint) -->
+<tr class="bg-orange-50/30 hover:bg-orange-50/70 transition-colors">
+<td class="py-3.5 px-4 text-center">
+<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 text-amber-900 font-headline font-bold text-xs border border-amber-300">3</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Kenji Sato miniature" class="w-9 h-9 rounded-full object-cover ring-2 ring-orange-200" data-alt="Small avatar icon of Kenji Sato, creative audio student with soft amber backlighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq_OS6Q7Sv9I1NlsLZXgqzgESNT38Xh9j5qxIgCPGgD6SZUGx2LHn97ye2zAMsJxvFmMfluxUuX9jp0isFXKDBWeU7m1cVGjTne10cvmqvnbX6Me3Wj3UKsYOvjMDLnGacoTnz1389dhVq2rycQc01rk-XjnhA9uBcGqh3CaY7ld9bx-VBmKW5ECNrpzWWj3VLdTkhlBZKDq31QAeuJkMKJoNbMwd_PXDrd7IG8zAtFI5oeMLjMshHRL99LqUQmBLP1Il1vwjSFsA5"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Kenji Sato
+                        <span class="material-symbols-outlined text-amber-700 text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@kenji_sound • Sem 8</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Music Media Tech</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-semibold">Ableton</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-semibold">Harmony</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface">31</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-black text-amber-900">13,910 XP</td>
+</tr>
+<!-- Row #4: Sarah Lin -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface-variant">#4</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Sarah Lin avatar" class="w-9 h-9 rounded-full object-cover" data-alt="Portrait of Sarah Lin, a confident college student with sleek dark hair and welcoming expression, photographed in high-key bright campus library setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuALDX2UcsbE8ku_ccZ2JpzF_vYenrAS-gKpw8ICMWcNFaaKeO7repKUzwt7j-2VQ4BU4beIDoRnYCs_Wa5d9mf5KIRgcZz5A8mMVT3nE6iJSkmXbmu-12QRB1Tb6sWlHAPwBdhtxlZgBFkytO4zjCT06FffQiwJPzdMmUB3IYQl_MkqqfO1Y2lcaTMz7plJNM_UHg5Z0CyW5OkCtcWE_lAs_zpzSBHHl01isJy3Dwf2cjdQpytiZC1MSzg9lMEalqjDFgHb45dgt8Js"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Sarah Lin
+                        <span class="material-symbols-outlined text-primary text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@sarah_codes • Sem 5</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Data Science</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">SQL</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Tableau</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-semibold text-on-surface">28</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-bold text-primary">12,400 XP</td>
+</tr>
+<!-- Row #5: David Kalu -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface-variant">#5</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="David Kalu avatar" class="w-9 h-9 rounded-full object-cover" data-alt="Portrait of David Kalu, an engaging male student engineer wearing a dark polo in a brightly lit robotics laboratory environment with soft reflections." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaEIb5IQPXxclLOkqoGqZnX7SZ_q6pW55N4x-uPr0PNrSgBtqks-A_h5EOQ9EDouLcluP9uoTXb9MCNBc8HIc7GqS13O9pHwDeDauXP98hw3_igoiYQnNVVgrYyi0wsL57B1RwurzAQnzCZvA7A7eX-Pb0jhlS16oB4Hd6cbwKHns8OiqOivrGDL5hT0WNSRyPFY4osqyucAALeGv6NW2aZ6UIpBu2ulkfR_scaPGJd789oc1WNBPyAr_WTVx-GM3Mmifri3Q8Xja6"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        David Kalu
+                        <span class="material-symbols-outlined text-primary text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@kalu_eng • Sem 7</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Electrical Eng.</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Embedded C</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Arduino</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-semibold text-on-surface">25</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-bold text-primary">11,850 XP</td>
+</tr>
+<!-- Row #6: Emma Vance (CURRENT USER 'YOU' ROW) -->
+<tr class="bg-primary/5 border-y-2 border-primary/40 relative shadow-xs hover:bg-primary/10 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-extrabold text-primary">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary text-xs font-headline font-bold">6</span>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="Current User Emma Vance" class="w-10 h-10 rounded-full object-cover ring-2 ring-primary shadow-xs" data-alt="Avatar photo of Emma Vance, female student in lilac knit sweater with welcoming expression in crisp modern university lounge." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-4JEbnE1CKEaUgfxsuW0XASeAZ--wHq4s2pFjLHwjM888AlTXN_lVtoDRLCHh3Af5nCvhUCg9N40m7otP1FFxo-qCtewWOUijXsLTS5MgkR7NCaC4u-StJ-vC5SD_mHyR3Qy3t9NnmUHpqdKTvC9LHzRyS5Drw7Dvj_-GQSqKn_VY4myiRt_5tekCYdyl3GrcDu59BY9lSq3z4kt6HjuLAZvZAgs2DyrUZTvpF0M8Q7GtBGN9JQ-sspDZldiif5eop6zjG1UyMR42"/>
+<span class="absolute -top-1 -right-1 px-1 rounded-full bg-primary text-on-primary font-headline text-[9px] font-extrabold">YOU</span>
+</div>
+<div>
+<div class="font-headline font-extrabold text-primary flex items-center gap-1.5">
+                        Emma Vance
+                        <span class="px-1.5 py-0.2 rounded bg-primary-container text-on-primary-container text-[10px] font-headline font-bold">You</span>
+</div>
+<div class="text-on-surface-variant text-[11px] flex items-center gap-2">
+<span>@emmavance • Sem 4</span>
+<span class="text-tertiary font-semibold flex items-center text-[10px]">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span> 430 XP to Rank #5
+                        </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-semibold text-on-surface">Computer Science</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-primary-container/40 text-primary font-semibold text-[10px]">React.js</span>
+<span class="px-2 py-0.5 rounded bg-primary-container/40 text-primary font-semibold text-[10px]">Tailwind</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-extrabold text-primary">22</td>
+<td class="py-3.5 px-4 text-right pr-6">
+<span class="font-headline font-black text-primary text-sm">9,420 XP</span>
+<div class="w-20 ml-auto bg-surface-container rounded-full h-1.5 mt-1 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 78%"></div>
+</div>
+</td>
+</tr>
+<!-- Row #7: Priya Patel -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface-variant">#7</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Priya Patel avatar" class="w-9 h-9 rounded-full object-cover" data-alt="Portrait of Priya Patel, smiling female biotechnology student holding notebooks in a bright university atrium with natural sunlit plants." src="https://lh3.googleusercontent.com/aida-public/AB6AXuALdfG36st1Y2DsTXHwLXOmdycdxkw5-K0nqDJxL1LP-nSvTPc_9HvEkC_pI4ubSPGwlEEZJs5-2vQhvBGcG7EjUB7S0i5KIL84RqUrhrOQRkq3ncZahjfXw3ZZYmzR_suTadX08Dpz-KvfMmIR34ZzsHTe4hXbyF2TeGI8lV3zywgE-5Hm9j2Wv17VJf2iSsVSVSqnPLZIiePTfZHoOG2Ev5GJZveC_mWXBM0xfUV5pR2wv2jrVIHGBPRgVqlvPG9Eo93UFwK8zU1_"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Priya Patel
+                        <span class="material-symbols-outlined text-primary text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@priya_bio • Sem 6</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Bioinformatics</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">BioPython</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Genomics</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-semibold text-on-surface">19</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-bold text-primary">8,900 XP</td>
+</tr>
+<!-- Row #8: Liam O'Connor -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface-variant">#8</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Liam O'Connor avatar" class="w-9 h-9 rounded-full object-cover" data-alt="Portrait of Liam O'Connor, a friendly male student with a bright expression, outdoors in a modern campus courtyard with sunny atmospheric bokeh." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCt6TeP7DDxHgkLijdZ2PxHoLCOe13ghXlsY7g7S8VrdRvN97VlPVd9DrBqbOsbwTrOXzZGT7QPboGm9h2J7bwcnOkSTzlYzUZbmbTfbb685iM-eFfwMtxT4BqtKhkO16DfdZ-vjUuBkaSxKqM9uJnEWG32uOz1JJEO1g-4_mSoAxQyfMsyx__QaFyMnkL2ROzAJZ1EvjxtSjOUkFOXq2ZukbB21EJaGj9l9LO6y-1b6eLL9kHMFbKtIij0pCrFTL3Lnu3T02aWkgfo"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Liam O'Connor
+                        <span class="material-symbols-outlined text-primary text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@liam_oc • Sem 3</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Economics</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Econometrics</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Stata</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-semibold text-on-surface">17</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-bold text-primary">8,200 XP</td>
+</tr>
+<!-- Row #9: Sophia Zhang -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface-variant">#9</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Sophia Zhang avatar" class="w-9 h-9 rounded-full object-cover" data-alt="Portrait of Sophia Zhang, an expressive female architecture student sitting near a light wood drafting desk in an open daylight studio." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABXUPQeuYMMic0bK3c1g1VrG3T_zzi_2xbnrxTT-fQ2DZKaTdB6JS0PHVL6Q5v1vjhEFr3lgw1-VM177Qv6e3P4godTAhXI3XDKK_T2P9Tj4v6g5cqBRwMpe1THMz5VRLEegNzTSRBkPCaEFt1HUSWPmJME7xdPGugA_toMzjiHKcUos0A4q6ZX93coETyEowSTjjchXRnsZXtRTsfxNzVO639FDg5w8ayUseYrUX-kivPXeerhlXlfEr_HY2j3tdAGAajubPny5FR"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Sophia Zhang
+                        <span class="material-symbols-outlined text-primary text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@sophia_arch • Sem 7</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Architecture</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Rhino 3D</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Grasshopper</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-semibold text-on-surface">16</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-bold text-primary">7,850 XP</td>
+</tr>
+<!-- Row #10: Tariq Mansour -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4 text-center font-headline font-bold text-on-surface-variant">#10</td>
+<td class="py-3.5 px-4">
+<div class="flex items-center gap-3">
+<img alt="Tariq Mansour avatar" class="w-9 h-9 rounded-full object-cover" data-alt="Portrait of Tariq Mansour, a focused student with a warm smile wearing a blue denim jacket in a vibrant contemporary study lounge." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLD63XSgwJVh0jytr7WgZ2GSV5PBpLKhimDd_URTT9TTTN-vjlWMadDOuRD5Hk1gqRiv9kXWi7ttHLI8rPnL5o6qn_67-tZEQcHsjptEYqM2Aj3SiKbIJfXkwNLyR11_Axeu0Hg0Vg88ZRaEP0YvuDHcW_8j8fH5q2dWt1b35YAA4az3wRyHGsl8X-ydUhlKZu7AsRClg2HSyVIO7HeFjp8Cf26krF8OusrUaJ0EkyoRzhKDqTfFQ5c6qxop9NbqiEZzISf2e4ByGd"/>
+<div>
+<div class="font-headline font-bold text-on-surface flex items-center gap-1">
+                        Tariq Mansour
+                        <span class="material-symbols-outlined text-primary text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<span class="text-on-surface-variant text-[11px]">@tariq_m • Sem 5</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4 font-medium text-on-surface">Philosophy &amp; Logic</td>
+<td class="py-3.5 px-4">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Formal Logic</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px] font-medium">Ethics</span>
+</div>
+</td>
+<td class="py-3.5 px-4 text-center font-headline font-semibold text-on-surface">15</td>
+<td class="py-3.5 px-4 text-right pr-6 font-headline font-bold text-primary">7,400 XP</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Pagination/Affordance -->
+<div class="p-4 bg-surface-container-lowest border-t border-outline-variant/20 flex items-center justify-between">
+<p class="font-body text-xs text-on-surface-variant">Showing top 10 of 480 verified campus mentors</p>
+<button class="px-3.5 py-1.5 rounded-lg border border-outline-variant/40 hover:bg-surface-container-low font-headline font-semibold text-xs text-primary transition-colors flex items-center gap-1">
+            View Extended Standings
+            <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Playful Gamification Aside & Guides (4 Cols) -->
+<aside class="lg:col-span-4 space-y-6">
+<!-- Active Multipliers Card -->
+<div class="bg-gradient-to-br from-surface-container-lowest via-surface-container-low to-secondary-container/30 rounded-2xl p-6 border border-secondary-container shadow-sm relative overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-center gap-2 mb-3">
+<span class="p-2 rounded-xl bg-tertiary-container/40 text-tertiary">
+<span class="material-symbols-outlined text-lg" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</span>
+<div>
+<h3 class="font-headline font-bold text-sm text-on-surface">XP Surge Multipliers</h3>
+<p class="font-label text-[11px] text-tertiary font-semibold tracking-wide uppercase">High-Demand Topics</p>
+</div>
+</div>
+<p class="font-body text-xs text-on-surface-variant mb-4 leading-relaxed">
+            Teach high-request subjects this week to earn boosted reputation and bonus XP on every verified exchange.
+          </p>
+<div class="space-y-2.5">
+<div class="flex items-center justify-between p-2.5 bg-surface-container-lowest/90 rounded-xl border border-outline-variant/30">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-headline font-semibold text-xs text-on-surface">Linear Algebra</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-headline font-extrabold text-xs">+25% XP</span>
+</div>
+<div class="flex items-center justify-between p-2.5 bg-surface-container-lowest/90 rounded-xl border border-outline-variant/30">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-headline font-semibold text-xs text-on-surface">Rust Systems</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-headline font-extrabold text-xs">+25% XP</span>
+</div>
+</div>
+<button class="mt-4 w-full py-2 bg-primary hover:bg-primary-dim text-on-primary font-headline font-bold text-xs rounded-xl shadow-xs transition-colors duration-150 flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="add_circle">add_circle</span>
+            List a Surge Skill Session
+          </button>
+</div>
+<!-- How to Earn XP Micro-Guide -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm space-y-4">
+<div class="flex items-center gap-2">
+<span class="p-2 rounded-xl bg-surface-container text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="school">school</span>
+</span>
+<h3 class="font-headline font-bold text-sm text-on-surface">How to Earn XP</h3>
+</div>
+<div class="space-y-3 font-body text-xs">
+<div class="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-container-low transition-colors">
+<span class="w-7 h-7 rounded-lg bg-surface-container text-primary flex items-center justify-center font-headline font-black text-xs shrink-0">1</span>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-headline font-bold text-on-surface">Host 1-on-1 Swap</span>
+<span class="font-headline font-bold text-primary">+50 XP</span>
+</div>
+<p class="text-on-surface-variant text-[11px] mt-0.5">Complete a 45+ minute peer tutoring or co-learning session.</p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-container-low transition-colors">
+<span class="w-7 h-7 rounded-lg bg-surface-container text-primary flex items-center justify-center font-headline font-black text-xs shrink-0">2</span>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-headline font-bold text-on-surface">Pass Skill Quiz</span>
+<span class="font-headline font-bold text-secondary">+25 XP</span>
+</div>
+<p class="text-on-surface-variant text-[11px] mt-0.5">Validate your proficiency via community-authored challenges.</p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-2 rounded-lg hover:bg-surface-container-low transition-colors">
+<span class="w-7 h-7 rounded-lg bg-surface-container text-primary flex items-center justify-center font-headline font-black text-xs shrink-0">3</span>
+<div>
+<div class="flex items-center justify-between">
+<span class="font-headline font-bold text-on-surface">5-Star Peer Review</span>
+<span class="font-headline font-bold text-tertiary">+15 XP</span>
+</div>
+<p class="text-on-surface-variant text-[11px] mt-0.5">Receive exemplary feedback and endorsements from learners.</p>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant/20">
+<a class="font-headline font-semibold text-xs text-primary hover:text-primary-dim flex items-center justify-between group" href="#">
+<span>Read Full Time Banking Policy</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</a>
+</div>
+</div>
+<!-- Mini Mascot Cheer / Community Card -->
+<div class="bg-surface-container rounded-2xl p-5 border border-outline-variant/30 flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-lowest flex items-center justify-center text-primary shadow-xs shrink-0">
+<span class="material-symbols-outlined text-2xl" data-icon="diversity_3" style="font-variation-settings: 'FILL' 1;">diversity_3</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-xs text-on-surface">Spring Season Rewards</h4>
+<p class="font-body text-[11px] text-on-surface-variant mt-0.5">Top 10 finish unlocks Dean's Honor Certificate &amp; Skill Ambassador Badge.</p>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="mt-auto w-full bg-surface-container-low dark:bg-inverse-surface border-t border-outline-variant/30 dark:border-outline/20">
+<div class="w-full py-8 px-6 lg:px-12 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex flex-col sm:flex-row items-center gap-3">
+<span class="font-display font-bold text-lg text-primary dark:text-inverse-primary">SkillLoop</span>
+<span class="hidden sm:inline-block text-outline-variant">•</span>
+<p class="font-body text-sm text-on-surface-variant dark:text-outline-variant text-center sm:text-left">
+          © 2025 SkillLoop Campus Network. Empowering peer-to-peer student knowledge exchange.
+        </p>
+</div>
+<nav class="flex flex-wrap items-center justify-center gap-4">
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-inverse-primary transition-colors text-xs underline-offset-4 hover:underline" href="#">Campus Guidelines</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-inverse-primary transition-colors text-xs underline-offset-4 hover:underline" href="#">Honor Code</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-inverse-primary transition-colors text-xs underline-offset-4 hover:underline" href="#">Time Banking Policy</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-inverse-primary transition-colors text-xs underline-offset-4 hover:underline" href="#">Verification Standards</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-inverse-primary transition-colors text-xs underline-offset-4 hover:underline" href="#">Help Center</a>
+</nav>
+</div>
+</footer>
+</body></html>

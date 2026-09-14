@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SkillLoop - AI Resume Generator</title>
+<!-- Google Fonts Preconnect & Inter / Plus Jakarta Sans / JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined (Exact Link Requirement) -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim as specified -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed-dim": "#ddb7ff",
+            "on-tertiary": "#00354a",
+            "surface-variant": "#34343d",
+            "surface-container": "#1f1f27",
+            "outline-variant": "#474554",
+            "on-tertiary-container": "#f1f8ff",
+            "tertiary-fixed-dim": "#7bd0ff",
+            "inverse-primary": "#5847d2",
+            "error-container": "#93000a",
+            "surface": "#13131b",
+            "tertiary-fixed": "#c4e7ff",
+            "on-secondary-fixed": "#2c0051",
+            "outline": "#928ea0",
+            "surface-dim": "#13131b",
+            "on-primary-fixed-variant": "#4029ba",
+            "on-surface": "#e4e1ed",
+            "on-secondary": "#490080",
+            "secondary-container": "#6f00be",
+            "surface-container-lowest": "#0d0d16",
+            "error": "#ffb4ab",
+            "secondary": "#ddb7ff",
+            "on-surface-variant": "#c8c4d7",
+            "surface-bright": "#393842",
+            "inverse-surface": "#e4e1ed",
+            "background": "#13131b",
+            "on-primary": "#2900a0",
+            "inverse-on-surface": "#302f39",
+            "primary": "#c6bfff",
+            "on-error-container": "#ffdad6",
+            "primary-fixed": "#e4dfff",
+            "tertiary": "#7bd0ff",
+            "on-error": "#690005",
+            "secondary-fixed": "#f0dbff",
+            "on-secondary-fixed-variant": "#6900b3",
+            "on-secondary-container": "#d6a9ff",
+            "on-primary-fixed": "#160066",
+            "surface-container-highest": "#34343d",
+            "primary-fixed-dim": "#c6bfff",
+            "primary-container": "#6c5ce7",
+            "surface-container-low": "#1b1b23",
+            "surface-tint": "#c6bfff",
+            "surface-container-high": "#292932",
+            "on-primary-container": "#faf6ff",
+            "on-background": "#e4e1ed",
+            "tertiary-container": "#007aa5",
+            "on-tertiary-fixed-variant": "#004c69",
+            "on-tertiary-fixed": "#001e2c"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter-xs": "0.25rem",
+            "gutter-lg": "1.5rem",
+            "container-padding-desktop": "2.5rem",
+            "gutter-xl": "2rem",
+            "gutter-md": "1rem",
+            "max-width": "1280px",
+            "gutter-sm": "0.5rem",
+            "container-padding-mobile": "1rem"
+          },
+          "fontFamily": {
+            "code-sm": [
+              "JetBrains Mono"
+            ],
+            "body-sm": [
+              "Inter"
+            ],
+            "display-hero": [
+              "Plus Jakarta Sans"
+            ],
+            "label-md": [
+              "Inter"
+            ],
+            "headline-lg": [
+              "Plus Jakarta Sans"
+            ],
+            "label-lg": [
+              "Inter"
+            ],
+            "label-sm": [
+              "Inter"
+            ],
+            "body-md": [
+              "Inter"
+            ],
+            "body-lg": [
+              "Inter"
+            ],
+            "headline-sm": [
+              "Plus Jakarta Sans"
+            ],
+            "headline-lg-mobile": [
+              "Plus Jakarta Sans"
+            ],
+            "display-hero-mobile": [
+              "Plus Jakarta Sans"
+            ],
+            "headline-md": [
+              "Plus Jakarta Sans"
+            ]
+          },
+          "fontSize": {
+            "code-sm": [
+              "12px",
+              {
+                "lineHeight": "16px",
+                "letterSpacing": "0em",
+                "fontWeight": "500"
+              }
+            ],
+            "body-sm": [
+              "12px",
+              {
+                "lineHeight": "18px",
+                "letterSpacing": "0em",
+                "fontWeight": "400"
+              }
+            ],
+            "display-hero": [
+              "56px",
+              {
+                "lineHeight": "64px",
+                "letterSpacing": "-0.03em",
+                "fontWeight": "800"
+              }
+            ],
+            "label-md": [
+              "12px",
+              {
+                "lineHeight": "16px",
+                "letterSpacing": "0.01em",
+                "fontWeight": "500"
+              }
+            ],
+            "headline-lg": [
+              "40px",
+              {
+                "lineHeight": "48px",
+                "letterSpacing": "-0.025em",
+                "fontWeight": "700"
+              }
+            ],
+            "label-lg": [
+              "14px",
+              {
+                "lineHeight": "20px",
+                "letterSpacing": "-0.005em",
+                "fontWeight": "600"
+              }
+            ],
+            "label-sm": [
+              "11px",
+              {
+                "lineHeight": "14px",
+                "letterSpacing": "0.04em",
+                "fontWeight": "600"
+              }
+            ],
+            "body-md": [
+              "14px",
+              {
+                "lineHeight": "22px",
+                "letterSpacing": "-0.006em",
+                "fontWeight": "400"
+              }
+            ],
+            "body-lg": [
+              "16px",
+              {
+                "lineHeight": "26px",
+                "letterSpacing": "-0.011em",
+                "fontWeight": "400"
+              }
+            ],
+            "headline-sm": [
+              "18px",
+              {
+                "lineHeight": "26px",
+                "letterSpacing": "-0.015em",
+                "fontWeight": "600"
+              }
+            ],
+            "headline-lg-mobile": [
+              "28px",
+              {
+                "lineHeight": "36px",
+                "letterSpacing": "-0.02em",
+                "fontWeight": "700"
+              }
+            ],
+            "display-hero-mobile": [
+              "36px",
+              {
+                "lineHeight": "44px",
+                "letterSpacing": "-0.025em",
+                "fontWeight": "800"
+              }
+            ],
+            "headline-md": [
+              "24px",
+              {
+                "lineHeight": "32px",
+                "letterSpacing": "-0.02em",
+                "fontWeight": "600"
+              }
+            ]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Obsidian canvas gradients */
+    .bg-obsidian-ambient {
+      background-color: #0A0A12;
+      background-image: 
+        radial-gradient(circle at 18% 12%, rgba(108, 92, 231, 0.14) 0%, transparent 48%),
+        radial-gradient(circle at 82% 88%, rgba(56, 189, 248, 0.09) 0%, transparent 42%),
+        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 60%);
+    }
+
+    /* Custom Glass Panel Styles */
+    .glass-panel-l1 {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-panel-l2 {
+      background: rgba(18, 18, 28, 0.85);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    /* Shimmer Button */
+    .btn-luminescence {
+      background: linear-gradient(135deg, #6C5CE7 0%, #A855F7 100%);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 20px -2px rgba(108, 92, 231, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-luminescence:hover {
+      box-shadow: 0 0 24px rgba(168, 85, 247, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+    .btn-luminescence:active {
+      transform: scale(0.98);
+    }
+
+    /* Custom scrollbar for preview */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(13, 13, 22, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(198, 191, 255, 0.4);
+    }
+  </style>
+</head>
+<body class="bg-obsidian-ambient text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- ========================================================================= -->
+<!-- SHARED COMPONENT: TopNavBar (Exact JSON Execution) -->
+<!-- ========================================================================= -->
+<header class="sticky top-0 w-full z-50 bg-surface-dim/80 dark:bg-surface-dim/80 backdrop-blur-xl border-b border-outline-variant/30 dark:border-outline-variant/30 shadow-[0_16px_32px_-8px_rgba(0,0,0,0.6)]">
+<div class="flex justify-between items-center w-full px-container-padding-desktop max-w-[1280px] mx-auto h-16">
+<!-- Brand & Search cluster on left -->
+<div class="flex items-center gap-6">
+<a class="text-headline-sm font-headline-sm text-primary dark:text-primary tracking-tight font-bold flex items-center gap-2 transition-transform hover:opacity-95" href="#">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary-container to-secondary flex items-center justify-center text-on-primary shadow-inner">
+<span class="material-symbols-outlined" data-icon="all_inclusive" style="font-size: 22px;">all_inclusive</span>
+</div>
+<span>SkillLoop</span>
+</a>
+<!-- Left Search Bar (per search_bar: "on_left") -->
+<div class="hidden lg:flex items-center relative">
+<span class="material-symbols-outlined absolute left-3 text-outline text-[18px]" data-icon="search">search</span>
+<input class="bg-white/[0.04] text-on-surface placeholder:text-outline border border-white/10 rounded-lg pl-9 pr-8 py-1.5 font-body-sm text-body-sm w-64 focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all" placeholder="Search verified skills, peers, nodes..." type="text"/>
+<span class="absolute right-2.5 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-outline text-[10px] font-code-sm">⌘K</span>
+</div>
+</div>
+<!-- Navigation Links (Active tab: My Sessions mapped to Resume Context) -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-lg text-label-lg transition-colors hover:text-on-surface" href="#">Marketplace</a>
+<a class="text-primary dark:text-primary font-label-lg text-label-lg border-b-2 border-primary dark:border-primary pb-1 flex items-center gap-1.5" href="#">
+<span>My Sessions</span>
+<span class="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-code-sm">Resume</span>
+</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-lg text-label-lg transition-colors hover:text-on-surface" href="#">Peer Network</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-lg text-label-lg transition-colors hover:text-on-surface" href="#">Karma Ledger</a>
+</nav>
+<!-- Trailing Controls -->
+<div class="flex items-center gap-3">
+<!-- Secondary Action: 14.5 Credits pill -->
+<div class="flex items-center gap-1.5 bg-surface-container-high/70 border border-white/10 px-3 py-1.5 rounded-full text-code-sm font-code-sm text-tertiary-fixed-dim hover:border-tertiary/40 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="bolt">bolt</span>
+<span>14.5 Credits</span>
+</div>
+<!-- Trailing Icon Actions: notifications, chat_bubble, tune -->
+<div class="hidden sm:flex items-center gap-1 text-on-surface-variant">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5 hover:text-on-surface transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5 hover:text-on-surface transition-colors" title="Messages">
+<span class="material-symbols-outlined text-[20px]" data-icon="chat_bubble">chat_bubble</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5 hover:text-on-surface transition-colors" title="Preferences">
+<span class="material-symbols-outlined text-[20px]" data-icon="tune">tune</span>
+</button>
+</div>
+<!-- Trailing Primary Action: Post Request -->
+<button class="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-surface-container-highest/60 hover:bg-surface-container-highest text-primary font-label-md text-label-md border border-primary/20 hover:border-primary/50 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[16px]" data-icon="add">add</span>
+<span>Post Request</span>
+</button>
+<!-- Profile Avatar: Emma Vance with purple XP level 4 ring -->
+<div class="relative pl-1">
+<div class="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-secondary-container via-primary-container to-secondary shadow-[0_0_12px_rgba(168,85,247,0.4)]">
+<img class="w-full h-full object-cover rounded-full bg-surface-container-highest" data-alt="Modern close-up photographic headshot portrait of Emma Vance, a female university honours student with intelligent warm expression and dark hair, set against a subtle ambient studio background with soft neon violet edge lighting, sleek dark-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMqf9uICMq2bVJSaILfrpCoiEtlsskB6ji6iVUbpwaZ2Jl0NHKCJOp4kpYINlbSCEyB1sm6eNhXWSfmqynYVIWjFtr2LfNRfH53uaDSohLjN-zOwGhWBuXx2Ax2kyi7Dc_77wT5bduqj7PwLUkY1JlS5KiK-1cqLrPw6zuC2-cpNCOLHS7SrDZWMVNYD1tnEvKn_zAIJxS9j9rp_Q_7IemgH46rwAwMUHcENje6yfTVMv-EObsnhBC7_o2MOqEbtssvxqTVRb64mvf"/>
+</div>
+<span class="absolute -bottom-1 -right-1 px-1 rounded-full bg-primary-container text-on-primary-container text-[9px] font-code-sm font-bold border border-surface-dim">L4</span>
+</div>
+</div>
+</div>
+</header>
+<!-- ========================================================================= -->
+<!-- MAIN WORKSPACE: Asymmetric 40% Left Controls / 60% Live PDF Canvas -->
+<!-- ========================================================================= -->
+<main class="flex-1 w-full max-w-[1280px] mx-auto px-container-padding-mobile md:px-container-padding-desktop py-8">
+<!-- Top Breadcrumb & Status Bar -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<div class="flex items-center gap-2 font-label-md text-label-md">
+<span class="text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="school">school</span>
+<span>UC Berkeley Node</span>
+</span>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface-variant">Credential Synthesis</span>
+<span class="text-outline-variant">/</span>
+<span class="text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="auto_awesome">auto_awesome</span>
+          AI Executive Resume Builder
+        </span>
+</div>
+<!-- Live Campus Node Status Pill -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 text-body-sm font-body-sm text-on-surface-variant">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<span>Node #441 (Cal EECS) Consensus Validated</span>
+</div>
+</div>
+<!-- 2-PANEL ASYMMETRIC GRID (Desktop: 40% / 60%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- =================================================================== -->
+<!-- LEFT PANEL (approx 40% width -> 5 columns on 12-col grid) -->
+<!-- =================================================================== -->
+<section class="lg:col-span-5 flex flex-col gap-6">
+<!-- Generator Form Glass Card -->
+<div class="glass-panel-l1 rounded-xl p-6 relative overflow-hidden border border-white/10 transition-all duration-300 hover:border-primary/30">
+<!-- Subtle corner refraction glow -->
+<div class="absolute -top-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Header -->
+<div class="flex items-start justify-between gap-3 mb-5">
+<div>
+<div class="flex items-center gap-2">
+<span class="text-secondary text-xl">✨</span>
+<h1 class="text-headline-sm font-headline-sm text-on-surface font-bold tracking-tight">Generate Your Resume</h1>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
+                Tailor your campus-verified credentials and peer endorsements for high-impact applications.
+              </p>
+</div>
+<span class="px-2 py-0.5 rounded bg-secondary-container/30 border border-secondary/30 text-secondary text-[11px] font-code-sm uppercase tracking-wider">v3.2 AI</span>
+</div>
+<!-- Form Controls -->
+<form class="space-y-5" onsubmit="event.preventDefault();">
+<!-- 1. Target Role -->
+<div>
+<label class="block text-label-md font-label-md text-on-surface mb-2 flex items-center justify-between">
+<span>Target Role &amp; Position</span>
+<span class="text-outline text-[11px]">AI context driver</span>
+</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3.5 top-2.5 text-outline text-[18px]" data-icon="work">work</span>
+<input class="w-full h-10 pl-10 pr-4 bg-white/[0.03] border border-white/10 rounded-lg text-on-surface font-body-sm text-body-sm focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all" type="text" value="Senior Frontend Engineer / Full-Stack Peer Lead"/>
+</div>
+</div>
+<!-- 2. Experience Level Dropdown -->
+<div>
+<label class="block text-label-md font-label-md text-on-surface mb-2">Experience Level</label>
+<div class="relative">
+<select class="w-full h-10 px-3.5 bg-surface-container border border-white/10 rounded-lg text-on-surface font-body-sm text-body-sm focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 appearance-none cursor-pointer">
+<option>1-2 years campus project lead</option>
+<option>Fresher / Entry-Level (0-1 yr)</option>
+<option>3-5 years industry &amp; research</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 text-outline pointer-events-none text-[20px]" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- 3. Skills to Highlight -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<label class="text-label-md font-label-md text-on-surface">Skills to Highlight (Verified in Ledger)</label>
+<span class="text-secondary text-code-sm font-code-sm">5 Selected</span>
+</div>
+<div class="flex flex-wrap gap-2 pt-1">
+<!-- Skill 1 -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/20 border border-primary/30 text-primary text-label-sm font-label-sm shadow-[0_0_12px_rgba(108,92,231,0.2)]">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span>Java &amp; Algorithms (Adv • 4.9★)</span>
+<button class="hover:text-white transition-colors" title="Remove skill" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Skill 2 -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/20 border border-primary/30 text-primary text-label-sm font-label-sm shadow-[0_0_12px_rgba(108,92,231,0.2)]">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Python Data Structures (Lvl 4)</span>
+<button class="hover:text-white transition-colors" title="Remove skill" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Skill 3 -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-on-surface text-label-sm font-label-sm hover:border-primary/40 transition-colors">
+<span>React &amp; Tailwind</span>
+<button class="hover:text-white transition-colors" title="Remove skill" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Skill 4 -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-on-surface text-label-sm font-label-sm hover:border-primary/40 transition-colors">
+<span>Jazz Piano &amp; Music Theory</span>
+<button class="hover:text-white transition-colors" title="Remove skill" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- Skill 5 -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-on-surface text-label-sm font-label-sm hover:border-primary/40 transition-colors">
+<span>Distributed Systems</span>
+<button class="hover:text-white transition-colors" title="Remove skill" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="close">close</span>
+</button>
+</div>
+<!-- + Add Skill Button -->
+<button class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.04] border border-dashed border-white/20 text-outline hover:text-primary hover:border-primary/40 text-label-sm font-label-sm transition-colors" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="add">add</span>
+<span>Add Skill</span>
+</button>
+</div>
+</div>
+<!-- 4. Include in Resume Checkboxes -->
+<div class="pt-2 border-t border-white/10">
+<label class="block text-label-md font-label-md text-on-surface mb-3">Include in Resume Synthesizer</label>
+<div class="space-y-2.5">
+<!-- Checkbox 1 -->
+<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+<input checked="" class="mt-0.5 w-4 h-4 rounded bg-white/5 border-white/20 text-primary-container focus:ring-primary-container focus:ring-offset-0 transition-colors cursor-pointer" type="checkbox"/>
+<div class="text-body-sm font-body-sm">
+<span class="text-on-surface font-medium block">SkillLoop Verified Badges &amp; Escrow Proof</span>
+<span class="text-outline text-[11px]">Cryptographic SHA-256 node validation stamps</span>
+</div>
+</label>
+<!-- Checkbox 2 -->
+<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+<input checked="" class="mt-0.5 w-4 h-4 rounded bg-white/5 border-white/20 text-primary-container focus:ring-primary-container focus:ring-offset-0 transition-colors cursor-pointer" type="checkbox"/>
+<div class="text-body-sm font-body-sm">
+<span class="text-on-surface font-medium block">Peer Review Quotes &amp; Consensus Rating (4.98★)</span>
+<span class="text-outline text-[11px]">Includes 38 double-blind student peer validations</span>
+</div>
+</label>
+<!-- Checkbox 3 -->
+<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+<input checked="" class="mt-0.5 w-4 h-4 rounded bg-white/5 border-white/20 text-primary-container focus:ring-primary-container focus:ring-offset-0 transition-colors cursor-pointer" type="checkbox"/>
+<div class="text-body-sm font-body-sm">
+<span class="text-on-surface font-medium block">Campus Time Credits &amp; Hours Exchanged (32 hrs taught)</span>
+<span class="text-outline text-[11px]">Certified peer instruction time bank balance</span>
+</div>
+</label>
+<!-- Checkbox 4 -->
+<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+<input checked="" class="mt-0.5 w-4 h-4 rounded bg-white/5 border-white/20 text-primary-container focus:ring-primary-container focus:ring-offset-0 transition-colors cursor-pointer" type="checkbox"/>
+<div class="text-body-sm font-body-sm">
+<span class="text-on-surface font-medium block">University Node Verification (UC Berkeley '25)</span>
+<span class="text-outline text-[11px]">Autonomous campus registrar ledger confirmation</span>
+</div>
+</label>
+<!-- Checkbox 5 (Unchecked) -->
+<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white/[0.03] transition-colors cursor-pointer group">
+<input class="mt-0.5 w-4 h-4 rounded bg-white/5 border-white/20 text-primary-container focus:ring-primary-container focus:ring-offset-0 transition-colors cursor-pointer" type="checkbox"/>
+<div class="text-body-sm font-body-sm">
+<span class="text-on-surface-variant font-medium block">Academic Hackathon &amp; Escrow Grants</span>
+<span class="text-outline text-[11px]">Display bounty winnings and research escrow disbursements</span>
+</div>
+</label>
+</div>
+</div>
+<!-- 5. Primary CTA -->
+<div class="pt-3">
+<button class="w-full btn-luminescence py-3 px-4 rounded-xl text-white font-label-lg text-label-lg flex items-center justify-center gap-2 font-bold cursor-pointer">
+<span>Generate with AI</span>
+<span class="text-lg">✨</span>
+</button>
+<div class="flex items-center justify-between text-code-sm font-code-sm text-outline mt-2.5 px-1">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary" data-icon="electric_bolt">electric_bolt</span>
+                  Costs 0.5 Time Credits
+                </span>
+<span>Instant Render (~1.4s)</span>
+</div>
+</div>
+</form>
+</div>
+<!-- 6. Sub-section: Previous Resumes & Export History -->
+<div class="glass-panel-l1 rounded-xl p-5 border border-white/10">
+<div class="flex items-center justify-between mb-3.5">
+<h3 class="text-label-lg font-label-lg text-on-surface font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="history">history</span>
+              Previous Resumes &amp; Export History
+            </h3>
+<span class="text-outline text-body-sm font-body-sm">3 saved</span>
+</div>
+<div class="space-y-2.5">
+<!-- Item 1 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all group">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-8 h-8 rounded bg-error-container/20 text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+</div>
+<div class="truncate">
+<p class="text-label-md font-label-md text-on-surface font-medium truncate group-hover:text-primary transition-colors">Software_Engineer_Intern_Vance.pdf</p>
+<p class="text-code-sm font-code-sm text-outline">Generated 2h ago • 420 KB</p>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 text-on-surface-variant">
+<button class="p-1.5 rounded hover:bg-white/10 hover:text-on-surface transition-colors" title="Download PDF">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+</button>
+<button class="p-1.5 rounded hover:bg-white/10 hover:text-on-surface transition-colors" title="Duplicate prompt">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all group">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-8 h-8 rounded bg-primary-container/20 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+</div>
+<div class="truncate">
+<p class="text-label-md font-label-md text-on-surface font-medium truncate group-hover:text-primary transition-colors">Peer_Mentor_Teaching_CV_v2.pdf</p>
+<p class="text-code-sm font-code-sm text-outline">Generated yesterday • 390 KB</p>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 text-on-surface-variant">
+<button class="p-1.5 rounded hover:bg-white/10 hover:text-on-surface transition-colors" title="Download PDF">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+</button>
+<button class="p-1.5 rounded hover:bg-white/10 hover:text-on-surface transition-colors" title="Duplicate prompt">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/5 hover:border-primary/30 transition-all group">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-8 h-8 rounded bg-white/5 text-outline flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+</div>
+<div class="truncate">
+<p class="text-label-md font-label-md text-on-surface font-medium truncate group-hover:text-primary transition-colors">Fintech_Fellowship_Resume.pdf</p>
+<p class="text-code-sm font-code-sm text-outline">Generated 4 days ago • 412 KB</p>
+</div>
+</div>
+<div class="flex items-center gap-1 shrink-0 text-on-surface-variant">
+<button class="p-1.5 rounded hover:bg-white/10 hover:text-on-surface transition-colors" title="Download PDF">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+</button>
+<button class="p-1.5 rounded hover:bg-white/10 hover:text-on-surface transition-colors" title="Duplicate prompt">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- =================================================================== -->
+<!-- RIGHT PANEL (approx 60% width -> 7 columns on 12-col grid) -->
+<!-- =================================================================== -->
+<section class="lg:col-span-7 flex flex-col gap-4">
+<!-- Top Action Bar (Frosted Glass Control Bar) -->
+<div class="glass-panel-l2 rounded-xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 border border-white/10">
+<!-- Left info & Zoom -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1 text-on-surface-variant bg-white/[0.04] px-2.5 py-1 rounded-lg border border-white/10 text-body-sm font-body-sm">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="visibility">visibility</span>
+<span class="font-medium text-on-surface hidden sm:inline">Previewing:</span>
+<span class="truncate max-w-[170px] sm:max-w-[210px] text-on-surface">Software Engineer &amp; Campus Peer Lead</span>
+</div>
+<!-- Zoom controls -->
+<div class="hidden md:flex items-center gap-1 bg-white/[0.04] rounded-lg px-2 py-1 border border-white/5 text-code-sm font-code-sm text-on-surface-variant">
+<button class="hover:text-on-surface px-1">－</button>
+<span class="text-on-surface font-semibold">100%</span>
+<button class="hover:text-on-surface px-1">＋</button>
+</div>
+</div>
+<!-- Right CTAs -->
+<div class="flex items-center gap-2">
+<!-- Share Verified Link -->
+<button class="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] text-on-surface font-label-md text-label-md border border-white/15 hover:border-primary/40 transition-all flex items-center gap-1.5 cursor-pointer">
+<span class="material-symbols-outlined text-[16px]" data-icon="link">link</span>
+<span class="hidden sm:inline">Share Verified Link</span>
+<span class="sm:hidden">Share</span>
+</button>
+<!-- Download PDF -->
+<button class="btn-luminescence px-3.5 py-1.5 rounded-lg text-white font-label-md text-label-md flex items-center gap-1.5 cursor-pointer font-semibold">
+<span class="material-symbols-outlined text-[16px]" data-icon="download">download</span>
+<span>Download PDF</span>
+</button>
+</div>
+</div>
+<!-- Node Signature Attestation Chip -->
+<div class="flex items-center justify-between px-3.5 py-1.5 rounded-lg bg-surface-container/60 border border-white/5 text-code-sm font-code-sm">
+<div class="flex items-center gap-2 text-tertiary-fixed-dim">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="verified_user">verified_user</span>
+<span>SkillLoop Cryptographic Signature Attached • Verified Node #441</span>
+</div>
+<span class="text-outline text-[11px] hidden sm:inline">Hash: 0x8f7d...4a12</span>
+</div>
+<!-- Live Resume Preview Canvas: Dark Drafting Desk Container -->
+<div class="w-full bg-[#0E0E18] rounded-2xl p-4 sm:p-8 border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.85)] flex justify-center overflow-x-auto relative">
+<!-- Canvas Architectural Grid Watermark -->
+<div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none rounded-2xl"></div>
+<!-- Realistic Crisp White Paper Document Card (Simulating 8.5x11 PDF) -->
+<article class="relative z-10 w-full max-w-[620px] bg-[#FFFFFF] text-[#0F172A] rounded-sm p-7 sm:p-9 shadow-[0_20px_40px_rgba(0,0,0,0.45)] border border-slate-200 transition-transform">
+<!-- Document Header -->
+<div class="border-b border-slate-200 pb-4 mb-4">
+<div class="flex items-start justify-between">
+<div>
+<h2 class="text-[26px] leading-[30px] font-bold tracking-tight text-[#0F172A] font-['Plus_Jakarta_Sans']">Emma Vance</h2>
+<p class="text-[13px] font-semibold text-[#6C5CE7] mt-0.5 font-['Inter']">Software Engineer &amp; Campus Technical Lead</p>
+</div>
+<div class="text-right">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#EDE9FE] text-[#5847D2] text-[10px] font-['JetBrains_Mono'] font-bold border border-[#DDD6FE]">
+                    NODE ID #9042
+                  </span>
+</div>
+</div>
+<!-- Contact & Links Strip -->
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#475569] mt-2 font-['Inter']">
+<span>Berkeley, CA</span>
+<span>•</span>
+<span class="text-[#0F172A] font-medium">emma.vance@berkeley.edu</span>
+<span>•</span>
+<span>github.com/emmavance</span>
+<span>•</span>
+<span>linkedin.com/in/emmavance</span>
+</div>
+</div>
+<!-- Summary -->
+<div class="mb-4">
+<h3 class="text-[11px] font-bold uppercase tracking-wider text-[#64748B] mb-1 font-['Plus_Jakarta_Sans']">Executive Summary</h3>
+<p class="text-[12px] leading-[18px] text-[#334155] font-['Inter']">
+                Computer Science and Cognitive Science honours student at <strong>UC Berkeley</strong> with 30+ peer-verified teaching hours. Specializing in high-performance frontend architecture, distributed systems, and algorithmic problem solving. Passionate about decentralizing campus skill transfer via trust-minimized peer nodes.
+              </p>
+</div>
+<!-- SKILLLOOP VERIFIED COMPETENCIES SPECIAL SECTION -->
+<div class="mb-4 p-3.5 rounded-lg bg-[#F5F3FF] border border-[#DDD6FE] relative overflow-hidden">
+<!-- Watermark Infinity Icon -->
+<span class="material-symbols-outlined absolute -right-3 -bottom-3 text-[#7C3AED]/10 text-[72px] pointer-events-none select-none" data-icon="all_inclusive">all_inclusive</span>
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#7C3AED]"></span>
+<h3 class="text-[11px] font-bold uppercase tracking-wider text-[#6D28D9] font-['Plus_Jakarta_Sans']">SkillLoop Verified Competencies</h3>
+</div>
+<span class="text-[10px] font-['JetBrains_Mono'] text-[#6D28D9] font-semibold">Ledger Proof: #0xCal-9042</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] mb-2.5">
+<div class="flex items-center gap-1.5 text-[#4C1D95]">
+<span class="material-symbols-outlined text-[15px] text-[#7C3AED]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span><strong>Consensus Rating:</strong> 4.98 / 5.0 (38 reviews)</span>
+</div>
+<div class="flex items-center gap-1.5 text-[#4C1D95]">
+<span class="material-symbols-outlined text-[15px] text-[#7C3AED]" data-icon="schedule">schedule</span>
+<span><strong>TimeBank Escrow:</strong> 32.0 hrs taught</span>
+</div>
+</div>
+<!-- Verified Badges -->
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 rounded bg-[#FFFFFF] border border-[#C4B5FD] text-[#5B21B6] text-[10px] font-medium font-['Inter'] shadow-2xs">
+                  Java &amp; Algorithms (Level 4 Pioneer)
+                </span>
+<span class="px-2 py-0.5 rounded bg-[#FFFFFF] border border-[#C4B5FD] text-[#5B21B6] text-[10px] font-medium font-['Inter'] shadow-2xs">
+                  Data Structures (Adv)
+                </span>
+<span class="px-2 py-0.5 rounded bg-[#FFFFFF] border border-[#C4B5FD] text-[#5B21B6] text-[10px] font-medium font-['Inter'] shadow-2xs">
+                  Peer Instruction &amp; Mentorship
+                </span>
+</div>
+</div>
+<!-- Professional Experience -->
+<div class="mb-4">
+<h3 class="text-[11px] font-bold uppercase tracking-wider text-[#64748B] mb-2 border-b border-slate-200 pb-0.5 font-['Plus_Jakarta_Sans']">Experience</h3>
+<!-- Role 1 -->
+<div class="mb-3">
+<div class="flex items-baseline justify-between">
+<h4 class="text-[12px] font-bold text-[#0F172A]">Peer Technical Instructor | <span class="font-normal text-[#475569]">SkillLoop Berkeley Node</span></h4>
+<span class="text-[10px] text-[#64748B] font-['JetBrains_Mono']">Aug 2024 - Present</span>
+</div>
+<ul class="list-disc list-inside text-[11px] leading-[17px] text-[#334155] mt-1 space-y-0.5 font-['Inter']">
+<li>Conducted 24 one-on-one intensive algorithmic tutoring sessions on Dynamic Programming and Graphs.</li>
+<li>Mentored 12 junior EECS peers in CS 61B Data Structures resulting in a 100% course pass rate.</li>
+<li>Maintained top 1% rating in campus karma ledger with zero escrow disputes.</li>
+</ul>
+</div>
+<!-- Role 2 -->
+<div>
+<div class="flex items-baseline justify-between">
+<h4 class="text-[12px] font-bold text-[#0F172A]">Frontend Engineering Intern | <span class="font-normal text-[#475569]">Horizon Labs</span></h4>
+<span class="text-[10px] text-[#64748B] font-['JetBrains_Mono']">May 2024 - Aug 2024</span>
+</div>
+<ul class="list-disc list-inside text-[11px] leading-[17px] text-[#334155] mt-1 space-y-0.5 font-['Inter']">
+<li>Architected production telemetry dashboard UI in Next.js 14 and Tailwind, cutting bundle payload by 38%.</li>
+<li>Optimized WebGL rendering pipeline, reducing render latency by 42% on lower-spec mobile clients.</li>
+</ul>
+</div>
+</div>
+<!-- Technical Projects -->
+<div class="mb-4">
+<h3 class="text-[11px] font-bold uppercase tracking-wider text-[#64748B] mb-2 border-b border-slate-200 pb-0.5 font-['Plus_Jakarta_Sans']">Technical Projects</h3>
+<div class="space-y-2">
+<div>
+<div class="flex items-baseline justify-between">
+<span class="text-[12px] font-bold text-[#0F172A]">Autonomous Code Pairing Sandbox</span>
+<span class="text-[10px] text-[#64748B]">Next.js • WebRTC • Monaco</span>
+</div>
+<p class="text-[11px] text-[#334155] mt-0.5">
+                    Real-time collaborative code editor with audio streaming for peer interviews. Tested by 450+ Berkeley engineers.
+                  </p>
+</div>
+<div>
+<div class="flex items-baseline justify-between">
+<span class="text-[12px] font-bold text-[#0F172A]">Harmonic Synthesizer Web Audio Engine</span>
+<span class="text-[10px] text-[#64748B]">TypeScript • Web Audio API</span>
+</div>
+<p class="text-[11px] text-[#334155] mt-0.5">
+                    Interactive algorithmic music composition tool mapping spatial keyboard gestures to microtonal jazz chord progressions.
+                  </p>
+</div>
+</div>
+</div>
+<!-- Education -->
+<div>
+<h3 class="text-[11px] font-bold uppercase tracking-wider text-[#64748B] mb-1.5 border-b border-slate-200 pb-0.5 font-['Plus_Jakarta_Sans']">Education</h3>
+<div class="flex items-baseline justify-between">
+<div>
+<h4 class="text-[12px] font-bold text-[#0F172A]">University of California, Berkeley</h4>
+<p class="text-[11px] text-[#475569]">B.S. in Computer Science &amp; Cognitive Science • GPA: 3.91</p>
+</div>
+<span class="text-[10px] text-[#64748B] font-['JetBrains_Mono']">Expected May 2025</span>
+</div>
+</div>
+</article>
+</div>
+</section>
+</div>
+</main>
+<!-- ========================================================================= -->
+<!-- SHARED COMPONENT: Footer (Exact JSON Execution) -->
+<!-- ========================================================================= -->
+<footer class="w-full bottom-0 bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-variant/20 dark:border-outline-variant/20 mt-16">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-container-padding-desktop max-w-[1280px] mx-auto py-8 gap-4">
+<!-- Brand and Copyright text -->
+<div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+<a class="text-headline-sm font-headline-sm text-primary dark:text-primary font-bold flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="all_inclusive">all_inclusive</span>
+<span>SkillLoop</span>
+</a>
+<span class="hidden sm:inline text-outline-variant">|</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant dark:text-on-surface-variant">
+          © 2025 SkillLoop Protocol. Campus Autonomous Skill Exchange.
+        </p>
+</div>
+<!-- Links Array from JSON -->
+<div class="flex flex-wrap justify-center items-center gap-x-6 gap-y-2">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md transition-colors hover:text-primary" href="#">Protocol Docs</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md transition-colors hover:text-primary" href="#">Karma Mechanics</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md transition-colors hover:text-primary" href="#">Safety &amp; Escrow</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md transition-colors hover:text-primary" href="#">Campus Node Status</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md transition-colors hover:text-primary" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md transition-colors hover:text-primary" href="#">Terms of Exchange</a>
+</div>
+</div>
+</footer>
+</body></html>

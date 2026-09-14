@@ -1,0 +1,533 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SkillLoop - Messages &amp; Video Hub</title>
+<!-- Google Fonts: Plus Jakarta Sans & Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Rounded -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg: '#fbf4ff',
+              primary: '#543ce0',
+              'primary-hover': '#432dbb',
+              secondary: '#99366c',
+              border: '#eaddff',
+              surface: '#ffffff',
+              'surface-subtle': '#f6effe',
+              'surface-light': '#fdfaff',
+              text: '#1e1a2b',
+              'text-muted': '#6b6680',
+            }
+          },
+          fontFamily: {
+            headline: ['"Plus Jakarta Sans"', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-rounded {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+    .material-symbols-rounded.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #e5d9f2;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #cbb4e5;
+    }
+  </style>
+</head>
+<body class="bg-[#fbf4ff] text-[#1e1a2b] font-body min-h-screen flex flex-col antialiased selection:bg-[#543ce0]/20 selection:text-[#543ce0]">
+<!-- TOP NAVIGATION BAR -->
+<header class="h-16 bg-white border-b border-[#eaddff] px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_12px_-4px_rgba(84,60,224,0.06)]">
+<!-- Left: Logo & Breadcrumbs -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#543ce0] to-[#7c66f7] flex items-center justify-center text-white shadow-md shadow-[#543ce0]/25">
+<span class="material-symbols-rounded text-xl fill">all_inclusive</span>
+</div>
+<span class="font-headline font-extrabold text-xl tracking-tight text-[#1e1a2b]">Skill<span class="text-[#543ce0]">Loop</span></span>
+</div>
+<div class="hidden sm:flex items-center text-xs font-semibold tracking-wide text-[#6b6680] bg-[#f6effe] py-1.5 px-3 rounded-full border border-[#eaddff]/60">
+<span class="">Campus Network</span>
+<span class="material-symbols-rounded text-sm mx-1 text-[#99366c]">chevron_right</span>
+<span class="text-[#543ce0] font-bold">Messages &amp; Video Hub</span>
+</div>
+</div>
+<!-- Center: Live Campus Indicator -->
+<div class="hidden lg:flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200/80 rounded-full text-xs font-semibold text-emerald-700">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<span class="">142 Peers Online at the moment</span>
+</div>
+<!-- Right: Return to Dashboard & User status -->
+<div class="flex items-center gap-3">
+<!-- Time Credits indicator -->
+<div class="hidden md:flex items-center gap-1.5 bg-[#f6effe] text-[#543ce0] px-3 py-1.5 rounded-full border border-[#eaddff] text-xs font-bold font-headline">
+<span class="material-symbols-rounded text-sm fill text-[#99366c]">toll</span>
+<span class="">14.5 Credits</span>
+</div>
+<a class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-[#eaddff] text-xs font-semibold text-[#1e1a2b] hover:bg-[#f6effe] hover:border-[#543ce0]/30 transition-all active:scale-95" href="#">
+<span class="material-symbols-rounded text-base text-[#543ce0]">dashboard</span>
+<span class="">Dashboard</span>
+</a>
+<div class="relative flex items-center">
+<img alt="Emma Vance profile" class="w-9 h-9 rounded-xl object-cover ring-2 ring-[#543ce0]/20" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+</div>
+</header>
+<!-- TWO-COLUMN MAIN WORKSPACE -->
+<main class="flex-1 max-w-[1720px] w-full mx-auto p-3 sm:p-5 flex gap-4 h-[calc(100vh-4rem)] overflow-hidden">
+<!-- LEFT SIDEBAR: CONVERSATIONS LIST (~360px) -->
+<aside class="w-full md:w-[360px] lg:w-[380px] bg-white rounded-2xl border border-[#eaddff] flex flex-col overflow-hidden shadow-sm flex-shrink-0">
+<!-- Top header with search & filters -->
+<div class="p-4 border-b border-[#eaddff]/70 space-y-3 bg-gradient-to-b from-[#fdfaff] to-white">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="font-headline font-bold text-lg text-[#1e1a2b]">Conversations</h2>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#543ce0]/10 text-[#543ce0]">5 Active</span>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors" title="New Message">
+<span class="material-symbols-rounded text-xl">edit_square</span>
+</button>
+</div>
+<!-- Search Bar -->
+<div class="relative">
+<span class="material-symbols-rounded absolute left-3 top-2.5 text-[#6b6680] text-lg">search</span>
+<input class="w-full pl-9 pr-4 py-2 bg-[#f6effe]/70 border border-[#eaddff] rounded-xl text-xs font-medium placeholder-[#6b6680]/70 focus:outline-none focus:ring-2 focus:ring-[#543ce0]/20 focus:border-[#543ce0] transition-all" placeholder="Search peers, courses, or skills..." type="text">
+</div>
+<!-- Tabs: All Peers & Active Loops -->
+<div class="flex p-1 bg-[#f6effe] rounded-xl border border-[#eaddff]/60 text-xs font-semibold">
+<button class="flex-1 py-1.5 text-center rounded-lg bg-white text-[#543ce0] shadow-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+<span class="material-symbols-rounded text-sm fill">sync_alt</span>
+<span class="">Active Loops</span>
+<span class="w-4 h-4 bg-[#543ce0] text-white text-[10px] rounded-full flex items-center justify-center font-bold ml-0.5">3</span>
+</button>
+<button class="flex-1 py-1.5 text-center rounded-lg text-[#6b6680] hover:text-[#1e1a2b] flex items-center justify-center gap-1 transition-all">
+<span class="material-symbols-rounded text-sm">group</span>
+<span class="">All Peers</span>
+</button>
+</div>
+</div>
+<!-- Peer List (Scrollable) -->
+<div class="flex-1 overflow-y-auto divide-y divide-[#eaddff]/40 p-2 space-y-1">
+<!-- Active Selected Peer: Julian Ross -->
+<div class="group p-3 rounded-xl bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#543ce0]/30 relative cursor-pointer shadow-sm">
+<div class="flex items-start gap-3">
+<div class="relative flex-shrink-0">
+<img alt="Julian Ross" class="w-12 h-12 rounded-xl object-cover ring-2 ring-[#543ce0]" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<h3 class="font-headline font-bold text-sm text-[#1e1a2b] truncate">Julian Ross</h3>
+<span class="text-[11px] font-semibold text-[#543ce0]">Just now</span>
+</div>
+<div class="flex items-center gap-1.5 mb-1.5">
+<span class="px-2 py-0.5 bg-white border border-[#eaddff] text-[10px] font-bold text-[#543ce0] rounded-md">Cognitive Sci '25</span>
+<span class="px-1.5 py-0.5 bg-[#99366c]/10 text-[10px] font-bold text-[#99366c] rounded-md">Python ⇋ Guitar</span>
+</div>
+<p class="text-xs text-[#1e1a2b] font-medium truncate flex items-center gap-1">
+<span class="material-symbols-rounded text-xs text-[#543ce0]">graphic_eq</span>
+<span class="">"Let me know when you're ready for the chord progression check!"</span>
+</p>
+</div>
+</div>
+<!-- Selection accent bar -->
+<div class="absolute left-0 top-3 bottom-3 w-1 bg-[#543ce0] rounded-r-full"></div>
+</div>
+<!-- Peer 2: Maya Lin -->
+<div class="group p-3 rounded-xl hover:bg-[#f6effe]/60 transition-colors cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="relative flex-shrink-0">
+<img alt="Maya Lin" class="w-11 h-11 rounded-xl object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<h3 class="font-headline font-semibold text-sm text-[#1e1a2b] truncate">Maya Lin</h3>
+<span class="text-[11px] text-[#6b6680]">12m ago</span>
+</div>
+<div class="flex items-center gap-1.5 mb-1">
+<span class="px-1.5 py-0.5 bg-[#f6effe] text-[10px] font-medium text-[#6b6680] rounded">Design &amp; Media '26</span>
+</div>
+<div class="flex items-center justify-between">
+<p class="text-xs text-[#6b6680] truncate">Uploaded the UI kit tokens in Figma...</p>
+<span class="w-4 h-4 rounded-full bg-[#99366c] text-white text-[10px] font-bold flex items-center justify-center">2</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Peer 3: Elena Rostova -->
+<div class="group p-3 rounded-xl hover:bg-[#f6effe]/60 transition-colors cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="relative flex-shrink-0">
+<img alt="Elena Rostova" class="w-11 h-11 rounded-xl object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<div class="flex items-center gap-1">
+<h3 class="font-headline font-semibold text-sm text-[#1e1a2b] truncate">Elena Rostova</h3>
+<span class="material-symbols-rounded text-xs text-[#543ce0] fill" title="Campus Champion">verified</span>
+</div>
+<span class="text-[11px] text-[#6b6680]">1h ago</span>
+</div>
+<div class="flex items-center gap-1.5 mb-1">
+<span class="px-1.5 py-0.5 bg-amber-50 text-[10px] font-bold text-amber-700 rounded border border-amber-200/50">#1 ML Mentor</span>
+</div>
+<p class="text-xs text-[#6b6680] truncate">Sure, we can do the PyTorch transformer review at 5 PM.</p>
+</div>
+</div>
+</div>
+<!-- Peer 4: Marcus Brody -->
+<div class="group p-3 rounded-xl hover:bg-[#f6effe]/60 transition-colors cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="relative flex-shrink-0">
+<img alt="Marcus Brody" class="w-11 h-11 rounded-xl object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-amber-400 border-2 border-white rounded-full" title="Away"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<h3 class="font-headline font-semibold text-sm text-[#1e1a2b] truncate">Marcus Brody</h3>
+<span class="text-[11px] text-[#6b6680]">Yesterday</span>
+</div>
+<div class="flex items-center gap-1.5 mb-1">
+<span class="px-1.5 py-0.5 bg-[#f6effe] text-[10px] font-medium text-[#6b6680] rounded">Berkeley '24</span>
+</div>
+<p class="text-xs text-[#6b6680] truncate">Thanks for validating my Go concurrency quiz!</p>
+</div>
+</div>
+</div>
+<!-- Peer 5: Kenji Sato -->
+<div class="group p-3 rounded-xl hover:bg-[#f6effe]/60 transition-colors cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="relative flex-shrink-0">
+<img alt="Kenji Sato" class="w-11 h-11 rounded-xl object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-slate-300 border-2 border-white rounded-full"></span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<h3 class="font-headline font-semibold text-sm text-[#1e1a2b] truncate">Kenji Sato</h3>
+<span class="text-[11px] text-[#6b6680]">2d ago</span>
+</div>
+<div class="flex items-center gap-1.5 mb-1">
+<span class="px-1.5 py-0.5 bg-[#f6effe] text-[10px] font-medium text-[#6b6680] rounded">Audio &amp; Jazz '26</span>
+</div>
+<p class="text-xs text-[#6b6680] truncate">The Ableton stems are exported in the campus repository.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Left Sidebar Footer / Quick Status -->
+<div class="p-3 bg-[#fdfaff] border-t border-[#eaddff] flex items-center justify-between text-xs text-[#6b6680]">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="font-medium">Accepting New Swaps</span>
+</div>
+<button class="hover:text-[#543ce0] font-semibold flex items-center gap-0.5">
+<span class="">Settings</span>
+<span class="material-symbols-rounded text-sm">tune</span>
+</button>
+</div>
+</aside>
+<!-- RIGHT MAIN CONTENT: CHAT + VIDEO INTERFACE -->
+<section class="flex-1 bg-white rounded-2xl border border-[#eaddff] flex flex-col overflow-hidden shadow-sm relative">
+<!-- 1. CHAT HEADER -->
+<header class="p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex flex-wrap items-center justify-between gap-3 z-10 shadow-sm">
+<!-- Peer info & current exchange -->
+<div class="flex items-center gap-3">
+<div class="relative">
+<img alt="Julian Ross" class="w-11 h-11 rounded-xl object-cover ring-2 ring-[#543ce0]/30" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline font-bold text-base text-[#1e1a2b]">Julian Ross</h2>
+<span class="px-2 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[#543ce0] text-[10px] font-bold rounded-full">Cognitive Science '25</span>
+<span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active Now
+              </span>
+</div>
+<!-- Skill Loop Bar -->
+<div class="flex items-center gap-2 mt-0.5 text-xs text-[#6b6680]">
+<span class="inline-flex items-center gap-1 font-semibold text-[#1e1a2b]">
+<span class="material-symbols-rounded text-xs text-[#543ce0] fill">school</span>
+<span class="">You: Teaching Python &amp; ML</span>
+</span>
+<span class="text-[#99366c] font-black">⇄</span>
+<span class="inline-flex items-center gap-1 font-semibold text-[#99366c]">
+<span class="material-symbols-rounded text-xs fill">music_note</span>
+<span class="">Julian: Teaching Fingerstyle Guitar</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Prominent Action Buttons -->
+<div class="flex items-center gap-2.5">
+<!-- Trade Status Pill/Button -->
+<button class="px-3.5 py-2 rounded-xl bg-[#f6effe] hover:bg-[#ebd9fc] border border-[#eaddff] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 transition-all shadow-sm active:scale-95">
+<span class="material-symbols-rounded text-base text-[#99366c] fill">verified</span>
+<span class="">Trade Status:</span>
+<span class="text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md text-[10px]">1.0 hr Escrow Active</span>
+</button>
+<!-- Start Video Call Button (High Priority) -->
+<button class="px-4 py-2 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white text-xs font-bold font-headline flex items-center gap-2 shadow-md shadow-[#543ce0]/25 transition-all transform hover:-translate-y-0.5 active:scale-95">
+<span class="material-symbols-rounded text-base fill">videocam</span>
+<span class="">Start Video Call</span>
+</button>
+<!-- More options -->
+<button class="w-9 h-9 rounded-xl border border-[#eaddff] flex items-center justify-center text-[#6b6680] hover:bg-[#f6effe] hover:text-[#543ce0] transition-colors">
+<span class="material-symbols-rounded text-lg">more_vert</span>
+</button>
+</div>
+</header>
+<!-- 2. SCROLLABLE MESSAGE HISTORY -->
+<div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gradient-to-b from-[#fdfaff]/60 via-[#fbf4ff]/30 to-[#fdfaff]">
+<!-- Day Divider -->
+<div class="flex items-center justify-center my-2">
+<span class="px-3 py-1 bg-white border border-[#eaddff] rounded-full text-[11px] font-bold text-[#6b6680] shadow-xs">
+            Today, March 30 • Active Peer Exchange Session
+          </span>
+</div>
+<!-- Loop Initiation Banner -->
+<div class="max-w-xl mx-auto p-3 bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#eaddff] rounded-2xl flex items-center gap-3 text-xs shadow-xs">
+<div class="w-9 h-9 rounded-xl bg-white border border-[#eaddff] flex items-center justify-center text-[#543ce0] flex-shrink-0 shadow-xs">
+<span class="material-symbols-rounded text-xl fill">lock_clock</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-[#1e1a2b]">SkillLoop Peer Escrow Initialized</p>
+<p class="text-[#6b6680]">Both peers staked 1.0 Time Credit. Rating each other after this call unlocks verified mentor XP.</p>
+</div>
+<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">Audited</span>
+</div>
+<!-- Incoming Message (Julian) -->
+<div class="flex items-end gap-2.5 max-w-lg">
+<img alt="Julian" class="w-7 h-7 rounded-lg object-cover mb-1 ring-1 ring-[#eaddff]" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="space-y-1">
+<div class="bg-[#f6effe] border border-[#eaddff]/80 text-[#1e1a2b] p-3.5 rounded-2xl rounded-bl-sm text-xs leading-relaxed shadow-xs">
+              Hey Emma! 👋 Thanks for matching. I prepared the acoustic guitar tab for the jazz progression we talked about. Have you set up the Python script for the audio frequency analyzer yet?
+            </div>
+<div class="flex items-center gap-1.5 px-1 text-[10px] text-[#6b6680]">
+<span class="">Julian Ross</span>
+<span class="">•</span>
+<span class="">4:15 PM</span>
+</div>
+</div>
+</div>
+<!-- Outgoing Message (Emma / User) -->
+<div class="flex items-end justify-end gap-2.5 max-w-lg ml-auto">
+<div class="space-y-1 text-right">
+<div class="bg-[#543ce0] text-white p-3.5 rounded-2xl rounded-br-sm text-xs leading-relaxed shadow-md shadow-[#543ce0]/15 text-left">
+              Yes! Got the librosa audio analyzer ready in Python. It can visualize chord frequencies in real-time. Here's a screenshot of the spectral analysis from our test run earlier:
+            </div>
+<div class="flex items-center justify-end gap-1 px-1 text-[10px] text-[#6b6680]">
+<span class="">4:17 PM</span>
+<span class="material-symbols-rounded text-sm text-[#543ce0] fill">done_all</span>
+</div>
+</div>
+</div>
+<!-- Outgoing Attachment (Image Bubble) -->
+<div class="flex items-end justify-end gap-2.5 max-w-md ml-auto">
+<div class="space-y-1 text-right">
+<div class="p-1.5 bg-[#543ce0] rounded-2xl rounded-br-sm shadow-md shadow-[#543ce0]/15 overflow-hidden">
+<div class="relative rounded-xl overflow-hidden group">
+<img alt="Audio frequency analyzer chart" class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-2.5">
+<span class="text-[11px] font-semibold text-white flex items-center gap-1">
+<span class="material-symbols-rounded text-sm">query_stats</span>
+                    spectrum_harmonics_v2.png (1.2 MB)
+                  </span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-end gap-1 px-1 text-[10px] text-[#6b6680]">
+<span class="">4:18 PM</span>
+<span class="material-symbols-rounded text-sm text-[#543ce0] fill">done_all</span>
+</div>
+</div>
+</div>
+<!-- Incoming Message with Document Attachment Chip -->
+<div class="flex items-end gap-2.5 max-w-lg">
+<img alt="Julian" class="w-7 h-7 rounded-lg object-cover mb-1 ring-1 ring-[#eaddff]" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="space-y-1.5">
+<div class="bg-[#f6effe] border border-[#eaddff]/80 text-[#1e1a2b] p-3.5 rounded-2xl rounded-bl-sm text-xs leading-relaxed shadow-xs">
+              That spectral graph looks incredible! I just exported the chord charts with the finger picking patterns. Check this PDF before we hop on the video call:
+            </div>
+<!-- Document Attachment Chip -->
+<div class="p-2.5 bg-white border border-[#eaddff] hover:border-[#543ce0] rounded-xl flex items-center justify-between gap-3 shadow-xs cursor-pointer transition-all hover:bg-[#f6effe]/40 group">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
+<span class="material-symbols-rounded text-xl fill">picture_as_pdf</span>
+</div>
+<div class="text-left">
+<p class="text-xs font-bold text-[#1e1a2b] group-hover:text-[#543ce0] transition-colors">Neo_Soul_Guitar_Chords_Tab.pdf</p>
+<p class="text-[10px] text-[#6b6680]">4 pages • 3.4 MB • Stored on Peer IPFS Node</p>
+</div>
+</div>
+<button class="w-7 h-7 rounded-lg bg-[#f6effe] text-[#543ce0] flex items-center justify-center group-hover:bg-[#543ce0] group-hover:text-white transition-colors" title="Download Tab">
+<span class="material-symbols-rounded text-base">download</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 px-1 text-[10px] text-[#6b6680]">
+<span class="">Julian Ross</span>
+<span class="">•</span>
+<span class="">4:21 PM</span>
+</div>
+</div>
+</div>
+<!-- Incoming Call Ready Prompt -->
+<div class="flex items-end gap-2.5 max-w-lg">
+<img alt="Julian" class="w-7 h-7 rounded-lg object-cover mb-1 ring-1 ring-[#eaddff]" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="space-y-1">
+<div class="bg-[#f6effe] border border-[#eaddff]/80 text-[#1e1a2b] p-3.5 rounded-2xl rounded-bl-sm text-xs leading-relaxed shadow-xs flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="">I'm ready with my guitar in the audio studio. Clicking into video room now!</span>
+</div>
+<div class="flex items-center gap-1.5 px-1 text-[10px] text-[#6b6680]">
+<span class="">4:23 PM</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. BOTTOM INPUT BAR -->
+<footer class="p-3 sm:p-4 bg-white border-t border-[#eaddff] relative z-10">
+<!-- Floating quick tags -->
+<div class="flex items-center gap-2 mb-2.5 overflow-x-auto text-[11px] font-semibold text-[#6b6680] no-scrollbar">
+<span class="text-[#99366c] flex items-center gap-1">
+<span class="material-symbols-rounded text-xs fill">bolt</span> Quick Share:
+          </span>
+<button class="px-2.5 py-1 bg-[#f6effe] hover:bg-[#ebd9fc] text-[#543ce0] rounded-full border border-[#eaddff] transition-all">
+            GitHub Repo Link ↗
+          </button>
+<button class="px-2.5 py-1 bg-[#f6effe] hover:bg-[#ebd9fc] text-[#543ce0] rounded-full border border-[#eaddff] transition-all">
+            Guitar Tab Sheet ♬
+          </button>
+<button class="px-2.5 py-1 bg-[#f6effe] hover:bg-[#ebd9fc] text-[#543ce0] rounded-full border border-[#eaddff] transition-all">
+            Request Code Review 💻
+          </button>
+</div>
+<!-- Input Row -->
+<div class="flex items-center gap-2 bg-[#fdfaff] border border-[#eaddff] rounded-2xl p-1.5 sm:p-2 focus-within:border-[#543ce0] focus-within:ring-2 focus-within:ring-[#543ce0]/20 transition-all shadow-xs">
+<!-- Attachment Button (+) -->
+<button class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors" title="Attach file or code snippet">
+<span class="material-symbols-rounded text-xl">attach_file</span>
+</button>
+<!-- Image Upload Button -->
+<button class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors" title="Upload screenshot or diagram">
+<span class="material-symbols-rounded text-xl">image</span>
+</button>
+<!-- Text Input -->
+<input class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-[#1e1a2b] placeholder-[#6b6680]/60 focus:outline-none px-2" placeholder="Type a message or share notes with Julian... (Press Enter to send)" type="text">
+<!-- Emoji Picker Button -->
+<button class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors" title="Add emoji">
+<span class="material-symbols-rounded text-xl">mood</span>
+</button>
+<!-- Send Button -->
+<button class="w-10 h-10 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white flex items-center justify-center shadow-md shadow-[#543ce0]/25 transition-all active:scale-95 flex-shrink-0" title="Send message">
+<span class="material-symbols-rounded text-lg fill">send</span>
+</button>
+</div>
+</footer>
+<!-- 4. FLOATING PICTURE-IN-PICTURE / ACTIVE VIDEO CALL OVERLAY -->
+<!-- Designed as an active live video call overlay with frosted glass controls -->
+<div class="absolute top-18 right-5 w-96 sm:w-[440px] bg-slate-900 rounded-2xl shadow-2xl border-2 border-white/90 overflow-hidden z-30 transition-all animate-in fade-in duration-300">
+<!-- Video Feed Container -->
+<div class="relative h-64 sm:h-72 w-full bg-slate-950 flex items-center justify-center overflow-hidden">
+<!-- Remote Video Feed (Julian with acoustic guitar) -->
+<img alt="Julian Ross Video Feed" class="w-full h-full object-cover opacity-90" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<!-- Live Session Header Badges inside Video -->
+<div class="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+<div class="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white text-xs font-semibold">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+</span>
+<span class="">18:42</span>
+<span class="text-white/40">|</span>
+<span class="text-[#c084fc] font-bold">Python ⇄ Guitar Lab</span>
+</div>
+<!-- Resolution & Encryption Badge -->
+<div class="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white text-[10px] font-medium">
+<span class="material-symbols-rounded text-xs text-emerald-400 fill">verified_user</span>
+<span class="">P2P Encrypted</span>
+</div>
+</div>
+<!-- Peer Name Tag (Bottom-Left) -->
+<div class="absolute bottom-16 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-lg text-white text-xs font-bold flex items-center gap-1.5 border border-white/10">
+<span class="">Julian Ross</span>
+<span class="text-emerald-400 material-symbols-rounded text-sm fill">mic</span>
+</div>
+<!-- Floating Small Self-Preview (Bottom-Right corner) -->
+<div class="absolute bottom-16 right-3 w-24 h-32 rounded-xl overflow-hidden border-2 border-white shadow-lg bg-slate-800 group cursor-pointer">
+<img alt="Emma Vance Self Preview" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="absolute bottom-1 left-1.5 right-1 flex items-center justify-between text-[9px] font-bold text-white bg-black/60 px-1 py-0.5 rounded">
+<span class="">You</span>
+<span class="material-symbols-rounded text-[10px] text-emerald-400 fill">mic</span>
+</div>
+</div>
+<!-- Frosted Glass Video Control Bar (Bottom Floating) -->
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2.5 bg-black/65 backdrop-blur-xl py-2 px-4 rounded-2xl border border-white/15 shadow-xl">
+<!-- Mic Mute/Unmute -->
+<button class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:scale-90" title="Mute Microphone">
+<span class="material-symbols-rounded text-lg">mic</span>
+</button>
+<!-- Camera On/Off -->
+<button class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:scale-90" title="Turn Camera Off">
+<span class="material-symbols-rounded text-lg">videocam</span>
+</button>
+<!-- Screen Share -->
+<button class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:scale-90" title="Share Screen (IDE / Tabs)">
+<span class="material-symbols-rounded text-lg">present_to_all</span>
+</button>
+<!-- Audio Output Switch -->
+<button class="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:scale-90" title="Audio Device">
+<span class="material-symbols-rounded text-lg">volume_up</span>
+</button>
+<div class="h-5 w-px bg-white/20 mx-0.5"></div>
+<!-- Bright Red End Call Button -->
+<button class="h-9 px-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/40 transition-all active:scale-90" title="End Call &amp; Verify Escrow">
+<span class="material-symbols-rounded text-base fill">call_end</span>
+<span class="hidden sm:inline">End Call</span>
+</button>
+<!-- Fullscreen / Expand -->
+<button class="w-8 h-8 rounded-full bg-transparent hover:bg-white/15 text-white/80 hover:text-white flex items-center justify-center transition-colors ml-1" title="Toggle Fullscreen">
+<span class="material-symbols-rounded text-base">open_in_full</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+
+
+
+</body></html>

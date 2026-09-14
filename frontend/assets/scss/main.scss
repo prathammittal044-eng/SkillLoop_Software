@@ -1,0 +1,137 @@
+/* ─── SCSS Architecture - Deep Obsidian ──────────────────────────── */
+
+$bg-body: #050505;
+$bg-surface: #0a0a0a;
+$text-primary: #ffffff;
+$text-secondary: #888888;
+$accent-cyan: #00f2fe;
+$accent-purple: #4facfe;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  cursor: none; /* Hide default cursor for custom GSAP cursor */
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: $bg-body;
+  color: $text-primary;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, $accent-purple, $accent-cyan);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 32px;
+  border-radius: 100px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-decoration: none;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: none; /* Let custom cursor handle it */
+  border: none;
+  position: relative;
+  overflow: hidden;
+  
+  &-primary {
+    background: #ffffff;
+    color: #000000;
+    
+    &:hover {
+      transform: scale(1.05);
+      background: #e0e0e0;
+    }
+  }
+}
+
+/* Nav */
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  padding: 24px 0;
+  mix-blend-mode: difference; /* Premium text visibility */
+  
+  .nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .nav-logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-decoration: none;
+    color: white;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -1px;
+  }
+  
+  .nav-links {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    list-style: none;
+    
+    a.nav-link {
+      color: $text-primary;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      position: relative;
+      cursor: none;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 2px;
+        bottom: -4px;
+        left: 0;
+        background-color: white;
+        transition: width 0.3s ease;
+      }
+      
+      &:hover::after {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.section {
+  position: relative;
+  padding: 150px 0;
+}
