@@ -2,6 +2,7 @@ import os
 import random
 import sqlite3
 import html as html_module
+from datetime import datetime
 try:
     import requests as http_requests
     REQUESTS_AVAILABLE = True
@@ -16,15 +17,17 @@ from database import get_db, close_db, init_db
 from chat_routes import chat_bp
 from chat_events import register_chat_events
 from institutions import search_institutions
+from turn_config import turn_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Enable CORS for the Nuxt frontend and local network peers (wildcard for LAN testing)
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.1.7:3000"])
+# Reflect request Origin so LAN IPs / Cloudflare tunnels can use credentialed Socket.IO
+CORS(app, supports_credentials=True, origins=True)
 
 # Register modular Chat blueprint
 app.register_blueprint(chat_bp)
+app.register_blueprint(turn_bp)
 
 # Initialize SocketIO for real-time messaging & WebRTC signaling
 socketio = SocketIO(app, cors_allowed_origins="*", manage_session=False)
@@ -684,8 +687,19 @@ def get_public_profile(username):
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 import json as _json
-from dotenv import load_dotenv
-load_dotenv()  # loads GEMINI_API_KEY from .env
+def _load_dotenv(path='.env'):
+    """Load key=value pairs from a .env file into os.environ (no external deps)."""
+    try:
+        with open(path, encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith('#') and '=' in _line:
+                    _k, _, _v = _line.partition('=')
+                    os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+    except FileNotFoundError:
+        pass
+
+_load_dotenv()  # loads GEMINI_API_KEY and other vars from .env
 
 try:
     from google import genai as _genai
@@ -899,15 +913,23 @@ def submit_quiz():
     db.execute('INSERT INTO quiz_attempts (user_id, skill_name, difficulty, score, total, passed, xp_earned, tab_switches) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                (session['user_id'], skill_name, difficulty, effective_correct, total, passed, xp_earned, tab_switches))
     
-    # Update verification if passed
+    # Update verification if passed (resets 180-day heartbeat)
     if passed:
         level_order = {'beginner': 1, 'intermediate': 2, 'advanced': 3}
-        existing = db.execute('SELECT verified_level FROM skill_verifications WHERE user_id = ? AND skill_name = ?', (session['user_id'], skill_name)).fetchone()
+        existing = db.execute('SELECT verified_level FROM skill_verifications WHERE user_id = ? AND LOWER(skill_name) = ?', (session['user_id'], skill_name)).fetchone()
         if existing:
-            if level_order.get(difficulty, 0) > level_order.get(existing['verified_level'], 0):
-                db.execute('UPDATE skill_verifications SET verified_level = ?, verified_at = CURRENT_TIMESTAMP WHERE user_id = ? AND skill_name = ?', (difficulty, session['user_id'], skill_name))
+            new_level = difficulty if level_order.get(difficulty, 0) > level_order.get(existing['verified_level'], 0) else existing['verified_level']
+            db.execute('''
+                UPDATE skill_verifications 
+                SET verified_level = ?, verified_at = CURRENT_TIMESTAMP, 
+                    last_activity_at = CURRENT_TIMESTAMP, activity_type = 'quiz' 
+                WHERE user_id = ? AND LOWER(skill_name) = ?
+            ''', (new_level, session['user_id'], skill_name))
         else:
-            db.execute('INSERT INTO skill_verifications (user_id, skill_name, verified_level) VALUES (?, ?, ?)', (session['user_id'], skill_name, difficulty))
+            db.execute('''
+                INSERT INTO skill_verifications (user_id, skill_name, verified_level, verified_at, last_activity_at, activity_type, sessions_taught) 
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'quiz', 0)
+            ''', (session['user_id'], skill_name, difficulty))
     
     db.commit()
     
@@ -936,13 +958,260 @@ def quiz_history():
     return jsonify({"history": [dict(a) for a in attempts]}), 200
 
 
+# =============================================================================
+# SKILL DECAY (PROOF-OF-WORK HALF-LIFE) & A.E.E. PROTOCOL
+# =============================================================================
+
+DECAY_WINDOW_DAYS = 180   # 6-month proof-of-work half-life
+WARNING_WINDOW_DAYS = 60  # Warning alert when <= 60 days remaining
+
+def calculate_decay_metrics(activity_timestamp_str):
+    """
+    Computes dynamic decay health for a verified skill based on elapsed time
+    since its last Proof-of-Work (quiz pass or confirmed A.E.E. teaching session).
+    """
+    if not activity_timestamp_str:
+        activity_timestamp_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+
+    clean_str = str(activity_timestamp_str).replace('T', ' ').split('.')[0]
+    try:
+        activity_dt = datetime.strptime(clean_str, '%Y-%m-%d %H:%M:%S')
+    except Exception:
+        activity_dt = datetime.utcnow()
+
+    now_dt = datetime.utcnow()
+    days_elapsed = max(0, int((now_dt - activity_dt).total_seconds() / 86400))
+    days_remaining = max(0, DECAY_WINDOW_DAYS - days_elapsed)
+    health_percent = min(100, max(0, round((days_remaining / DECAY_WINDOW_DAYS) * 100)))
+
+    if days_remaining == 0:
+        decay_status = 'decayed'       # Dormant / Stale verification
+    elif days_remaining <= WARNING_WINDOW_DAYS:
+        decay_status = 'expiring_soon' # Amber warning: needs A.E.E. teaching
+    else:
+        decay_status = 'active'        # Healthy active heartbeat
+
+    return {
+        'days_elapsed': days_elapsed,
+        'days_remaining': days_remaining,
+        'health_percent': health_percent,
+        'decay_status': decay_status,
+        'is_active': decay_status != 'decayed'
+    }
+
+
 @app.route('/api/quiz/verified', methods=['GET'])
 def verified_skills():
     if 'user_id' not in session:
         return jsonify({"error": "Not authenticated"}), 401
     db = get_db()
-    verifications = db.execute('SELECT skill_name, verified_level, verified_at FROM skill_verifications WHERE user_id = ?', (session['user_id'],)).fetchall()
-    return jsonify({"verified": [dict(v) for v in verifications]}), 200
+    rows = db.execute('''
+        SELECT id, skill_name, verified_level, verified_at, last_activity_at, 
+               activity_type, sessions_taught 
+        FROM skill_verifications 
+        WHERE user_id = ?
+        ORDER BY verified_at DESC
+    ''', (session['user_id'],)).fetchall()
+
+    verified = []
+    for r in rows:
+        d = dict(r)
+        metrics = calculate_decay_metrics(d.get('last_activity_at') or d.get('verified_at'))
+        d.update(metrics)
+        verified.append(d)
+
+    return jsonify({"verified": verified}), 200
+
+
+@app.route('/api/aee/pending', methods=['GET'])
+def get_pending_aee():
+    """Returns incoming and outbound pending A.E.E. confirmation requests."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    db = get_db()
+    uid = session['user_id']
+
+    # Incoming: where current user is the LEARNER (needs to confirm the session)
+    incoming_rows = db.execute('''
+        SELECT a.id, a.teacher_id, a.learner_id, a.skill_name, a.duration_minutes, 
+               a.topic_notes, a.status, a.created_at,
+               u.full_name AS teacher_name, u.username AS teacher_username, u.avatar_color AS teacher_avatar
+        FROM aee_sessions a
+        JOIN users u ON a.teacher_id = u.id
+        WHERE a.learner_id = ? AND a.status = 'pending'
+        ORDER BY a.created_at DESC
+    ''', (uid,)).fetchall()
+
+    # Outbound: where current user is the TEACHER (waiting for learner to confirm)
+    outbound_rows = db.execute('''
+        SELECT a.id, a.teacher_id, a.learner_id, a.skill_name, a.duration_minutes, 
+               a.topic_notes, a.status, a.created_at,
+               u.full_name AS learner_name, u.username AS learner_username, u.avatar_color AS learner_avatar
+        FROM aee_sessions a
+        JOIN users u ON a.learner_id = u.id
+        WHERE a.teacher_id = ? AND a.status = 'pending'
+        ORDER BY a.created_at DESC
+    ''', (uid,)).fetchall()
+
+    return jsonify({
+        "incoming": [dict(r) for r in incoming_rows],
+        "outbound": [dict(r) for r in outbound_rows]
+    }), 200
+
+
+@app.route('/api/aee/log', methods=['POST'])
+def log_aee_session():
+    """Teacher logs an Applied Exchange & Execution (A.E.E.) session with a peer."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    teacher_id = session['user_id']
+    data = request.json or {}
+    learner_id = data.get('learner_id')
+    skill_name = (data.get('skill_name') or '').strip().lower()
+    duration = int(data.get('duration_minutes') or 30)
+    topic_notes = (data.get('topic_notes') or '').strip()
+
+    if not learner_id or not skill_name:
+        return jsonify({"error": "Learner and skill name are required"}), 400
+    if int(learner_id) == teacher_id:
+        return jsonify({"error": "You cannot log an A.E.E. session with yourself"}), 400
+
+    db = get_db()
+
+    learner = db.execute('SELECT id, full_name, username FROM users WHERE id = ?', (learner_id,)).fetchone()
+    if not learner:
+        return jsonify({"error": "Selected learning partner not found"}), 404
+
+    # Require teacher to have this skill in skill_verifications
+    verif = db.execute('SELECT id FROM skill_verifications WHERE user_id = ? AND LOWER(skill_name) = ?', (teacher_id, skill_name)).fetchone()
+    if not verif:
+        return jsonify({"error": "You can only renew verification for skills you have verified (e.g. via quiz)."}), 400
+
+    # Prevent duplicate pending requests for the same pair and skill
+    dup = db.execute('''
+        SELECT id FROM aee_sessions 
+        WHERE teacher_id = ? AND learner_id = ? AND LOWER(skill_name) = ? AND status = "pending"
+    ''', (teacher_id, learner_id, skill_name)).fetchone()
+    if dup:
+        return jsonify({"error": "A pending confirmation request already exists for this peer and skill."}), 400
+
+    db.execute('''
+        INSERT INTO aee_sessions (teacher_id, learner_id, skill_name, duration_minutes, topic_notes, status, created_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+    ''', (teacher_id, learner_id, skill_name, duration, topic_notes))
+
+    session_id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+    db.commit()
+
+    teacher_user = db.execute('SELECT full_name, username FROM users WHERE id = ?', (teacher_id,)).fetchone()
+    t_name = teacher_user['full_name'] or teacher_user['username'] if teacher_user else 'A peer'
+    try:
+        socketio.emit('aee_request_received', {
+            'session_id': session_id,
+            'teacher_id': teacher_id,
+            'teacher_name': t_name,
+            'skill_name': skill_name,
+            'duration_minutes': duration,
+            'topic_notes': topic_notes
+        }, room=f"user_{learner_id}")
+    except Exception as e:
+        print(f"[AEE Socket Error] {e}", flush=True)
+
+    return jsonify({
+        "message": f"A.E.E. session logged! Confirmation request sent to {learner['full_name'] or learner['username']}.",
+        "session_id": session_id
+    }), 201
+
+
+@app.route('/api/aee/respond', methods=['POST'])
+def respond_aee_session():
+    """Learner confirms or declines an A.E.E. session, completing the proof-of-work handshake."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    learner_id = session['user_id']
+    data = request.json or {}
+    session_id = data.get('session_id')
+    action = (data.get('action') or '').strip().lower()
+
+    if not session_id or action not in ('confirm', 'reject'):
+        return jsonify({"error": "Invalid session or action"}), 400
+
+    db = get_db()
+    sess_row = db.execute('SELECT * FROM aee_sessions WHERE id = ?', (session_id,)).fetchone()
+    if not sess_row:
+        return jsonify({"error": "A.E.E. session not found"}), 404
+
+    if sess_row['learner_id'] != learner_id:
+        return jsonify({"error": "You are not authorized to confirm this session"}), 403
+
+    if sess_row['status'] != 'pending':
+        return jsonify({"error": f"Session has already been {sess_row['status']}"}), 400
+
+    teacher_id = sess_row['teacher_id']
+    skill_name = sess_row['skill_name'].lower()
+
+    if action == 'reject':
+        db.execute('UPDATE aee_sessions SET status = "rejected" WHERE id = ?', (session_id,))
+        db.commit()
+        try:
+            socketio.emit('aee_request_declined', {
+                'session_id': session_id,
+                'skill_name': skill_name
+            }, room=f"user_{teacher_id}")
+        except Exception:
+            pass
+        return jsonify({"message": "Session confirmation declined."}), 200
+
+    # action == 'confirm'
+    # 7-day rate-limit check for same pair & skill (prevents rapid collusion farming)
+    recent = db.execute('''
+        SELECT id, confirmed_at FROM aee_sessions 
+        WHERE teacher_id = ? AND learner_id = ? AND LOWER(skill_name) = ?
+          AND status = 'confirmed' AND id != ?
+          AND confirmed_at >= datetime('now', '-7 days')
+    ''', (teacher_id, learner_id, skill_name, session_id)).fetchone()
+
+    rate_limited = recent is not None
+
+    db.execute('UPDATE aee_sessions SET status = "confirmed", confirmed_at = CURRENT_TIMESTAMP WHERE id = ?', (session_id,))
+
+    # Reset the 180-day heartbeat for teacher's verified skill!
+    db.execute('''
+        UPDATE skill_verifications 
+        SET last_activity_at = CURRENT_TIMESTAMP,
+            activity_type = 'aee_session',
+            sessions_taught = COALESCE(sessions_taught, 0) + 1
+        WHERE user_id = ? AND LOWER(skill_name) = ?
+    ''', (teacher_id, skill_name))
+
+    # Award XP and session counts
+    if not rate_limited:
+        db.execute('UPDATE users SET xp = xp + 25, skills_taught = skills_taught + 1, total_sessions = total_sessions + 1 WHERE id = ?', (teacher_id,))
+        db.execute('UPDATE users SET xp = xp + 15, skills_learned = skills_learned + 1, total_sessions = total_sessions + 1 WHERE id = ?', (learner_id,))
+    else:
+        db.execute('UPDATE users SET skills_taught = skills_taught + 1, total_sessions = total_sessions + 1 WHERE id = ?', (teacher_id,))
+        db.execute('UPDATE users SET skills_learned = skills_learned + 1, total_sessions = total_sessions + 1 WHERE id = ?', (learner_id,))
+
+    db.commit()
+
+    learner_user = db.execute('SELECT full_name, username FROM users WHERE id = ?', (learner_id,)).fetchone()
+    l_name = learner_user['full_name'] or learner_user['username'] if learner_user else 'Your peer'
+    try:
+        socketio.emit('aee_request_confirmed', {
+            'session_id': session_id,
+            'learner_name': l_name,
+            'skill_name': skill_name,
+            'days_remaining': 180
+        }, room=f"user_{teacher_id}")
+    except Exception as e:
+        print(f"[AEE Socket Error] {e}", flush=True)
+
+    return jsonify({
+        "message": "Proof-of-Work confirmed! Skill heartbeat reset to 180 days.",
+        "xp_awarded": 15 if not rate_limited else 0
+    }), 200
 
 
 # =============================================================================
@@ -964,8 +1233,17 @@ def get_resume():
     # Get teaching skills
     teaches = [r['skill_name'] for r in db.execute('SELECT skill_name FROM user_skills WHERE user_id = ? AND skill_type = "teaches"', (user_id,)).fetchall()]
     
-    # Get verified skills with level
-    verifications = [dict(v) for v in db.execute('SELECT skill_name, verified_level, verified_at FROM skill_verifications WHERE user_id = ?', (user_id,)).fetchall()]
+    # Get verified skills with level and Proof-of-Work decay status
+    verif_rows = db.execute('''
+        SELECT skill_name, verified_level, verified_at, last_activity_at, activity_type, sessions_taught 
+        FROM skill_verifications WHERE user_id = ?
+    ''', (user_id,)).fetchall()
+    verifications = []
+    for v in verif_rows:
+        d = dict(v)
+        metrics = calculate_decay_metrics(d.get('last_activity_at') or d.get('verified_at'))
+        d.update(metrics)
+        verifications.append(d)
     
     # Get or initialize user_resumes
     resume_row = db.execute('SELECT * FROM user_resumes WHERE user_id = ?', (user_id,)).fetchone()
@@ -985,16 +1263,22 @@ def get_resume():
             })
             
         default_education = []
+        cur_year = datetime.now().year
+        sem = user['semester'] or 1
+        years_completed = max(0, (sem - 1) // 2)
+        calc_start_year = str(cur_year - years_completed)
+        calc_end_year = str(int(calc_start_year) + 4)
+
         if user['education']:
             default_education.append({
                 "id": 1,
-                "institution": "University Institute of Technology",
+                "institution": user['education'],
                 "degree": f"Bachelor of Technology in {user['department'] or 'Engineering'}",
-                "field_of_study": user['department'] or "Computer Science",
-                "start_year": "2022",
-                "end_year": "2026",
-                "grade": "8.8 CGPA",
-                "description": user['education']
+                "field_of_study": user['department'] or "Engineering",
+                "start_year": calc_start_year,
+                "end_year": calc_end_year,
+                "grade": "",
+                "description": ""
             })
             
         default_settings = {

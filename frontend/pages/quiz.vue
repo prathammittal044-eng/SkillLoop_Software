@@ -99,8 +99,24 @@
                 :class="selectedSkill === skill.name ? 'border-primary bg-primary/5' : 'border-surface-container-high bg-surface-bright hover:border-primary/40'"
               >
                 <div class="flex items-center justify-between">
-                  <span class="font-headline font-bold text-on-surface">{{ skill.name }}</span>
-                  <span v-if="getVerifiedStatus(skill.name) !== 'unverified'" class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase">{{ getVerifiedStatus(skill.name) }}</span>
+                  <div>
+                    <span class="font-headline font-bold text-on-surface block">{{ skill.name }}</span>
+                    <span v-if="getVerifiedInfo(skill.name)" class="text-[11px]">
+                      <span v-if="getVerifiedInfo(skill.name).decay_status === 'active'" class="text-emerald-700 font-semibold">
+                        ● Active • {{ getVerifiedInfo(skill.name).days_remaining }}d left
+                      </span>
+                      <span v-else-if="getVerifiedInfo(skill.name).decay_status === 'expiring_soon'" class="text-amber-700 font-semibold">
+                        ▲ Expiring in {{ getVerifiedInfo(skill.name).days_remaining }}d
+                      </span>
+                      <span v-else class="text-slate-500 font-semibold">
+                        ○ Decayed • Retake to Revive
+                      </span>
+                    </span>
+                  </div>
+                  <span v-if="getVerifiedInfo(skill.name)" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                    :class="getVerifiedInfo(skill.name).is_active ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'">
+                    {{ getVerifiedInfo(skill.name).verified_level }}
+                  </span>
                 </div>
               </button>
             </div>
@@ -384,6 +400,7 @@ const timePerQuestion = ref(20)
 // ─── Result & Submission State ───────────────────────────────────────────────
 const result = ref({})
 const isSubmitting = ref(false)
+const quizSource = ref('ai')
 
 const scorePercent = computed(() => {
   if (!result.value || !result.value.total) return 0
@@ -526,8 +543,13 @@ const dismissFocusWarning = () => {
 }
 
 const getVerifiedStatus = (skillName) => {
-  const info = verifiedSkills.value.find(v => v.skill_name === skillName)
+  const info = verifiedSkills.value.find(v => v.skill_name?.toLowerCase() === skillName?.toLowerCase())
   return info ? info.verified_level : 'unverified'
+}
+
+const getVerifiedInfo = (skillName) => {
+  if (!skillName) return null
+  return verifiedSkills.value.find(v => v.skill_name?.toLowerCase() === skillName?.toLowerCase())
 }
 
 const selectSkill = (skillName) => { selectedSkill.value = skillName }
@@ -563,9 +585,16 @@ const startQuiz = async (difficulty) => {
 
       // Start timer for question 0
       startActiveQuestionTimer()
+    } else {
+      const errData = await res.json().catch(() => ({}))
+      alert(errData.error || `Failed to generate quiz (status ${res.status}). Please try again.`)
     }
-  } catch(e) { console.error(e) }
-  finally { loadingQuiz.value = false }
+  } catch(e) {
+    console.error(e)
+    alert('Network error while generating quiz. Is the backend running?')
+  } finally {
+    loadingQuiz.value = false
+  }
 }
 
 // ─── Resilient Individual Question Timer ─────────────────────────────────────

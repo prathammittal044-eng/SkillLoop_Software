@@ -119,6 +119,62 @@
           </div>
         </div>
 
+        <!-- ── INCOMING A.E.E. PROOF-OF-WORK REQUESTS ── -->
+        <div v-if="incomingAee.length > 0" class="p-5 rounded-3xl bg-gradient-to-r from-primary/10 via-surface-container-low to-secondary-container/20 border-2 border-primary/30 shadow-md space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
+                <span class="material-symbols-outlined text-lg">verified</span>
+              </span>
+              <div>
+                <h3 class="font-headline font-bold text-sm text-on-surface">A.E.E. Proof-of-Work Confirmation Required</h3>
+                <p class="text-xs text-on-surface-variant">A learning partner logged an Applied Exchange session. Confirm to verify their proof-of-work.</p>
+              </div>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-primary text-on-primary text-xs font-bold font-label">{{ incomingAee.length }} Pending</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div 
+              v-for="item in incomingAee" 
+              :key="item.id"
+              class="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs flex flex-col justify-between gap-3"
+            >
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center uppercase">
+                      {{ (item.teacher_name || item.teacher_username || '?').charAt(0) }}
+                    </div>
+                    <span class="font-headline font-bold text-xs text-on-surface">{{ item.teacher_name }} (@{{ item.teacher_username }})</span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-800 text-[10px] font-bold uppercase">{{ item.skill_name }}</span>
+                </div>
+                <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                  <span class="font-semibold text-on-surface">Topic:</span> {{ item.topic_notes || 'Peer teaching & execution session' }} 
+                  <span class="text-[10px] text-on-surface-variant font-mono">({{ item.duration_minutes }}m)</span>
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2 pt-2 border-t border-surface-container/60">
+                <button 
+                  @click="respondAee(item.id, 'confirm')"
+                  class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                >
+                  <span class="material-symbols-outlined text-sm">check_circle</span>
+                  <span>Confirm &amp; Award +15 XP</span>
+                </button>
+                <button 
+                  @click="respondAee(item.id, 'reject')"
+                  class="py-1.5 px-3 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error hover:bg-error/10 font-headline text-xs font-semibold active:scale-95 transition-all"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 3 Column Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -206,14 +262,71 @@
                 <div v-if="teaches.length === 0" class="p-4 rounded-2xl bg-surface-container-low/60 border border-dashed border-surface-container text-center text-on-surface-variant text-xs">
                   No skills added yet. Click "Add Skill" above to get started!
                 </div>
-                <div v-for="skill in teaches" :key="skill.id" class="p-3.5 rounded-2xl bg-surface-container-low border border-surface-container/80 flex items-center justify-between hover:border-primary/40 transition-colors group">
-                  <div class="flex items-center gap-2">
+                <div v-for="skill in teaches" :key="skill.id" class="p-3.5 rounded-2xl bg-surface-container-low border border-surface-container/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/40 transition-colors group">
+                  <div class="flex items-center gap-2.5 flex-wrap">
                     <span class="font-headline font-semibold text-sm text-on-surface">{{ skill.name }}</span>
-                    <span v-if="verifiedSkills.find(v => v.skill_name?.toLowerCase() === skill.name?.toLowerCase())" class="px-2 py-0.5 rounded-md bg-primary/10 text-[10px] font-bold text-primary uppercase">Verified</span>
+                    
+                    <!-- Proof-of-Work Heartbeat Badge -->
+                    <template v-if="getSkillVerification(skill.name)">
+                      <!-- Active (Heartbeat pulsating) -->
+                      <div 
+                        v-if="getSkillVerification(skill.name).decay_status === 'active'"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-[10px] font-bold"
+                        :title="`Proof-of-Work Heartbeat: ${getSkillVerification(skill.name).days_remaining} days remaining (Health: ${getSkillVerification(skill.name).health_percent}%)`"
+                      >
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Active ({{ getSkillVerification(skill.name).days_remaining }}d left)</span>
+                        <span class="text-[9px] uppercase opacity-75">• {{ getSkillVerification(skill.name).verified_level }}</span>
+                      </div>
+
+                      <!-- Expiring Soon (Warning Alert) -->
+                      <div 
+                        v-else-if="getSkillVerification(skill.name).decay_status === 'expiring_soon'"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-700 text-[10px] font-bold animate-pulse"
+                        :title="`Expiring soon! Stale verification warning in ${getSkillVerification(skill.name).days_remaining} days. Teach in an A.E.E. session to refresh.`"
+                      >
+                        <span class="material-symbols-outlined text-xs text-amber-600">warning</span>
+                        <span>Expiring in {{ getSkillVerification(skill.name).days_remaining }}d</span>
+                      </div>
+
+                      <!-- Decayed / Stale -->
+                      <div 
+                        v-else
+                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-500/10 border border-slate-400/30 text-slate-600 text-[10px] font-bold"
+                        title="Skill verification has decayed (>180 days). It is marked inactive for HRs. Teach or pass quiz to revive!"
+                      >
+                        <span class="material-symbols-outlined text-xs">history_toggle_off</span>
+                        <span>Decayed • Inactive for HRs</span>
+                      </div>
+                    </template>
                   </div>
-                  <button @click="removeSkill(skill.id)" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all text-xs">
-                    <span class="material-symbols-outlined text-sm">close</span>
-                  </button>
+
+                  <div class="flex items-center gap-2 self-end sm:self-center">
+                    <!-- Log A.E.E. Session Action (for verified skills) -->
+                    <button 
+                      v-if="getSkillVerification(skill.name)"
+                      @click="openAeeModal(skill.name)"
+                      class="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-on-primary font-headline text-[11px] font-bold transition-all flex items-center gap-1 shadow-xs"
+                      title="Log an Applied Exchange & Execution (A.E.E.) teaching session to refresh your 180-day heartbeat"
+                    >
+                      <span class="material-symbols-outlined text-xs">bolt</span>
+                      <span>Log A.E.E.</span>
+                    </button>
+                    
+                    <NuxtLink 
+                      v-else
+                      to="/quiz"
+                      class="px-2.5 py-1 rounded-xl bg-secondary-container/40 hover:bg-secondary-container text-secondary font-headline text-[11px] font-bold transition-all flex items-center gap-1"
+                      title="Take verification quiz"
+                    >
+                      <span class="material-symbols-outlined text-xs">quiz</span>
+                      <span>Verify</span>
+                    </NuxtLink>
+
+                    <button @click="removeSkill(skill.id)" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all text-xs p-1" title="Remove skill">
+                      <span class="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -601,6 +714,92 @@
           </div>
         </div>
       </div>
+
+      <!-- ── LOG A.E.E. SESSION MODAL ─────────────────────────────────── -->
+      <div v-if="showAeeModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-surface-container-high space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl">bolt</span>
+              </div>
+              <div>
+                <h2 class="font-display text-lg font-bold text-on-surface">Log A.E.E. Execution</h2>
+                <p class="text-[11px] text-on-surface-variant">Proof-of-Work heartbeat renewal</p>
+              </div>
+            </div>
+            <button @click="showAeeModal = false" class="p-1.5 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors">
+              <span class="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Verified Skill Being Taught</label>
+              <input :value="aeeForm.skill_name" disabled class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low border border-surface-container-high text-sm font-bold text-primary capitalize cursor-not-allowed"/>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Learning Partner (Peer)</label>
+              <select v-model="aeeForm.learner_id" class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-sm focus:outline-none focus:border-primary transition-colors">
+                <option value="" disabled>Select a connected peer...</option>
+                <option v-for="c in activeConnections" :key="c.id" :value="c.user_id">
+                  {{ c.full_name }} (@{{ c.username }})
+                </option>
+              </select>
+              <p v-if="activeConnections.length === 0" class="text-[11px] text-amber-600 mt-1">
+                You need at least one connected learning partner to log an A.E.E. session. Connect with peers from Loop Exchanges or search!
+              </p>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Session Duration</label>
+              <div class="grid grid-cols-4 gap-2">
+                <button 
+                  v-for="d in [15, 30, 45, 60]" 
+                  :key="d"
+                  type="button"
+                  @click="aeeForm.duration_minutes = d"
+                  class="py-2 rounded-xl border text-xs font-bold transition-all"
+                  :class="aeeForm.duration_minutes === d ? 'border-primary bg-primary text-on-primary' : 'border-surface-container-high bg-surface-bright text-on-surface hover:border-primary/40'"
+                >
+                  {{ d }}m
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Execution / Teaching Summary</label>
+              <textarea 
+                v-model="aeeForm.topic_notes" 
+                rows="3" 
+                class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-sm focus:outline-none focus:border-primary transition-colors resize-none"
+                placeholder="Briefly describe what was taught or executed (e.g. Debugged state issues in React, walked through useEffect and custom hooks)..."
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-surface-container-low text-[11px] text-on-surface-variant space-y-1">
+            <p class="font-bold text-on-surface flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-primary">info</span>
+              <span>Two-Sided Peer Confirmation</span>
+            </p>
+            <p>Your partner will receive a confirmation prompt on their dashboard. Upon confirmation, your 180-day heartbeat resets and you earn +25 XP.</p>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button 
+              @click="submitAeeLog" 
+              :disabled="isSubmittingAee || !aeeForm.learner_id || !aeeForm.topic_notes.trim()"
+              class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary font-headline font-semibold text-sm hover:bg-primary-dim active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xs flex items-center justify-center gap-2"
+            >
+              <span v-if="isSubmittingAee" class="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
+              <span>{{ isSubmittingAee ? 'Sending Request...' : 'Send for Peer Confirmation' }}</span>
+            </button>
+            <button @click="showAeeModal = false" class="px-5 py-2.5 rounded-xl border border-surface-variant text-on-surface-variant hover:bg-surface-container font-headline font-semibold text-sm transition-all">Cancel</button>
+          </div>
+        </div>
+      </div>
     </template>
 
     <!-- ── LIVE INCOMING CONNECTION REQUEST MODAL ─────────────────── -->
@@ -656,7 +855,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, reactive } from 'vue'
 import { io } from 'socket.io-client'
 
 const user = ref(null)
@@ -684,6 +883,98 @@ const editProfile = ref({
   full_name: '', department: '', semester: 1,
   bio: '', education: '', qualifications: '', experience: '', github: '', linkedin: ''
 })
+
+// ─── Proof-of-Work Half-Life & A.E.E. State ─────────────────────────────────
+const incomingAee = ref([])
+const outboundAee = ref([])
+const showAeeModal = ref(false)
+const isSubmittingAee = ref(false)
+const aeeForm = reactive({
+  learner_id: '',
+  skill_name: '',
+  duration_minutes: 30,
+  topic_notes: ''
+})
+
+const getSkillVerification = (name) => {
+  if (!name || !verifiedSkills.value) return null
+  return verifiedSkills.value.find(v => v.skill_name?.toLowerCase() === name.toLowerCase())
+}
+
+const openAeeModal = (skillName) => {
+  aeeForm.skill_name = skillName
+  aeeForm.learner_id = activeConnections.value.length > 0 ? activeConnections.value[0].user_id : ''
+  aeeForm.duration_minutes = 30
+  aeeForm.topic_notes = ''
+  showAeeModal.value = true
+}
+
+const fetchAeePending = async () => {
+  try {
+    const res = await fetch('/api/aee/pending', { credentials: 'include' })
+    if (res.ok) {
+      const d = await res.json()
+      incomingAee.value = d.incoming || []
+      outboundAee.value = d.outbound || []
+    }
+  } catch (e) {
+    console.error('Error loading AEE pending:', e)
+  }
+}
+
+const submitAeeLog = async () => {
+  if (!aeeForm.learner_id || !aeeForm.topic_notes.trim()) {
+    alert("Please select a learning partner and enter what was taught.")
+    return
+  }
+  isSubmittingAee.value = true
+  try {
+    const res = await fetch('/api/aee/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(aeeForm)
+    })
+    const d = await res.json()
+    if (res.ok) {
+      showAeeModal.value = false
+      alert(d.message || "A.E.E. session logged! Sent confirmation request to your learning partner.")
+      await fetchAeePending()
+    } else {
+      alert(d.error || "Failed to log A.E.E. session.")
+    }
+  } catch (e) {
+    console.error(e)
+    alert("Network error while logging A.E.E. session.")
+  } finally {
+    isSubmittingAee.value = false
+  }
+}
+
+const respondAee = async (sessionId, action) => {
+  try {
+    const res = await fetch('/api/aee/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ session_id: sessionId, action })
+    })
+    const d = await res.json()
+    if (res.ok) {
+      alert(d.message || "Action completed!")
+      await Promise.all([fetchVerifications(), fetchAeePending()])
+      const uRes = await fetch('/api/user/me', { credentials: 'include' })
+      if (uRes.ok) {
+        const uData = await uRes.json()
+        user.value = uData.user
+      }
+    } else {
+      alert(d.error || "Failed to respond.")
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
 
 // Real-time notification state
 const liveRequest = ref(null)         // incoming connection request popup
@@ -724,6 +1015,22 @@ const setupDashSocket = () => {
     // Refresh connections list
     fetchConnections()
     fetchCycles()
+  })
+
+  // ─── Real-time A.E.E. Session Handshake Listeners ───
+  dashSocket.on('aee_request_received', (data) => {
+    fetchAeePending()
+    liveNotifCount.value++
+  })
+
+  dashSocket.on('aee_request_confirmed', (data) => {
+    fetchVerifications()
+    fetchAeePending()
+    alert(`🎉 Peer Confirmed! Your "${data.skill_name}" verification heartbeat has been renewed for 180 days!`)
+  })
+
+  dashSocket.on('aee_request_declined', (data) => {
+    fetchAeePending()
   })
 }
 
@@ -826,7 +1133,7 @@ onMounted(async () => {
         github: user.value.github || '',
         linkedin: user.value.linkedin || ''
       }
-      await Promise.all([fetchSkills(), fetchCycles(), fetchConnections(), fetchVerifications()])
+      await Promise.all([fetchSkills(), fetchCycles(), fetchConnections(), fetchVerifications(), fetchAeePending()])
       setupDashSocket()
     } else {
       error.value = 'Not authenticated'

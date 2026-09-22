@@ -68,7 +68,7 @@
         <div class="relative z-10 space-y-1.5 max-w-2xl">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low text-primary text-xs font-semibold uppercase tracking-wider font-label mb-1">
             <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            Campus Node #441 • Live Portfolio
+            {{ campusNodeLabel }} • Live Portfolio
           </div>
           <h1 class="font-display text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
             Resume Studio ✨
@@ -79,13 +79,13 @@
         </div>
 
         <div class="relative z-10 flex flex-wrap items-center gap-4 shrink-0">
-          <div class="bg-surface-container-low px-5 py-3 rounded-2xl border border-secondary-fixed text-right">
+          <div class="bg-surface-container-low px-5 py-3 rounded-2xl border border-secondary-fixed text-right min-w-[130px]">
             <div class="flex items-baseline justify-end gap-1.5">
-              <span class="font-display font-extrabold text-2xl text-primary">90%</span>
-              <span class="text-xs font-semibold text-on-surface-variant">ATS Ready</span>
+              <span class="font-display font-extrabold text-2xl text-primary">{{ atsScore }}%</span>
+              <span class="text-xs font-semibold text-on-surface-variant">{{ atsStatusLabel }}</span>
             </div>
             <div class="w-32 h-2 bg-surface-container rounded-full overflow-hidden mt-1.5">
-              <div class="h-full bg-primary rounded-full" style="width: 90%"></div>
+              <div class="h-full bg-primary rounded-full transition-all duration-500" :style="`width: ${atsScore}%`"></div>
             </div>
           </div>
 
@@ -156,7 +156,7 @@
                   <input
                     v-model="resume.profile.full_name"
                     type="text"
-                    placeholder="e.g. Pratham Mittal"
+                    placeholder="e.g. Alex Sharma"
                     class="w-full px-4 py-2.5 bg-surface-container-low border border-surface-container rounded-xl text-on-surface text-sm focus:bg-surface-container-lowest focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
@@ -165,7 +165,7 @@
                   <input
                     v-model="resume.target_role"
                     type="text"
-                    placeholder="e.g. Computer Science Engineer & Peer Mentor"
+                    placeholder="e.g. Software Development Engineer"
                     class="w-full px-4 py-2.5 bg-surface-container-low border border-surface-container rounded-xl text-on-surface text-sm focus:bg-surface-container-lowest focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
@@ -177,7 +177,7 @@
                   <input
                     v-model="resume.profile.email"
                     type="email"
-                    placeholder="e.g. pratham.mittal@abesit.edu.in"
+                    placeholder="e.g. student@university.edu"
                     class="w-full px-4 py-2.5 bg-surface-container-low border border-surface-container rounded-xl text-on-surface text-sm focus:bg-surface-container-lowest focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
@@ -198,7 +198,7 @@
                   <input
                     v-model="resume.profile.github"
                     type="text"
-                    placeholder="github.com/pratham-mittal"
+                    placeholder="github.com/your-username"
                     class="w-full px-3.5 py-2.5 bg-surface-container-low border border-surface-container rounded-xl text-on-surface text-xs focus:bg-surface-container-lowest focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
@@ -207,7 +207,7 @@
                   <input
                     v-model="resume.profile.linkedin"
                     type="text"
-                    placeholder="linkedin.com/in/prathammittal"
+                    placeholder="linkedin.com/in/your-profile"
                     class="w-full px-3.5 py-2.5 bg-surface-container-low border border-surface-container rounded-xl text-on-surface text-xs focus:bg-surface-container-lowest focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
@@ -216,7 +216,7 @@
                   <input
                     v-model="resume.profile.location"
                     type="text"
-                    placeholder="Ghaziabad, India"
+                    placeholder="e.g. New Delhi, India"
                     class="w-full px-3.5 py-2.5 bg-surface-container-low border border-surface-container rounded-xl text-on-surface text-xs focus:bg-surface-container-lowest focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
@@ -330,7 +330,7 @@
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-1.5 flex-wrap">
                         <p class="text-xs font-headline font-bold text-on-surface">{{ inst.name }}</p>
-                        <span class="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-secondary-container text-on-secondary-container">Node #441</span>
+                        <span class="px-2 py-0.2 rounded-full text-[10px] font-mono font-bold bg-secondary-container text-on-secondary-container">{{ campusNodeId }}</span>
                       </div>
                       <p class="text-[11px] text-on-surface-variant mt-0.5">{{ inst.location }} <span v-if="inst.affiliation">• {{ inst.affiliation }}</span></p>
                     </div>
@@ -876,16 +876,16 @@
                 <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
                   <div>
                     <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-on-surface tracking-tight">
-                      {{ resume.profile.full_name || user?.full_name || 'Pratham Mittal' }}
+                      {{ resume.profile.full_name || user?.full_name || user?.username || 'Your Name' }}
                     </h1>
                     <p class="font-headline font-bold text-base sm:text-lg text-primary mt-1">
-                      {{ resume.target_role || 'Computer Science Engineer & Peer Mentor' }}
+                      {{ resume.target_role || (user?.department ? `${user.department} Specialist & Peer Mentor` : 'Campus Peer Lead') }}
                     </p>
                   </div>
                   <div class="text-right sm:self-center">
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-secondary-fixed text-primary text-xs font-label font-bold">
                       <span class="w-2 h-2 rounded-full bg-primary"></span>
-                      ABESIT Node #441
+                      {{ campusNodeLabel }}
                     </span>
                   </div>
                 </div>
@@ -896,7 +896,7 @@
                     <span class="material-symbols-outlined text-[15px]">mail</span>
                     <span>{{ resume.profile.email || user?.email }}</span>
                   </a>
-                  <span class="text-surface-variant">•</span>
+                  <span v-if="(resume.profile.email || user?.email) && resume.profile.phone" class="text-surface-variant">•</span>
                   <span v-if="resume.profile.phone" class="flex items-center gap-1">
                     <span class="material-symbols-outlined text-[15px]">call</span>
                     <span>{{ resume.profile.phone }}</span>
@@ -935,35 +935,52 @@
                     <span>SKILLLOOP VERIFIED COMPETENCIES</span>
                   </div>
                   <span class="font-mono text-[10px] text-on-surface-variant bg-surface-container-lowest px-2 py-0.5 rounded-full border border-surface-container">
-                    Hash: 0x8f7d...4a12 • AKTU Protocol Node #441
+                    Hash: {{ protocolHash }} • {{ campusNodeLabel }}
                   </span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <div class="bg-surface-container-lowest rounded-xl p-2.5 border border-surface-container shadow-2xs flex items-start gap-2">
-                    <span class="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                    <div>
-                      <p class="text-xs font-headline font-bold text-on-surface">Critical Thinking</p>
-                      <p class="text-[10px] font-mono text-on-surface-variant">Score: 92% • Proctored</p>
-                      <span class="inline-block mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-secondary-container text-on-secondary-container">Audit Consensus 4/4</span>
+                  <!-- Real Verified Skills from DB -->
+                  <template v-if="verifications.length > 0">
+                    <div 
+                      v-for="v in verifications.slice(0, 2)" 
+                      :key="v.skill_name"
+                      class="bg-surface-container-lowest rounded-xl p-2.5 border border-surface-container shadow-2xs flex items-start gap-2"
+                    >
+                      <span class="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">
+                        {{ v.is_active ? 'verified' : 'history_toggle_off' }}
+                      </span>
+                      <div class="min-w-0">
+                        <p class="text-xs font-headline font-bold text-on-surface capitalize truncate">{{ v.skill_name }}</p>
+                        <p class="text-[10px] font-mono text-on-surface-variant">Level: {{ v.verified_level }} • {{ v.activity_type === 'aee_session' ? 'A.E.E. Proof' : 'Quiz Proctored' }}</p>
+                        <span 
+                          class="inline-block mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold"
+                          :class="v.is_active ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'"
+                        >
+                          {{ v.is_active ? `Active (${v.days_remaining}d)` : 'Dormant' }}
+                        </span>
+                      </div>
                     </div>
+                  </template>
+
+                  <!-- Empty state prompt if no verified skills -->
+                  <div v-else class="sm:col-span-2 bg-surface-container-lowest rounded-xl p-2.5 border border-dashed border-surface-container flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class="material-symbols-outlined text-primary text-base">quiz</span>
+                      <p class="text-xs text-on-surface-variant font-body">No skills verified yet. Pass a 15-second benchmark quiz to attach verified credentials here.</p>
+                    </div>
+                    <NuxtLink to="/quiz" class="px-2.5 py-1 rounded-lg bg-primary text-on-primary text-[10px] font-bold font-headline whitespace-nowrap">Verify Skill</NuxtLink>
                   </div>
 
-                  <div class="bg-surface-container-lowest rounded-xl p-2.5 border border-surface-container shadow-2xs flex items-start gap-2">
-                    <span class="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">stars</span>
-                    <div>
-                      <p class="text-xs font-headline font-bold text-on-surface">Java Core Mastery</p>
-                      <p class="text-[10px] font-mono text-on-surface-variant">Peer Consensus: 5.0★</p>
-                      <span class="inline-block mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-secondary-container text-on-secondary-container">Validated Mentor</span>
-                    </div>
-                  </div>
-
+                  <!-- Live TimeBank Escrow Card -->
                   <div class="bg-surface-container-lowest rounded-xl p-2.5 border border-surface-container shadow-2xs flex items-start gap-2">
                     <span class="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">schedule</span>
                     <div>
                       <p class="text-xs font-headline font-bold text-on-surface">TimeBank Escrow</p>
-                      <p class="text-[10px] font-mono text-on-surface-variant">{{ user?.time_credits || 0 }} hrs validated</p>
-                      <span class="inline-block mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-secondary-container text-on-secondary-container">Zero Dispute Record</span>
+                      <p class="text-[10px] font-mono text-on-surface-variant">{{ user?.time_credits ?? 5 }} credits • {{ user?.total_sessions || 0 }} sessions</p>
+                      <span class="inline-block mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-secondary-container text-on-secondary-container">
+                        {{ user?.rating_avg ? `${user.rating_avg}★ Peer Rating` : 'Verified Campus Node' }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -978,10 +995,10 @@
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
                       <h4 class="font-headline font-bold text-sm text-on-surface">
-                        {{ eduForm.institution || 'ABES Institute of Technology (ABESIT)' }}
+                        {{ eduForm.institution || user?.education || 'University / Institution' }}
                       </h4>
-                      <span class="px-2 py-0.5 rounded-full text-[10px] font-label font-bold bg-surface-container-low text-primary border border-secondary-fixed">
-                        Ghaziabad, UP
+                      <span v-if="resume.profile.location" class="px-2 py-0.5 rounded-full text-[10px] font-label font-bold bg-surface-container-low text-primary border border-secondary-fixed">
+                        {{ resume.profile.location }}
                       </span>
                     </div>
                     <p class="text-xs font-semibold text-on-surface-variant mt-0.5">
@@ -995,7 +1012,7 @@
                   </div>
                   <div class="text-right shrink-0">
                     <span class="font-mono text-xs font-bold text-on-surface bg-surface-container-low px-2.5 py-1 rounded-full border border-surface-container">
-                      {{ eduForm.start_year || '2025' }} — {{ eduForm.is_current ? 'Present' : (eduForm.end_year || '2029') }}
+                      {{ eduForm.start_year || defaultStartYear }} — {{ eduForm.is_current ? 'Present' : (eduForm.end_year || defaultEndYear) }}
                       <span v-if="eduForm.is_current && eduForm.end_year" class="text-on-surface-variant"> (Exp. {{ eduForm.end_year }})</span>
                     </span>
                     <p v-if="eduForm.is_current" class="text-[10px] font-headline font-bold text-primary mt-1">
@@ -1114,17 +1131,20 @@
                 <div class="font-body">
                   <div class="flex items-baseline justify-between">
                     <h4 class="font-headline font-bold text-sm text-on-surface">
-                      Campus Peer Mentor in Java &amp; Algorithmic Problem Solving
+                      Campus Peer Mentor in {{ teaches.length > 0 ? teaches.slice(0, 2).join(' & ') : (user?.department || 'Peer Skills') }}
                     </h4>
-                    <span class="font-mono text-xs text-on-surface-variant">SkillLoop Node #441 (ABESIT)</span>
+                    <span class="font-mono text-xs text-on-surface-variant">SkillLoop {{ campusNodeId }} ({{ (eduForm.institution || user?.department || 'Campus').split(' ')[0] }})</span>
                   </div>
                   <p class="text-xs text-on-surface-variant font-medium mt-0.5 leading-relaxed">
                     {{ resume.mentorship_desc || 'Conducted 10+ hours of 1-on-1 peer code reviews, debugging sessions, and algorithm walkthroughs with 100% positive learner evaluations and zero disputes.' }}
                   </p>
                   <div v-if="teaches.length > 0" class="flex items-center gap-1.5 mt-2 flex-wrap">
                     <span class="text-xs text-on-surface-variant font-semibold">Verified teaching skills:</span>
-                    <span v-for="t in teaches" :key="t" class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[11px] font-bold">
+                    <span v-for="t in teaches" :key="t" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+                      :class="getSkillVerif(t)?.is_active ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant/70'">
                       {{ t }}
+                      <span v-if="getSkillVerif(t)?.is_active" class="text-[9px] text-emerald-700 ml-1">✓ Active ({{ getSkillVerif(t)?.days_remaining }}d)</span>
+                      <span v-else-if="getSkillVerif(t)?.decay_status === 'decayed'" class="text-[9px] text-slate-500 ml-1">(Dormant)</span>
                     </span>
                   </div>
                 </div>
@@ -1133,7 +1153,7 @@
               <!-- Footprint -->
               <div class="mt-8 pt-3 border-t border-surface-container flex items-center justify-between text-[10px] font-mono text-on-surface-variant">
                 <span>SkillLoop Cryptographic Signature Attached • Verified Campus Registry</span>
-                <span>Document ID: SL-RES-2026-09412</span>
+                <span>Document ID: {{ documentId }}</span>
               </div>
             </div>
 
@@ -1147,10 +1167,10 @@
               <!-- ATS Header -->
               <div class="text-center border-b-2 border-slate-900 pb-4 mb-4">
                 <h1 class="font-serif font-bold text-2xl sm:text-3xl text-slate-950 uppercase tracking-wide">
-                  {{ resume.profile.full_name || user?.full_name || 'Pratham Mittal' }}
+                  {{ resume.profile.full_name || user?.full_name || user?.username || 'Your Name' }}
                 </h1>
                 <p class="text-sm font-semibold text-slate-800 mt-1">
-                  {{ resume.target_role || 'Computer Science Engineer' }}
+                  {{ resume.target_role || (user?.department ? user.department + ' Student' : 'Undergraduate Student') }}
                 </p>
                 <div class="flex items-center justify-center gap-3 text-xs text-slate-600 mt-2 flex-wrap font-sans">
                   <span v-if="resume.profile.email || user?.email">{{ resume.profile.email || user?.email }}</span>
@@ -1178,13 +1198,13 @@
                 </h3>
                 <div class="flex justify-between items-baseline text-xs">
                   <div>
-                    <span class="font-bold text-slate-900">{{ eduForm.institution }}</span>
+                    <span class="font-bold text-slate-900">{{ eduForm.institution || user?.education || 'University / Institution' }}</span>
                     <span v-if="eduForm.degree"> — {{ eduForm.degree }}</span>
                     <span v-else-if="eduForm.is_current" class="italic"> (Enrolled Student)</span>
                     <span v-if="eduForm.grade"> (CGPA: {{ eduForm.grade }})</span>
                   </div>
                   <span class="text-slate-600 font-mono">
-                    {{ eduForm.start_year }} – {{ eduForm.is_current ? 'Present' : eduForm.end_year }}
+                    {{ eduForm.start_year || defaultStartYear }} – {{ eduForm.is_current ? 'Present' : (eduForm.end_year || defaultEndYear) }}
                   </span>
                 </div>
                 <p v-if="eduForm.coursework" class="text-[11px] text-slate-600 mt-0.5">
@@ -1244,7 +1264,7 @@
                   Campus Leadership &amp; Peer Mentorship
                 </h3>
                 <p class="text-xs text-slate-800">
-                  {{ resume.mentorship_desc || 'Campus Peer Mentor on SkillLoop Protocol. Conducted 10+ hours of verified peer reviews and technical mentoring.' }}
+                  {{ resume.mentorship_desc || ('Campus Peer Mentor on SkillLoop Protocol' + (teaches.length > 0 ? (' in ' + teaches.join(', ')) : '') + '. Conducted verified peer reviews and technical mentoring.') }}
                 </p>
               </div>
             </div>
@@ -1363,7 +1383,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 
 const user = ref(null)
 const teaches = ref([])
@@ -1372,6 +1392,67 @@ const activeTab = ref('education')
 const saving = ref(false)
 const polishing = ref(false)
 const zoomLevel = ref(100)
+
+const currentYear = new Date().getFullYear()
+
+const defaultStartYear = computed(() => {
+  const sem = user.value?.semester || 1
+  const yearsBack = Math.max(0, Math.floor((sem - 1) / 2))
+  return String(currentYear - yearsBack)
+})
+
+const defaultEndYear = computed(() => {
+  return String(parseInt(defaultStartYear.value) + 4)
+})
+
+const campusNodeId = computed(() => {
+  return `Node #${String(user.value?.id || 1).padStart(3, '0')}`
+})
+
+const campusNodeLabel = computed(() => {
+  const inst = (eduForm.institution || user.value?.education || user.value?.department || 'Campus').split(' ')[0]
+  return `${inst} ${campusNodeId.value}`
+})
+
+const documentId = computed(() => {
+  return `SL-RES-${currentYear}-${String(user.value?.id || 1).padStart(5, '0')}`
+})
+
+const protocolHash = computed(() => {
+  const uid = user.value?.id || 1
+  const hex = ((uid * 2654435761) >>> 0).toString(16).padStart(8, '0')
+  return `0x${hex}...4a${String(uid).slice(-2).padStart(2, '0')}`
+})
+
+// Dynamic ATS Completeness Score (0 - 100%)
+const atsScore = computed(() => {
+  let score = 0
+  // Profile (25 pts)
+  if (resume.profile.full_name) score += 10
+  if (resume.profile.email) score += 10
+  if (resume.profile.phone || resume.profile.location || resume.profile.github) score += 5
+  // Role & Summary (20 pts)
+  if (resume.target_role) score += 10
+  if (resume.summary && resume.summary.length > 30) score += 10
+  // Education (20 pts)
+  if (eduForm.institution) score += 10
+  if (eduForm.degree || eduForm.is_current) score += 10
+  // Skills (15 pts)
+  const totalSkills = (resume.skills.languages?.length || 0) + (resume.skills.frameworks?.length || 0) + (resume.skills.tools?.length || 0)
+  if (totalSkills >= 5) score += 15
+  else if (totalSkills >= 2) score += 8
+  // Projects / Experience (10 pts)
+  if ((resume.projects?.length || 0) > 0 || (resume.experiences?.length || 0) > 0) score += 10
+  // Verifications / Certs (10 pts)
+  if ((verifications.value?.length || 0) > 0 || (resume.certifications?.length || 0) > 0) score += 10
+  return Math.min(100, Math.max(10, score))
+})
+
+const atsStatusLabel = computed(() => {
+  if (atsScore.value >= 80) return 'ATS Ready'
+  if (atsScore.value >= 50) return 'In Progress'
+  return 'Draft'
+})
 
 const tabs = [
   { id: 'profile', label: 'Profile & Contact', icon: 'person' },
@@ -1394,13 +1475,13 @@ const popularInstitutions = [
 
 // Education inline reactive form
 const eduForm = reactive({
-  institution: 'ABES Institute of Technology (ABESIT)',
-  degree: 'B.Tech in Computer Science & Engineering',
+  institution: '',
+  degree: '',
   is_current: true,
-  start_year: '2025',
-  end_year: '2029',
-  grade: '8.8 / 10 CGPA',
-  coursework: 'Data Structures & Algorithms, Object-Oriented Programming (Java), Computer Architecture, Discrete Mathematics'
+  start_year: '',
+  end_year: '',
+  grade: '',
+  coursework: ''
 })
 
 // Autocomplete State
@@ -1442,35 +1523,28 @@ const selectCustomInst = (name) => {
   showInstDropdown.value = false
 }
 
-// Full Resume State with Categorized Skills & Profile
+// Full Resume State with Categorized Skills & Profile (clean initial state, populated dynamically from DB)
 const resume = reactive({
   profile: {
-    full_name: 'Pratham Mittal',
-    email: 'pratham.mittal@abesit.edu.in',
-    phone: '+91 98765 43210',
-    github: 'github.com/pratham-mittal',
-    linkedin: 'linkedin.com/in/prathammittal',
-    location: 'Ghaziabad, India'
+    full_name: '',
+    email: '',
+    phone: '',
+    github: '',
+    linkedin: '',
+    location: ''
   },
-  target_role: 'Computer Science Engineer & Peer Mentor',
-  summary: 'Results-driven Computer Science undergraduate at ABES Institute of Technology (CGPA 8.8) with deep focus on algorithmic architectures, distributed peer-to-peer applications, and modern reactive web systems. Top-rated campus peer tutor in Java & Data Structures with over 10 hours of verified peer teaching on the SkillLoop campus protocol. Adept at transforming complex software engineering concepts into scalable, intuitive implementations.',
+  target_role: '',
+  summary: '',
   skills: {
-    languages: ['Python', 'Java (SE 17/21) ★', 'JavaScript (ES6+)', 'C / C++', 'SQL'],
-    frameworks: ['Vue.js 3', 'Nuxt 3', 'Tailwind CSS', 'Node.js', 'RESTful APIs'],
-    tools: ['Git / GitHub', 'Linux (Ubuntu / Arch)', 'Docker Basics', 'Postman', 'Vite']
+    languages: [],
+    frameworks: [],
+    tools: []
   },
   experiences: [],
   education: [],
   certifications: [],
-  projects: [
-    {
-      title: 'SkillLoop — Campus Peer Learning & Time-Banking Protocol',
-      link: 'github.com/skillloop-p2p',
-      year: '2025',
-      description: 'Architected an autonomous peer-to-peer knowledge exchange system allowing college students to swap coding lessons for creative skills with zero monetary transactions. Implemented time-banking escrow contracts guaranteeing 1 hour taught equals 1 credit earned.'
-    }
-  ],
-  mentorship_desc: 'Conducted 10+ hours of 1-on-1 peer code reviews, debugging sessions, and algorithm walkthroughs with 100% positive learner evaluations and zero disputes.',
+  projects: [],
+  mentorship_desc: '',
   settings: {
     show_teaching_skills: true,
     template: 'modern'
@@ -1516,7 +1590,7 @@ const openExpModal = (idx = -1) => {
   } else {
     expModal.isEdit = false
     expModal.index = -1
-    expModal.form = { title: '', company: '', location: 'Ghaziabad, India', start_date: 'May 2024', end_date: 'Aug 2024', description: '' }
+    expModal.form = { title: '', company: '', location: resume.profile.location || '', start_date: '', end_date: '', description: '' }
   }
   expModal.open = true
 }
@@ -1547,7 +1621,7 @@ const openProjModal = (idx = -1) => {
   } else {
     projModal.isEdit = false
     projModal.index = -1
-    projModal.form = { title: '', link: '', year: '2025', description: '' }
+    projModal.form = { title: '', link: '', year: String(currentYear), description: '' }
   }
   projModal.open = true
 }
@@ -1578,7 +1652,7 @@ const openCertModal = (idx = -1) => {
   } else {
     certModal.isEdit = false
     certModal.index = -1
-    certModal.form = { name: '', issuer: '', issue_date: '2024' }
+    certModal.form = { name: '', issuer: '', issue_date: String(currentYear) }
   }
   certModal.open = true
 }
@@ -1600,6 +1674,11 @@ const deleteCert = (idx) => {
   if (confirm('Delete this certification?')) resume.certifications.splice(idx, 1)
 }
 
+const getSkillVerif = (name) => {
+  if (!name || !verifications.value) return null
+  return verifications.value.find(v => v.skill_name?.toLowerCase() === name.toLowerCase())
+}
+
 // Fetch Resume Data from Backend
 const fetchCurrentUser = async () => {
   try {
@@ -1617,6 +1696,81 @@ const fetchCurrentUser = async () => {
   }
 }
 
+const populateDefaultsFromUser = () => {
+  if (!user.value) return
+
+  if (!resume.profile.full_name) {
+    resume.profile.full_name = user.value.full_name || user.value.username || ''
+  }
+  if (!resume.profile.email) {
+    resume.profile.email = user.value.email || ''
+  }
+  if (!resume.profile.github && user.value.github) {
+    resume.profile.github = user.value.github
+  }
+  if (!resume.profile.linkedin && user.value.linkedin) {
+    resume.profile.linkedin = user.value.linkedin
+  }
+  if (!resume.profile.location) {
+    resume.profile.location = user.value.education ? `${user.value.education.split(' ')[0]} Campus` : 'Campus Node'
+  }
+  if (!resume.target_role) {
+    resume.target_role = user.value.department ? `${user.value.department} Specialist & Peer Mentor` : 'Campus Peer Lead'
+  }
+  if (!resume.summary) {
+    if (user.value.bio) {
+      resume.summary = user.value.bio
+    } else {
+      resume.summary = `Driven undergraduate in ${user.value.department || 'Engineering'} at ${user.value.education || 'campus'} with verified competencies on the SkillLoop peer exchange network. Passionate about practical problem-solving, collaborative peer teaching, and developing real-world software applications.`
+    }
+  }
+
+  // Education defaults
+  if (!eduForm.institution) {
+    eduForm.institution = user.value.education || (popularInstitutions[0]?.name || 'University Campus')
+  }
+  if (!eduForm.degree) {
+    eduForm.degree = user.value.department ? `B.Tech in ${user.value.department}` : 'Bachelor of Technology'
+  }
+  if (!eduForm.start_year) {
+    eduForm.start_year = defaultStartYear.value
+  }
+  if (!eduForm.end_year) {
+    eduForm.end_year = defaultEndYear.value
+  }
+  if (!eduForm.grade && user.value.semester) {
+    eduForm.grade = 'Semester ' + user.value.semester
+  }
+
+  // Populate skills from teaches & learns if empty
+  if (resume.skills.languages.length === 0 && teaches.value.length > 0) {
+    resume.skills.languages = [...teaches.value.slice(0, 4)]
+  }
+  if (resume.skills.languages.length === 0) {
+    resume.skills.languages = ['Python', 'JavaScript', 'SQL']
+  }
+  if (resume.skills.frameworks.length === 0 && user.value.department) {
+    resume.skills.frameworks = [user.value.department, 'Git', 'Agile Peer Review']
+  }
+
+  // Add default project if empty
+  if (resume.projects.length === 0) {
+    resume.projects = [
+      {
+        title: 'SkillLoop — Campus Peer Learning & Escrow Protocol',
+        link: 'github.com/skillloop-p2p',
+        year: String(currentYear),
+        description: 'Collaborative peer-to-peer exchange platform enabling university students to trade skill sessions using proof-of-work validation and time-banking escrow.'
+      }
+    ]
+  }
+
+  if (!resume.mentorship_desc) {
+    const teachingList = teaches.value.length > 0 ? teaches.value.slice(0, 2).join(' & ') : (user.value.department || 'core coursework')
+    resume.mentorship_desc = `Conducted verified 1-on-1 peer reviews, code walkthroughs, and tutoring sessions in ${teachingList} with positive learner evaluations on the SkillLoop campus protocol.`
+  }
+}
+
 const fetchResume = async () => {
   try {
     const res = await fetch('/api/resume', { credentials: 'include' })
@@ -1626,11 +1780,6 @@ const fetchResume = async () => {
       teaches.value = data.teaches || []
       verifications.value = data.verifications || []
       
-      if (user.value) {
-        if (user.value.full_name) resume.profile.full_name = user.value.full_name
-        if (user.value.email) resume.profile.email = user.value.email
-      }
-
       const r = data.resume || {}
       if (r.target_role) resume.target_role = r.target_role
       if (r.summary) resume.summary = r.summary
@@ -1640,9 +1789,9 @@ const fetchResume = async () => {
       
       if (r.custom_skills) {
         if (typeof r.custom_skills === 'object' && !Array.isArray(r.custom_skills)) {
-          if (Array.isArray(r.custom_skills.languages)) resume.skills.languages = r.custom_skills.languages
-          if (Array.isArray(r.custom_skills.frameworks)) resume.skills.frameworks = r.custom_skills.frameworks
-          if (Array.isArray(r.custom_skills.tools)) resume.skills.tools = r.custom_skills.tools
+          if (Array.isArray(r.custom_skills.languages) && r.custom_skills.languages.length > 0) resume.skills.languages = r.custom_skills.languages
+          if (Array.isArray(r.custom_skills.frameworks) && r.custom_skills.frameworks.length > 0) resume.skills.frameworks = r.custom_skills.frameworks
+          if (Array.isArray(r.custom_skills.tools) && r.custom_skills.tools.length > 0) resume.skills.tools = r.custom_skills.tools
         }
       }
 
@@ -1656,6 +1805,9 @@ const fetchResume = async () => {
         resume.education = r.education
         Object.assign(eduForm, r.education[0])
       }
+
+      // Populate any missing fields dynamically from authenticated user
+      populateDefaultsFromUser()
     }
   } catch (err) {
     console.error('Error fetching resume:', err)

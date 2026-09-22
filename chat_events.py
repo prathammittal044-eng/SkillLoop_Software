@@ -115,12 +115,51 @@ def register_chat_events(socketio):
         user_id = session.get('user_id')
         target_id = data.get('target_user_id')
         candidate = data.get('candidate')
-        if target_id and user_id:
+        if target_id and user_id and candidate:
             u_id = int(user_id)
             t_id = int(target_id)
-            print(f"[WebRTC] ice_candidate: {u_id} -> {t_id}", flush=True)
+            cand_str = ''
+            if isinstance(candidate, dict):
+                cand_str = str(candidate.get('candidate') or '')
+            typ = 'unknown'
+            if ' typ relay ' in f' {cand_str} ':
+                typ = 'relay'
+            elif ' typ srflx ' in f' {cand_str} ':
+                typ = 'srflx'
+            elif ' typ host ' in f' {cand_str} ':
+                typ = 'host'
+            print(f"[WebRTC] ice_candidate: {u_id} -> {t_id} ({typ})", flush=True)
             emit('ice_candidate', {
                 'candidate': candidate,
+                'from_user_id': u_id
+            }, room=f"user_{t_id}")
+
+    @socketio.on('renegotiate')
+    def handle_renegotiate(data):
+        """Forward ICE-restart offer so a failed pair can try TURN relay."""
+        user_id = session.get('user_id')
+        target_id = data.get('target_user_id')
+        offer = data.get('offer')
+        if target_id and user_id and offer:
+            u_id = int(user_id)
+            t_id = int(target_id)
+            print(f"[WebRTC] renegotiate: {u_id} -> {t_id}", flush=True)
+            emit('renegotiate', {
+                'offer': offer,
+                'from_user_id': u_id
+            }, room=f"user_{t_id}")
+
+    @socketio.on('renegotiate_answer')
+    def handle_renegotiate_answer(data):
+        user_id = session.get('user_id')
+        target_id = data.get('target_user_id')
+        answer = data.get('answer')
+        if target_id and user_id and answer:
+            u_id = int(user_id)
+            t_id = int(target_id)
+            print(f"[WebRTC] renegotiate_answer: {u_id} -> {t_id}", flush=True)
+            emit('renegotiate_answer', {
+                'answer': answer,
                 'from_user_id': u_id
             }, room=f"user_{t_id}")
 

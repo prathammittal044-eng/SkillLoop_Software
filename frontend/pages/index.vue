@@ -93,7 +93,7 @@
 </div>
 <!-- Verified Image Anchor -->
 <div class="w-full aspect-square rounded-2xl overflow-hidden bg-surface-container-low flex items-center justify-center p-2">
-<img alt="SkillLoop Hero Illustration" class="w-full h-full object-contain drop-shadow-sm rounded-xl" src="https://lh3.googleusercontent.com/aida/AEtjO1XsYgfPhrbDNtNwt1K60iM5L0_n9Cxg0NplnZ8X6s8adQGe8lXXjLGgtN7-1oQIG6Lk6UxKu9-bakbcQN9ssYRj-Qro5jhJFEnGDgABEqnHcqDsUucelWXPDx2rc2bKLfYXqwdQY4iApVb2TPYOw1Or5ILUU-q5_bn7A3Ziv8x5r9FsVUayfQjrLfwf-Nbi3ZKoYSlxHIsbMxmHQSnmlpobKxBMmFg3wCMbz5VnvQ6adGL43K2v46UVkBVA"/>
+<img alt="SkillLoop Hero Illustration" class="w-full h-full object-contain drop-shadow-sm rounded-xl" src="/hero.jpg"/>
 </div>
 <!-- Card footer live ticker preview -->
 <div class="mt-4 pt-3 border-t border-surface-container-low flex items-center justify-between font-label text-xs text-on-surface-variant">

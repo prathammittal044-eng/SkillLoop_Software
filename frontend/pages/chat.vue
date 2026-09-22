@@ -509,6 +509,10 @@ let localStream = null
 let remoteStream = null
 let currentCallPeerId = null
 let pendingICECandidates = []  // Queue ICE candidates before remote desc is set
+let iceRetryCount = 0
+let iceWatchTimer = null
+let isMakingOffer = false
+let iceTransportPolicy = 'relay'
 
 const resumeRemoteVideo = async () => {
   if (remoteVideoRef.value) {
@@ -538,17 +542,93 @@ const testMediaDevices = async () => {
   }
 }
 
-const rtcConfig = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
-    { urls: 'stun:stun.cloudflare.com:3478' },
-    { urls: 'stun:turn.cloudflare.com:3478' }
-  ],
-  iceCandidatePoolSize: 10
+const fallbackIceServers = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  {
+    urls: [
+      'turn:staticauth.openrelay.metered.ca:80',
+      'turn:staticauth.openrelay.metered.ca:443',
+      'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
+      'turns:staticauth.openrelay.metered.ca:443?transport=tcp'
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  }
+]
+
+let rtcConfig = {
+  iceServers: fallbackIceServers,
+  iceCandidatePoolSize: 4,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+  iceTransportPolicy: 'all'
+}
+
+const getRtcConfig = () => ({
+  ...rtcConfig,
+  iceTransportPolicy
+})
+
+const serializeCandidate = (candidate) => {
+  if (!candidate) return null
+  if (typeof candidate.toJSON === 'function') return candidate.toJSON()
+  return {
+    candidate: candidate.candidate,
+    sdpMid: candidate.sdpMid,
+    sdpMLineIndex: candidate.sdpMLineIndex,
+    usernameFragment: candidate.usernameFragment
+  }
+}
+
+const waitForIceGathering = (pc, timeoutMs = 5000) => new Promise((resolve) => {
+  if (!pc || pc.iceGatheringState === 'complete') {
+    resolve()
+    return
+  }
+  const finish = () => {
+    pc.removeEventListener('icegatheringstatechange', onChange)
+    clearTimeout(timer)
+    resolve()
+  }
+  const onChange = () => {
+    if (pc.iceGatheringState === 'complete') finish()
+  }
+  pc.addEventListener('icegatheringstatechange', onChange)
+  const timer = setTimeout(finish, timeoutMs)
+})
+
+const drainQueuedIce = async () => {
+  if (!peerConnection || !peerConnection.remoteDescription?.type) return
+  const queued = pendingICECandidates.splice(0)
+  for (const candidate of queued) {
+    try {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+      console.log('[WebRTC] Drained queued ICE candidate')
+    } catch (e) {
+      console.warn('[WebRTC] Error draining ICE candidate', e)
+    }
+  }
+}
+
+const fetchTurnCredentials = async () => {
+  try {
+    const res = await fetch('/api/turn-credentials', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      const servers = Array.isArray(data.iceServers) && data.iceServers.length
+        ? data.iceServers
+        : fallbackIceServers
+      rtcConfig = { ...rtcConfig, iceServers: servers }
+      console.log('[WebRTC] ICE servers loaded:', servers.length, 'hasTurn=', data.hasTurn)
+      console.log('=== ICE SERVERS FOR CLAUDE ===')
+      console.log(JSON.stringify(servers, null, 2))
+      console.log('==============================')
+    }
+  } catch (e) {
+    console.warn('[WebRTC] Could not fetch TURN credentials, using fallback relays:', e)
+  }
 }
 
 // Helper: attach stream to a video ref, retrying until DOM is ready
@@ -601,6 +681,7 @@ const filteredPeers = computed(() => {
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchPeers()
+  await fetchTurnCredentials()
   setupSocket()
 })
 
@@ -687,17 +768,13 @@ const scrollToBottom = () => {
 
 // ─── WebSocket Setup ────────────────────────────────────────────────────────
 const setupSocket = () => {
-  // If on HTTPS (Cloudflare tunnel / public host), connect to same origin via proxy.
-  // If on HTTP with local port (e.g. localhost:3000), connect directly to port 5000.
-  const backendUrl = typeof window !== 'undefined'
-    ? ((window.location.protocol === 'https:' || !window.location.port)
-        ? window.location.origin
-        : `${window.location.protocol}//${window.location.hostname}:5000`)
-    : 'http://localhost:5000'
+  // Same-origin so Flask session cookies always ride with signaling.
+  const backendUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
 
   socket.value = io(backendUrl, {
     withCredentials: true,
-    transports: ['polling', 'websocket']
+    transports: ['websocket', 'polling'],
+    upgrade: true
   })
 
   socket.value.on('receive_message', (msg) => {
@@ -715,7 +792,7 @@ const setupSocket = () => {
     }
   })
 
-  // WebRTC Signaling listeners
+  // Do NOT wipe queued ICE here — candidates often arrive before the ringing event.
   socket.value.on('incoming_call', async (data) => {
     incomingCall.value = data
   })
@@ -724,22 +801,12 @@ const setupSocket = () => {
     if (peerConnection) {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
       console.log('[WebRTC] Remote description set (answer)')
-      // Drain any ICE candidates queued before we had remote desc
-      for (const candidate of pendingICECandidates) {
-        try {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-          console.log('[WebRTC] Drained queued ICE candidate (caller side)')
-        } catch (e) {
-          console.warn('[WebRTC] Error draining ICE candidate', e)
-        }
-      }
-      pendingICECandidates = []
+      await drainQueuedIce()
     }
   })
 
   socket.value.on('ice_candidate', async (data) => {
     if (!data.candidate) return
-    // If peer connection isn't ready or remote description not yet set, queue the candidate
     if (!peerConnection || !peerConnection.remoteDescription || !peerConnection.remoteDescription.type) {
       console.log('[WebRTC] Queuing ICE candidate (connection not ready)')
       pendingICECandidates.push(data.candidate)
@@ -753,8 +820,35 @@ const setupSocket = () => {
     }
   })
 
+  socket.value.on('renegotiate', async (data) => {
+    if (!peerConnection || !data.offer) return
+    try {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+      await drainQueuedIce()
+      const answer = await peerConnection.createAnswer()
+      await peerConnection.setLocalDescription(answer)
+      await waitForIceGathering(peerConnection)
+      socket.value.emit('renegotiate_answer', {
+        target_user_id: data.from_user_id,
+        answer: peerConnection.localDescription
+      })
+    } catch (e) {
+      console.error('[WebRTC] renegotiate (callee) failed:', e)
+    }
+  })
+
+  socket.value.on('renegotiate_answer', async (data) => {
+    if (!peerConnection || !data.answer) return
+    try {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+      await drainQueuedIce()
+    } catch (e) {
+      console.error('[WebRTC] renegotiate_answer failed:', e)
+    }
+  })
+
   socket.value.on('call_ended', () => {
-    endCall()
+    endCall(true)
   })
 }
 
@@ -858,6 +952,9 @@ const requestUserMediaSafe = async () => {
 // ─── WebRTC Video Calling Implementation ─────────────────────────────────────
 const startCall = async () => {
   if (!activePeer.value) return
+  pendingICECandidates = []
+  iceRetryCount = 0
+  iceTransportPolicy = 'all'
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert("⚠️ Camera/Microphone Blocked by Browser:\n\nPlease open this site over HTTPS or enable insecure origin flags.")
@@ -865,33 +962,34 @@ const startCall = async () => {
   }
 
   try {
+    await fetchTurnCredentials()
     currentCallPeerId = activePeer.value.id
     console.log('[WebRTC] Requesting local media for peer:', currentCallPeerId)
     localStream = await requestUserMediaSafe()
     console.log('[WebRTC] Got local stream:', localStream.getTracks().map(t => t.kind))
 
-    // Set call active AFTER we have the stream so the overlay mounts
     isCallActive.value = true
     await nextTick()
-
-    // Attach local video — retry until DOM element mounts
     attachStream(localVideoRef, localStream)
 
     createPeerConnection()
-
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream)
     })
 
-    const offer = await peerConnection.createOffer()
+    isMakingOffer = true
+    const offer = await peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
     await peerConnection.setLocalDescription(offer)
-    console.log('[WebRTC] Offer created, emitting call_user to:', currentCallPeerId)
+    await waitForIceGathering(peerConnection)
+    console.log('[WebRTC] Offer ready (gathering=', peerConnection.iceGatheringState, '), emitting call_user to:', currentCallPeerId)
 
     socket.value.emit('call_user', {
       target_user_id: currentCallPeerId,
-      offer: offer
+      offer: peerConnection.localDescription
     })
+    isMakingOffer = false
   } catch (e) {
+    isMakingOffer = false
     console.error('[WebRTC] Could not access camera/mic:', e)
     if (e.message === 'InsecureContextError') {
       alert("⚠️ Camera Access Blocked (Insecure Context):\n\nBrowsers block camera/mic access on HTTP networks.\n\nPlease either:\n1. Run on localhost (http://localhost:3000)\n2. Serve via HTTPS (e.g. using Cloudflare Tunnel)")
@@ -923,46 +1021,35 @@ const acceptCall = async () => {
   activePeer.value = callerPeer || { id: callData.caller_id, full_name: callData.caller_name || 'Caller' }
 
   try {
+    await fetchTurnCredentials()
+    iceRetryCount = 0
+    iceTransportPolicy = 'all'
     console.log('[WebRTC] Requesting local media (accept)...')
     localStream = await requestUserMediaSafe()
     console.log('[WebRTC] Got local stream (accept):', localStream.getTracks().map(t => t.kind))
 
-    // Switch view to active call
     isCallActive.value = true
     await nextTick()
-
-    // Attach local video — retry until DOM element mounts
     attachStream(localVideoRef, localStream)
 
     createPeerConnection()
-
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream)
     })
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer))
     console.log('[WebRTC] Remote description set (offer)')
+    await drainQueuedIce()
 
     const answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(answer)
-    console.log('[WebRTC] Answer created, emitting answer_call to:', currentCallPeerId)
+    await waitForIceGathering(peerConnection)
+    console.log('[WebRTC] Answer ready, emitting answer_call to:', currentCallPeerId)
 
     socket.value.emit('answer_call', {
       target_user_id: currentCallPeerId,
-      answer: answer
+      answer: peerConnection.localDescription
     })
-
-    // Drain any ICE candidates that arrived before remote description
-    for (const candidate of pendingICECandidates) {
-      try {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-        console.log('[WebRTC] Drained queued ICE candidate (receiver side)')
-      } catch (e) {
-        console.warn('[WebRTC] Error draining ICE candidate', e)
-      }
-    }
-    pendingICECandidates = []
-
   } catch (e) {
     console.error('[WebRTC] Error accepting call:', e)
     if (e.message === 'InsecureContextError') {
@@ -995,7 +1082,6 @@ const updateCallDebug = () => {
 }
 
 const createPeerConnection = () => {
-  pendingICECandidates = []  // Reset queue for new connection
   if (remoteStream) {
     remoteStream.getTracks().forEach(t => t.stop())
   }
