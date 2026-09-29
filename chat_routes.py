@@ -207,7 +207,7 @@ def send_message_http():
 
 @chat_bp.route('/api/chat/messages/<int:peer_id>', methods=['GET'])
 def get_messages(peer_id):
-    """Fetch message history between current user and peer."""
+    """Fetch message history between current user and peer, supporting incremental delta sync."""
     if 'user_id' not in session:
         return jsonify({"error": "Not authenticated"}), 401
     
@@ -215,16 +215,30 @@ def get_messages(peer_id):
     db = get_db()
     init_chat_db(db)
 
-    # Mark received messages from this peer as read
-    db.execute('UPDATE messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ?', (peer_id, current_user_id))
+    # Mark received unread messages from this peer as read
+    db.execute('''
+        UPDATE messages 
+        SET is_read = 1 
+        WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
+    ''', (peer_id, current_user_id))
     db.commit()
 
-    rows = db.execute('''
-        SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read
-        FROM messages
-        WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-        ORDER BY created_at ASC
-    ''', (current_user_id, peer_id, peer_id, current_user_id)).fetchall()
+    after_id = request.args.get('after', type=int)
+    if after_id is not None:
+        rows = db.execute('''
+            SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read
+            FROM messages
+            WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+              AND id > ?
+            ORDER BY id ASC
+        ''', (current_user_id, peer_id, peer_id, current_user_id, after_id)).fetchall()
+    else:
+        rows = db.execute('''
+            SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read
+            FROM messages
+            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+            ORDER BY id ASC
+        ''', (current_user_id, peer_id, peer_id, current_user_id)).fetchall()
 
     messages = [dict(r) for r in rows]
     return jsonify({"messages": messages}), 200

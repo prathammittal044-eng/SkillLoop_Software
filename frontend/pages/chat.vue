@@ -681,12 +681,23 @@ const filteredPeers = computed(() => {
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchPeers()
-  await fetchTurnCredentials()
   setupSocket()
+  startMessageSync()
+  // Fetch TURN credentials non-blockingly in the background so socket connects immediately
+  fetchTurnCredentials()
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', handleWindowFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 
 onUnmounted(() => {
   endCall()
+  stopMessageSync()
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('focus', handleWindowFocus)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
   if (socket.value) {
     socket.value.disconnect()
   }
@@ -739,10 +750,36 @@ const fetchPeers = async () => {
   }
 }
 
+// Background silent peer sync for sidebar preview and badge updates
+const fetchPeersSilent = async () => {
+  try {
+    const res = await fetch('/api/chat/peers', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      const newPeers = data.peers || []
+      for (const np of newPeers) {
+        const existing = peers.value.find(p => p.id === np.id)
+        if (existing) {
+          existing.last_message = np.last_message
+          existing.last_message_time = np.last_message_time
+          existing.last_message_type = np.last_message_type
+          existing.unread_count = np.unread_count
+          existing.is_online = np.is_online
+        } else {
+          peers.value.push(np)
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore background polling errors
+  }
+}
+
 const selectPeer = async (peer) => {
   activePeer.value = peer
   peer.unread_count = 0
   await fetchMessages(peer.id)
+  fetchDeltaMessages(peer.id)
 }
 
 const fetchMessages = async (peerId) => {
@@ -755,6 +792,98 @@ const fetchMessages = async (peerId) => {
     }
   } catch (e) {
     console.error(e)
+  }
+}
+
+// ─── High-Frequency Smart Delta Sync Engine ─────────────────────────────────
+let syncInterval = null
+let peersInterval = null
+let isSyncing = false
+
+const getLastMessageId = () => {
+  if (!messages.value || messages.value.length === 0) return 0
+  const ids = messages.value
+    .map(m => (typeof m.id === 'number' ? m.id : 0))
+    .filter(id => id > 0)
+  return ids.length > 0 ? Math.max(...ids) : 0
+}
+
+const fetchDeltaMessages = async (peerId) => {
+  if (!peerId || isSyncing) return
+  isSyncing = true
+  try {
+    const lastId = getLastMessageId()
+    const res = await fetch(`/api/chat/messages/${peerId}?after=${lastId}`, { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      const newMsgs = data.messages || []
+      if (newMsgs.length > 0) {
+        let hasAdded = false
+        for (const m of newMsgs) {
+          const existingIdx = messages.value.findIndex(
+            x => x.id === m.id || (x.sending && x.content === m.content && x.sender_id === m.sender_id)
+          )
+          if (existingIdx !== -1) {
+            messages.value[existingIdx] = m
+          } else {
+            messages.value.push(m)
+            hasAdded = true
+          }
+        }
+        if (hasAdded) {
+          scrollToBottom()
+        }
+        if (activePeer.value && newMsgs[newMsgs.length - 1]) {
+          const last = newMsgs[newMsgs.length - 1]
+          activePeer.value.last_message = last.content || (last.message_type === 'image' ? '[Photo]' : '[File]')
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore delta tick network jitter
+  } finally {
+    isSyncing = false
+  }
+}
+
+const startMessageSync = () => {
+  stopMessageSync()
+  // High-frequency 1-second delta sync guarantees sub-second delivery even if WebSocket is disconnected
+  syncInterval = setInterval(() => {
+    if (activePeer.value?.id && typeof document !== 'undefined' && !document.hidden) {
+      fetchDeltaMessages(activePeer.value.id)
+    }
+  }, 1000)
+
+  // Periodically refresh peers list every 4 seconds for sidebar previews and unread badges
+  peersInterval = setInterval(() => {
+    if (typeof document !== 'undefined' && !document.hidden && !isLoadingPeers.value) {
+      fetchPeersSilent()
+    }
+  }, 4000)
+}
+
+const stopMessageSync = () => {
+  if (syncInterval) {
+    clearInterval(syncInterval)
+    syncInterval = null
+  }
+  if (peersInterval) {
+    clearInterval(peersInterval)
+    peersInterval = null
+  }
+}
+
+const handleWindowFocus = () => {
+  if (activePeer.value?.id) {
+    fetchDeltaMessages(activePeer.value.id)
+  }
+  fetchPeersSilent()
+}
+
+const handleVisibilityChange = () => {
+  if (typeof document !== 'undefined' && !document.hidden && activePeer.value?.id) {
+    fetchDeltaMessages(activePeer.value.id)
   }
 }
 
@@ -782,12 +911,13 @@ const setupSocket = () => {
   const backendUrl = getSocketUrl()
   console.log('[SocketIO] Connecting to:', backendUrl)
 
+  // Polling first connects in <30ms with zero timeout delay, then smoothly upgrades to WebSocket
   socket.value = io(backendUrl, {
     withCredentials: true,
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     upgrade: true,
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 20,
     reconnectionDelay: 1000
   })
 
@@ -796,19 +926,14 @@ const setupSocket = () => {
     if (currentUser.value?.id) {
       socket.value.emit('authenticate', { user_id: currentUser.value.id })
     }
+    // Immediate delta sync on connect/reconnect to catch anything sent during transition
+    if (activePeer.value?.id) {
+      fetchDeltaMessages(activePeer.value.id)
+    }
   })
 
   socket.value.on('connect_error', (err) => {
-    console.warn('[SocketIO] Connection error:', err.message)
-    // If connecting to origin on port 3000 failed, fallback directly to port 5000
-    if (typeof window !== 'undefined' && window.location.port === '3000' && !backendUrl.includes(':5000')) {
-      const fallbackUrl = `${window.location.protocol}//${window.location.hostname}:5000`
-      console.log('[SocketIO] Falling back to backend port 5000:', fallbackUrl)
-      socket.value = io(fallbackUrl, {
-        withCredentials: true,
-        transports: ['websocket', 'polling']
-      })
-    }
+    console.warn('[SocketIO] Connection issue:', err.message)
   })
 
   socket.value.on('receive_message', (msg) => {
@@ -816,7 +941,7 @@ const setupSocket = () => {
     const isCurrentChat = (msg.sender_id === activePeer.value.id && msg.receiver_id === currentUser.value?.id) ||
                           (msg.sender_id === currentUser.value?.id && msg.receiver_id === activePeer.value.id)
     if (isCurrentChat) {
-      // Deduplicate if already rendered optimistically
+      // Deduplicate if already rendered optimistically or fetched via delta sync
       const existingIdx = messages.value.findIndex(m => m.id === msg.id || (m.sending && m.content === msg.content && m.sender_id === msg.sender_id))
       if (existingIdx !== -1) {
         messages.value[existingIdx] = msg

@@ -30,7 +30,7 @@ app.register_blueprint(chat_bp)
 app.register_blueprint(turn_bp)
 
 # Initialize SocketIO for real-time messaging & WebRTC signaling
-socketio = SocketIO(app, cors_allowed_origins="*", manage_session=False)
+socketio = SocketIO(app, cors_allowed_origins="*", manage_session=False, ping_interval=5, ping_timeout=5)
 register_chat_events(socketio)
 
 # Initialize database tables

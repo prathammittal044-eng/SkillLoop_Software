@@ -3,7 +3,7 @@ from flask import request, session
 from flask_socketio import emit, join_room, leave_room
 from database import get_db
 
-# Map of user_id -> socket session id for direct signaling
+# Map of user_id -> set of socket session ids
 user_sockets = {}
 # Map of socket session id -> user_id
 socket_users = {}
@@ -14,7 +14,9 @@ def register_chat_events(socketio):
         user_id = session.get('user_id')
         if user_id:
             uid = int(user_id)
-            user_sockets[uid] = request.sid
+            if uid not in user_sockets:
+                user_sockets[uid] = set()
+            user_sockets[uid].add(request.sid)
             socket_users[request.sid] = uid
             join_room(f"user_{uid}")
             print(f"[SocketIO] User {uid} connected via session, sid={request.sid}", flush=True)
@@ -26,7 +28,9 @@ def register_chat_events(socketio):
         uid = (data or {}).get('user_id') or session.get('user_id')
         if uid:
             uid = int(uid)
-            user_sockets[uid] = request.sid
+            if uid not in user_sockets:
+                user_sockets[uid] = set()
+            user_sockets[uid].add(request.sid)
             socket_users[request.sid] = uid
             join_room(f"user_{uid}")
             print(f"[SocketIO] User {uid} authenticated explicitly, sid={request.sid}", flush=True)
@@ -37,10 +41,15 @@ def register_chat_events(socketio):
         uid = socket_users.pop(request.sid, None) or session.get('user_id')
         if uid:
             uid = int(uid)
-            if user_sockets.get(uid) == request.sid:
-                del user_sockets[uid]
-            print(f"[SocketIO] User {uid} disconnected", flush=True)
-            emit('user_disconnected', {'user_id': uid, 'status': 'offline'}, broadcast=True)
+            sids = user_sockets.get(uid)
+            if sids and request.sid in sids:
+                sids.discard(request.sid)
+            if not sids:
+                user_sockets.pop(uid, None)
+                print(f"[SocketIO] User {uid} fully disconnected", flush=True)
+                emit('user_disconnected', {'user_id': uid, 'status': 'offline'}, broadcast=True)
+            else:
+                print(f"[SocketIO] User {uid} closed 1 socket, {len(sids)} active", flush=True)
 
     @socketio.on('send_message')
     def handle_send_message(data):
