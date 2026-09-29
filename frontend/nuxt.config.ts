@@ -4,7 +4,14 @@ export default defineNuxtConfig({
   srcDir: '.',
   vite: {
     server: {
-      allowedHosts: true
+      allowedHosts: true,
+      proxy: {
+        '/socket.io': {
+          target: 'http://127.0.0.1:5000',
+          ws: true,
+          changeOrigin: true
+        }
+      }
     }
   },
   devtools: { enabled: true },
@@ -26,12 +33,6 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/api/**': { proxy: 'http://127.0.0.1:5000/api/**' },
-    '/socket.io/**': {
-      proxy: {
-        to: 'http://127.0.0.1:5000/socket.io/**',
-        ws: true
-      }
-    }
+    '/api/**': { proxy: 'http://127.0.0.1:5000/api/**' }
   }
 })

@@ -1,9 +1,12 @@
+from datetime import datetime
 from flask import request, session
 from flask_socketio import emit, join_room, leave_room
 from database import get_db
 
 # Map of user_id -> socket session id for direct signaling
 user_sockets = {}
+# Map of socket session id -> user_id
+socket_users = {}
 
 def register_chat_events(socketio):
     @socketio.on('connect')
@@ -12,17 +15,29 @@ def register_chat_events(socketio):
         if user_id:
             uid = int(user_id)
             user_sockets[uid] = request.sid
-            # Join personal user room so anyone can emit to room=f"user_{uid}"
+            socket_users[request.sid] = uid
             join_room(f"user_{uid}")
-            print(f"[SocketIO] User {uid} connected, sid={request.sid}", flush=True)
+            print(f"[SocketIO] User {uid} connected via session, sid={request.sid}", flush=True)
             emit('user_connected', {'user_id': uid, 'status': 'online'}, broadcast=True)
+
+    @socketio.on('authenticate')
+    def handle_authenticate(data):
+        """Explicitly register user ID room when session cookies aren't passed across ports."""
+        uid = (data or {}).get('user_id') or session.get('user_id')
+        if uid:
+            uid = int(uid)
+            user_sockets[uid] = request.sid
+            socket_users[request.sid] = uid
+            join_room(f"user_{uid}")
+            print(f"[SocketIO] User {uid} authenticated explicitly, sid={request.sid}", flush=True)
+            emit('authenticated', {'user_id': uid, 'status': 'ok'})
 
     @socketio.on('disconnect')
     def handle_disconnect():
-        user_id = session.get('user_id')
-        if user_id:
-            uid = int(user_id)
-            if uid in user_sockets and user_sockets[uid] == request.sid:
+        uid = socket_users.pop(request.sid, None) or session.get('user_id')
+        if uid:
+            uid = int(uid)
+            if user_sockets.get(uid) == request.sid:
                 del user_sockets[uid]
             print(f"[SocketIO] User {uid} disconnected", flush=True)
             emit('user_disconnected', {'user_id': uid, 'status': 'offline'}, broadcast=True)
@@ -30,7 +45,8 @@ def register_chat_events(socketio):
     @socketio.on('send_message')
     def handle_send_message(data):
         """Save message to SQLite and deliver in real-time to receiver."""
-        sender_id = session.get('user_id')
+        data = data or {}
+        sender_id = session.get('user_id') or socket_users.get(request.sid) or data.get('sender_id')
         if not sender_id:
             return {'error': 'Unauthorized'}
             
@@ -55,6 +71,8 @@ def register_chat_events(socketio):
         db.commit()
         msg_id = cursor.lastrowid
 
+        now_str = datetime.now().strftime('%I:%M %p')
+
         msg_payload = {
             'id': msg_id,
             'sender_id': s_id,
@@ -64,7 +82,7 @@ def register_chat_events(socketio):
             'file_url': file_url,
             'file_name': file_name,
             'file_size': file_size,
-            'created_at': 'Just now',
+            'created_at': now_str,
             'is_read': 0
         }
 
@@ -79,9 +97,9 @@ def register_chat_events(socketio):
     @socketio.on('call_user')
     def handle_call_user(data):
         """Forward SDP Offer to target peer."""
-        caller_id = session.get('user_id')
-        target_id = data.get('target_user_id')
-        offer = data.get('offer')
+        caller_id = session.get('user_id') or socket_users.get(request.sid)
+        target_id = (data or {}).get('target_user_id')
+        offer = (data or {}).get('offer')
         caller_name = session.get('full_name') or session.get('username') or 'Campus Peer'
         
         if target_id and caller_id:
@@ -97,9 +115,9 @@ def register_chat_events(socketio):
     @socketio.on('answer_call')
     def handle_answer_call(data):
         """Forward SDP Answer back to the caller."""
-        user_id = session.get('user_id')
-        target_id = data.get('target_user_id')
-        answer = data.get('answer')
+        user_id = session.get('user_id') or socket_users.get(request.sid)
+        target_id = (data or {}).get('target_user_id')
+        answer = (data or {}).get('answer')
         if target_id and user_id:
             u_id = int(user_id)
             t_id = int(target_id)
@@ -112,9 +130,9 @@ def register_chat_events(socketio):
     @socketio.on('ice_candidate')
     def handle_ice_candidate(data):
         """Relay ICE candidates between peers for WebRTC connectivity."""
-        user_id = session.get('user_id')
-        target_id = data.get('target_user_id')
-        candidate = data.get('candidate')
+        user_id = session.get('user_id') or socket_users.get(request.sid)
+        target_id = (data or {}).get('target_user_id')
+        candidate = (data or {}).get('candidate')
         if target_id and user_id and candidate:
             u_id = int(user_id)
             t_id = int(target_id)
@@ -137,9 +155,9 @@ def register_chat_events(socketio):
     @socketio.on('renegotiate')
     def handle_renegotiate(data):
         """Forward ICE-restart offer so a failed pair can try TURN relay."""
-        user_id = session.get('user_id')
-        target_id = data.get('target_user_id')
-        offer = data.get('offer')
+        user_id = session.get('user_id') or socket_users.get(request.sid)
+        target_id = (data or {}).get('target_user_id')
+        offer = (data or {}).get('offer')
         if target_id and user_id and offer:
             u_id = int(user_id)
             t_id = int(target_id)
@@ -151,9 +169,9 @@ def register_chat_events(socketio):
 
     @socketio.on('renegotiate_answer')
     def handle_renegotiate_answer(data):
-        user_id = session.get('user_id')
-        target_id = data.get('target_user_id')
-        answer = data.get('answer')
+        user_id = session.get('user_id') or socket_users.get(request.sid)
+        target_id = (data or {}).get('target_user_id')
+        answer = (data or {}).get('answer')
         if target_id and user_id and answer:
             u_id = int(user_id)
             t_id = int(target_id)
@@ -166,8 +184,8 @@ def register_chat_events(socketio):
     @socketio.on('end_call')
     def handle_end_call(data):
         """Notify peer that call has been terminated."""
-        user_id = session.get('user_id')
-        target_id = data.get('target_user_id')
+        user_id = session.get('user_id') or socket_users.get(request.sid)
+        target_id = (data or {}).get('target_user_id')
         if target_id and user_id:
             u_id = int(user_id)
             t_id = int(target_id)

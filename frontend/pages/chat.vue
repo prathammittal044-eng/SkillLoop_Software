@@ -251,7 +251,7 @@
             <!-- Messages List -->
             <template v-for="msg in messages" :key="msg.id">
               <!-- Outgoing message (Current User) -->
-              <div v-if="msg.sender_id === currentUser.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto">
+              <div v-if="msg.sender_id === currentUser?.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto">
                 <div class="space-y-1 text-right">
                   <!-- Text message -->
                   <div v-if="msg.message_type === 'text'" class="bg-[#543ce0] text-white p-3.5 rounded-2xl rounded-br-sm text-xs leading-relaxed shadow-md shadow-[#543ce0]/15 text-left">
@@ -767,19 +767,62 @@ const scrollToBottom = () => {
 }
 
 // ─── WebSocket Setup ────────────────────────────────────────────────────────
+const getSocketUrl = () => {
+  if (typeof window === 'undefined') return 'http://localhost:5000'
+  const { protocol, hostname, port, origin } = window.location
+  // When running locally on Nuxt dev server (port 3000), Flask Socket.IO is on port 5000
+  if (port === '3000') {
+    return `${protocol}//${hostname}:5000`
+  }
+  // When accessed via Ngrok or reverse proxy, traffic routes through tunnel origin
+  return origin
+}
+
 const setupSocket = () => {
-  // Same-origin so Flask session cookies always ride with signaling.
-  const backendUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+  const backendUrl = getSocketUrl()
+  console.log('[SocketIO] Connecting to:', backendUrl)
 
   socket.value = io(backendUrl, {
     withCredentials: true,
     transports: ['websocket', 'polling'],
-    upgrade: true
+    upgrade: true,
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000
+  })
+
+  socket.value.on('connect', () => {
+    console.log('[SocketIO] Connected successfully, sid:', socket.value.id)
+    if (currentUser.value?.id) {
+      socket.value.emit('authenticate', { user_id: currentUser.value.id })
+    }
+  })
+
+  socket.value.on('connect_error', (err) => {
+    console.warn('[SocketIO] Connection error:', err.message)
+    // If connecting to origin on port 3000 failed, fallback directly to port 5000
+    if (typeof window !== 'undefined' && window.location.port === '3000' && !backendUrl.includes(':5000')) {
+      const fallbackUrl = `${window.location.protocol}//${window.location.hostname}:5000`
+      console.log('[SocketIO] Falling back to backend port 5000:', fallbackUrl)
+      socket.value = io(fallbackUrl, {
+        withCredentials: true,
+        transports: ['websocket', 'polling']
+      })
+    }
   })
 
   socket.value.on('receive_message', (msg) => {
-    if (activePeer.value && (msg.sender_id === activePeer.value.id || msg.receiver_id === activePeer.value.id)) {
-      messages.value.push(msg)
+    if (!msg || !activePeer.value) return
+    const isCurrentChat = (msg.sender_id === activePeer.value.id && msg.receiver_id === currentUser.value?.id) ||
+                          (msg.sender_id === currentUser.value?.id && msg.receiver_id === activePeer.value.id)
+    if (isCurrentChat) {
+      // Deduplicate if already rendered optimistically
+      const existingIdx = messages.value.findIndex(m => m.id === msg.id || (m.sending && m.content === msg.content && m.sender_id === msg.sender_id))
+      if (existingIdx !== -1) {
+        messages.value[existingIdx] = msg
+      } else {
+        messages.value.push(msg)
+      }
       scrollToBottom()
     }
     // Update last message in sidebar
@@ -853,17 +896,93 @@ const setupSocket = () => {
 }
 
 // ─── Text & Media Messaging ──────────────────────────────────────────────────
-const sendMessage = () => {
-  if (!inputMessage.value.trim() || !activePeer.value || !socket.value) return
+const sendMessage = async () => {
+  const text = inputMessage.value.trim()
+  if (!text || !activePeer.value) return
 
-  const payload = {
-    receiver_id: activePeer.value.id,
-    content: inputMessage.value.trim(),
-    message_type: 'text'
+  const receiverId = activePeer.value.id
+  inputMessage.value = ''
+
+  const tempId = 'temp_' + Date.now()
+  const now = new Date()
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  // 1. Optimistic message insertion in local feed
+  const tempMsg = {
+    id: tempId,
+    sender_id: currentUser.value?.id,
+    receiver_id: receiverId,
+    content: text,
+    message_type: 'text',
+    created_at: timeStr,
+    is_read: 0,
+    sending: true
+  }
+  messages.value.push(tempMsg)
+  scrollToBottom()
+
+  if (activePeer.value) {
+    activePeer.value.last_message = text
   }
 
-  socket.value.emit('send_message', payload)
-  inputMessage.value = ''
+  const payload = {
+    receiver_id: receiverId,
+    content: text,
+    message_type: 'text',
+    sender_id: currentUser.value?.id
+  }
+
+  // 2. Primary: Send via HTTP REST with guaranteed delivery
+  try {
+    const res = await fetch('/api/chat/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      const confirmed = data.message
+      const idx = messages.value.findIndex(m => m.id === tempId)
+      if (idx !== -1 && confirmed) {
+        messages.value[idx] = confirmed
+      }
+    } else {
+      // Fallback: emit via Socket.IO if HTTP returns non-200
+      if (socket.value && socket.value.connected) {
+        socket.value.emit('send_message', payload, (ack) => {
+          if (ack && ack.status === 'sent') {
+            const idx = messages.value.findIndex(m => m.id === tempId)
+            if (idx !== -1 && ack.message) {
+              messages.value[idx] = ack.message
+            }
+          }
+        })
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        alert(errData.error || 'Failed to send message.')
+        messages.value = messages.value.filter(m => m.id !== tempId)
+        inputMessage.value = text
+      }
+    }
+  } catch (err) {
+    console.warn('HTTP send failed, trying Socket.IO fallback:', err)
+    if (socket.value && socket.value.connected) {
+      socket.value.emit('send_message', payload, (ack) => {
+        if (ack && ack.status === 'sent') {
+          const idx = messages.value.findIndex(m => m.id === tempId)
+          if (idx !== -1 && ack.message) {
+            messages.value[idx] = ack.message
+          }
+        }
+      })
+    } else {
+      alert('Could not deliver message. Please check your network connection.')
+      messages.value = messages.value.filter(m => m.id !== tempId)
+      inputMessage.value = text
+    }
+  }
 }
 
 const handleFileUpload = async (event) => {
@@ -881,20 +1000,43 @@ const handleFileUpload = async (event) => {
     })
     if (res.ok) {
       const data = await res.json()
-      socket.value.emit('send_message', {
+      const payload = {
         receiver_id: activePeer.value.id,
         content: data.file_name,
         message_type: data.message_type,
         file_url: data.file_url,
         file_name: data.file_name,
-        file_size: data.file_size
+        file_size: data.file_size,
+        sender_id: currentUser.value?.id
+      }
+
+      // Send file message via HTTP
+      const sendRes = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
       })
+
+      if (sendRes.ok) {
+        const sendData = await sendRes.json()
+        if (sendData.message) {
+          messages.value.push(sendData.message)
+          scrollToBottom()
+          if (activePeer.value) {
+            activePeer.value.last_message = data.file_name
+          }
+        }
+      } else if (socket.value && socket.value.connected) {
+        socket.value.emit('send_message', payload)
+      }
       event.target.value = ''
     } else {
       alert("Failed to upload file.")
     }
   } catch (e) {
     console.error(e)
+    alert("Error uploading file.")
   }
 }
 
