@@ -167,6 +167,44 @@ def init_db():
         )
     ''')
 
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS exchange_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            teacher_id INTEGER NOT NULL,
+            learner_id INTEGER NOT NULL,
+            skill_name TEXT NOT NULL,
+            duration_minutes INTEGER DEFAULT 60,
+            credit_cost REAL DEFAULT 1.0,
+            scheduled_at TIMESTAMP,
+            topic_notes TEXT DEFAULT '',
+            status TEXT DEFAULT 'pending',       -- 'pending', 'accepted', 'active', 'completed', 'cancelled', 'rejected'
+            escrow_status TEXT DEFAULT 'held',   -- 'held', 'released', 'refunded'
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (teacher_id) REFERENCES users(id),
+            FOREIGN KEY (learner_id) REFERENCES users(id)
+        )
+    ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS session_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            reviewer_id INTEGER NOT NULL,
+            reviewee_id INTEGER NOT NULL,
+            role TEXT NOT NULL,                  -- 'learner_rating_teacher' or 'teacher_rating_learner'
+            rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+            tags TEXT DEFAULT '[]',              -- JSON array of selected tags
+            comment TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (session_id) REFERENCES exchange_sessions(id),
+            FOREIGN KEY (reviewer_id) REFERENCES users(id),
+            FOREIGN KEY (reviewee_id) REFERENCES users(id),
+            UNIQUE(session_id, reviewer_id)
+        )
+    ''')
+
     # Safe schema migration for existing databases
     cursor = db.cursor()
     cursor.execute("PRAGMA table_info(skill_verifications)")

@@ -131,7 +131,7 @@ def get_current_user():
         return jsonify({"error": "Not authenticated"}), 401
         
     db = get_db()
-    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, qualifications, experience, github, linkedin, xp, level, streak_count, time_credits, avatar_color, created_at FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, qualifications, experience, github, linkedin, xp, level, streak_count, time_credits, avatar_color, created_at, rating_avg, rating_count, total_sessions, skills_taught, skills_learned FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     
     if user is None:
         session.clear()
@@ -1212,6 +1212,497 @@ def respond_aee_session():
         "message": "Proof-of-Work confirmed! Skill heartbeat reset to 180 days.",
         "xp_awarded": 15 if not rate_limited else 0
     }), 200
+
+
+# =============================================================================
+# EXCHANGE SESSIONS, ESCROW & RATINGS LIFECYCLE (PILLAR 1)
+# =============================================================================
+
+def init_sessions_db(db):
+    """Runtime safety DDL to guarantee exchange_sessions and session_reviews exist."""
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS exchange_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            teacher_id INTEGER NOT NULL,
+            learner_id INTEGER NOT NULL,
+            skill_name TEXT NOT NULL,
+            duration_minutes INTEGER DEFAULT 60,
+            credit_cost REAL DEFAULT 1.0,
+            scheduled_at TIMESTAMP,
+            topic_notes TEXT DEFAULT '',
+            status TEXT DEFAULT 'pending',
+            escrow_status TEXT DEFAULT 'held',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (teacher_id) REFERENCES users(id),
+            FOREIGN KEY (learner_id) REFERENCES users(id)
+        )
+    ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS session_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            reviewer_id INTEGER NOT NULL,
+            reviewee_id INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+            tags TEXT DEFAULT '[]',
+            comment TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (session_id) REFERENCES exchange_sessions(id),
+            FOREIGN KEY (reviewer_id) REFERENCES users(id),
+            FOREIGN KEY (reviewee_id) REFERENCES users(id),
+            UNIQUE(session_id, reviewer_id)
+        )
+    ''')
+    db.commit()
+
+
+@app.route('/api/sessions/book', methods=['POST'])
+def book_session():
+    """Book a skill exchange session with a peer.
+    Deducts credit cost from learner and locks it in escrow until session completion.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    learner_id = session['user_id']
+    data = request.json or {}
+    teacher_id = data.get('teacher_id')
+    skill_name = (data.get('skill_name') or '').strip()
+    duration = int(data.get('duration_minutes') or 60)
+    scheduled_at = data.get('scheduled_at')  # ISO date string or None for 'now'
+    topic_notes = (data.get('topic_notes') or '').strip()
+
+    if not teacher_id or not skill_name:
+        return jsonify({"error": "Teacher and skill name are required"}), 400
+
+    teacher_id = int(teacher_id)
+    if teacher_id == learner_id:
+        return jsonify({"error": "You cannot book a session with yourself"}), 400
+
+    # Pricing: 30 mins = 0.5 credits, 60 mins = 1.0 credit
+    credit_cost = 0.5 if duration <= 30 else 1.0
+
+    db = get_db()
+    init_sessions_db(db)
+
+    # 1. Verify teacher exists
+    teacher = db.execute('SELECT id, full_name, username FROM users WHERE id = ?', (teacher_id,)).fetchone()
+    if not teacher:
+        return jsonify({"error": "Teacher not found"}), 404
+
+    # 2. Check learner credit balance
+    learner = db.execute('SELECT id, full_name, username, avatar_color, time_credits FROM users WHERE id = ?', (learner_id,)).fetchone()
+    if not learner:
+        return jsonify({"error": "Learner not found"}), 404
+
+    avail_credits = float(learner['time_credits'] or 0.0)
+    if avail_credits < credit_cost:
+        return jsonify({
+            "error": f"Insufficient time credits. You have {avail_credits:.1f} credits but this session requires {credit_cost:.1f}."
+        }), 400
+
+    # 3. Deduct credit from learner (Escrow Lock)
+    db.execute('UPDATE users SET time_credits = ROUND(time_credits - ?, 2) WHERE id = ?', (credit_cost, learner_id))
+
+    # 4. Create exchange_sessions row
+    cursor = db.execute('''
+        INSERT INTO exchange_sessions (teacher_id, learner_id, skill_name, duration_minutes, credit_cost, scheduled_at, topic_notes, status, escrow_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 'held')
+    ''', (teacher_id, learner_id, skill_name, duration, credit_cost, scheduled_at, topic_notes))
+    db.commit()
+    session_id = cursor.lastrowid
+
+    session_payload = {
+        "id": session_id,
+        "teacher_id": teacher_id,
+        "learner_id": learner_id,
+        "learner_name": learner['full_name'] or learner['username'],
+        "learner_username": learner['username'],
+        "learner_avatar": learner['avatar_color'],
+        "teacher_name": teacher['full_name'] or teacher['username'],
+        "teacher_username": teacher['username'],
+        "skill_name": skill_name,
+        "duration_minutes": duration,
+        "credit_cost": credit_cost,
+        "scheduled_at": scheduled_at,
+        "topic_notes": topic_notes,
+        "status": "pending",
+        "escrow_status": "held"
+    }
+
+    # Real-time socket notification to teacher
+    try:
+        socketio.emit('session_requested', session_payload, room=f"user_{teacher_id}")
+    except Exception as e:
+        app.logger.warning(f"Socket emit error: {e}")
+
+    return jsonify({
+        "status": "created",
+        "message": f"Session requested! {credit_cost:.1f} Time Credit held in escrow.",
+        "session": session_payload
+    }), 201
+
+
+@app.route('/api/sessions', methods=['GET'])
+def get_user_sessions():
+    """Fetch all exchange sessions for the authenticated user, enriched with peer details and review status."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    uid = session['user_id']
+    status_filter = request.args.get('status', 'all').lower()
+
+    db = get_db()
+    init_sessions_db(db)
+
+    query = '''
+        SELECT s.*,
+               t.full_name AS teacher_name, t.username AS teacher_username, t.avatar_color AS teacher_avatar, t.department AS teacher_dept,
+               l.full_name AS learner_name, l.username AS learner_username, l.avatar_color AS learner_avatar, l.department AS learner_dept
+        FROM exchange_sessions s
+        JOIN users t ON s.teacher_id = t.id
+        JOIN users l ON s.learner_id = l.id
+        WHERE (s.teacher_id = ? OR s.learner_id = ?)
+    '''
+    params = [uid, uid]
+
+    if status_filter == 'upcoming':
+        query += " AND s.status IN ('accepted', 'active')"
+    elif status_filter == 'pending':
+        query += " AND s.status = 'pending'"
+    elif status_filter == 'completed':
+        query += " AND s.status = 'completed'"
+
+    query += " ORDER BY s.created_at DESC"
+
+    rows = db.execute(query, params).fetchall()
+    results = []
+
+    for r in rows:
+        d = dict(r)
+        is_teacher = (r['teacher_id'] == uid)
+        d['my_role'] = 'teacher' if is_teacher else 'learner'
+        d['peer_id'] = r['learner_id'] if is_teacher else r['teacher_id']
+        d['peer_name'] = r['learner_name'] if is_teacher else r['teacher_name']
+        d['peer_username'] = r['learner_username'] if is_teacher else r['teacher_username']
+        d['peer_avatar'] = r['learner_avatar'] if is_teacher else r['teacher_avatar']
+        d['peer_dept'] = r['learner_dept'] if is_teacher else r['teacher_dept']
+
+        # Check if current user has reviewed this session
+        rev = db.execute(
+            'SELECT id, rating, comment, tags FROM session_reviews WHERE session_id = ? AND reviewer_id = ?',
+            (r['id'], uid)
+        ).fetchone()
+        d['my_review'] = dict(rev) if rev else None
+
+        results.append(d)
+
+    return jsonify({"sessions": results}), 200
+
+
+@app.route('/api/sessions/<int:session_id>/respond', methods=['PUT'])
+def respond_session(session_id):
+    """Teacher accepts or declines a requested session.
+    If declined: immediately refunds escrow credit to the learner.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    teacher_id = session['user_id']
+    data = request.json or {}
+    action = (data.get('action') or '').strip().lower()
+
+    if action not in ('accept', 'reject'):
+        return jsonify({"error": "Action must be 'accept' or 'reject'"}), 400
+
+    db = get_db()
+    init_sessions_db(db)
+
+    sess_row = db.execute('SELECT * FROM exchange_sessions WHERE id = ?', (session_id,)).fetchone()
+    if not sess_row:
+        return jsonify({"error": "Session not found"}), 404
+
+    if sess_row['teacher_id'] != teacher_id:
+        return jsonify({"error": "Only the teacher can respond to this booking request"}), 403
+
+    if sess_row['status'] != 'pending':
+        return jsonify({"error": f"Session is already {sess_row['status']}"}), 400
+
+    learner_id = sess_row['learner_id']
+    credit_cost = float(sess_row['credit_cost'] or 1.0)
+
+    if action == 'accept':
+        db.execute('UPDATE exchange_sessions SET status = "accepted" WHERE id = ?', (session_id,))
+        db.commit()
+
+        try:
+            socketio.emit('session_accepted', {
+                "session_id": session_id,
+                "skill_name": sess_row['skill_name'],
+                "scheduled_at": sess_row['scheduled_at']
+            }, room=f"user_{learner_id}")
+        except Exception:
+            pass
+
+        return jsonify({"message": "Session accepted! Ready for skill exchange.", "status": "accepted"}), 200
+
+    else:  # reject
+        # Refund held escrow to learner
+        db.execute('UPDATE users SET time_credits = ROUND(time_credits + ?, 2) WHERE id = ?', (credit_cost, learner_id))
+        db.execute('UPDATE exchange_sessions SET status = "rejected", escrow_status = "refunded" WHERE id = ?', (session_id,))
+        db.commit()
+
+        try:
+            socketio.emit('session_rejected', {
+                "session_id": session_id,
+                "skill_name": sess_row['skill_name'],
+                "refunded_credits": credit_cost
+            }, room=f"user_{learner_id}")
+        except Exception:
+            pass
+
+        return jsonify({"message": f"Session declined. {credit_cost:.1f} Time Credit refunded to learner.", "status": "rejected"}), 200
+
+
+@app.route('/api/sessions/<int:session_id>/cancel', methods=['POST'])
+def cancel_session(session_id):
+    """Cancel a pending or accepted session.
+    Automatically refunds any held escrow credits to the learner.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    uid = session['user_id']
+    db = get_db()
+    init_sessions_db(db)
+
+    sess_row = db.execute('SELECT * FROM exchange_sessions WHERE id = ?', (session_id,)).fetchone()
+    if not sess_row:
+        return jsonify({"error": "Session not found"}), 404
+
+    if uid not in (sess_row['teacher_id'], sess_row['learner_id']):
+        return jsonify({"error": "Unauthorized to cancel this session"}), 403
+
+    if sess_row['status'] in ('completed', 'cancelled', 'rejected'):
+        return jsonify({"error": f"Session cannot be cancelled because it is already {sess_row['status']}"}), 400
+
+    credit_cost = float(sess_row['credit_cost'] or 1.0)
+    learner_id = sess_row['learner_id']
+    teacher_id = sess_row['teacher_id']
+
+    # Refund held escrow if applicable
+    if sess_row['escrow_status'] == 'held':
+        db.execute('UPDATE users SET time_credits = ROUND(time_credits + ?, 2) WHERE id = ?', (credit_cost, learner_id))
+
+    db.execute('UPDATE exchange_sessions SET status = "cancelled", escrow_status = "refunded" WHERE id = ?', (session_id,))
+    db.commit()
+
+    other_id = learner_id if uid == teacher_id else teacher_id
+    try:
+        socketio.emit('session_cancelled', {
+            "session_id": session_id,
+            "cancelled_by": uid
+        }, room=f"user_{other_id}")
+    except Exception:
+        pass
+
+    return jsonify({"message": "Session cancelled. Held credits have been refunded.", "status": "cancelled"}), 200
+
+
+@app.route('/api/sessions/<int:session_id>/complete', methods=['POST'])
+def complete_session(session_id):
+    """Complete a session (either via chat or live exchange).
+    Releases escrow credit to the teacher, awards XP, resets skill decay timer,
+    and prompts both peers to leave a review.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    uid = session['user_id']
+    db = get_db()
+    init_sessions_db(db)
+
+    sess_row = db.execute('SELECT * FROM exchange_sessions WHERE id = ?', (session_id,)).fetchone()
+    if not sess_row:
+        return jsonify({"error": "Session not found"}), 404
+
+    if uid not in (sess_row['teacher_id'], sess_row['learner_id']):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if sess_row['status'] == 'completed':
+        return jsonify({"message": "Session already completed", "status": "completed"}), 200
+
+    teacher_id = sess_row['teacher_id']
+    learner_id = sess_row['learner_id']
+    credit_cost = float(sess_row['credit_cost'] or 1.0)
+    skill_name = (sess_row['skill_name'] or '').lower()
+
+    # 1. Release Escrow Credit to Teacher
+    if sess_row['escrow_status'] == 'held':
+        db.execute('UPDATE users SET time_credits = ROUND(time_credits + ?, 2) WHERE id = ?', (credit_cost, teacher_id))
+
+    # 2. Award XP and Increment Stats
+    # Teacher: +25 XP, skills_taught + 1, total_sessions + 1
+    db.execute('''
+        UPDATE users 
+        SET xp = xp + 25, 
+            skills_taught = skills_taught + 1, 
+            total_sessions = total_sessions + 1,
+            streak_count = streak_count + 1
+        WHERE id = ?
+    ''', (teacher_id,))
+
+    # Learner: +15 XP, skills_learned + 1, total_sessions + 1
+    db.execute('''
+        UPDATE users 
+        SET xp = xp + 15, 
+            skills_learned = skills_learned + 1, 
+            total_sessions = total_sessions + 1,
+            streak_count = streak_count + 1
+        WHERE id = ?
+    ''', (learner_id,))
+
+    # 3. Reset 180-Day Skill Decay Heartbeat for Teacher if verified
+    db.execute('''
+        UPDATE skill_verifications 
+        SET last_activity_at = CURRENT_TIMESTAMP,
+            activity_type = 'exchange_session',
+            sessions_taught = COALESCE(sessions_taught, 0) + 1
+        WHERE user_id = ? AND LOWER(skill_name) = ?
+    ''', (teacher_id, skill_name))
+
+    # 4. Mark Session Completed
+    db.execute('''
+        UPDATE exchange_sessions 
+        SET status = "completed", 
+            escrow_status = "released", 
+            completed_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+    ''', (session_id,))
+    db.commit()
+
+    # Real-time event prompting review modal
+    complete_payload = {
+        "session_id": session_id,
+        "teacher_id": teacher_id,
+        "learner_id": learner_id,
+        "skill_name": sess_row['skill_name'],
+        "credit_transferred": credit_cost
+    }
+    try:
+        socketio.emit('session_completed', complete_payload, room=f"user_{teacher_id}")
+        socketio.emit('session_completed', complete_payload, room=f"user_{learner_id}")
+    except Exception as e:
+        app.logger.warning(f"Socket emit error: {e}")
+
+    return jsonify({
+        "status": "completed",
+        "message": f"Session completed! {credit_cost:.1f} Time Credit transferred to teacher and XP awarded.",
+        "credit_transferred": credit_cost
+    }), 200
+
+
+@app.route('/api/sessions/<int:session_id>/review', methods=['POST'])
+def submit_session_review(session_id):
+    """Submit a 1-5 star review with tags and comments after a completed session.
+    Automatically recalculates the reviewee's rating_avg and rating_count.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    reviewer_id = session['user_id']
+    data = request.json or {}
+    rating = int(data.get('rating') or 5)
+    tags = data.get('tags') or []
+    comment = (data.get('comment') or '').strip()
+
+    if rating < 1 or rating > 5:
+        return jsonify({"error": "Rating must be between 1 and 5"}), 400
+
+    db = get_db()
+    init_sessions_db(db)
+
+    sess_row = db.execute('SELECT * FROM exchange_sessions WHERE id = ?', (session_id,)).fetchone()
+    if not sess_row:
+        return jsonify({"error": "Session not found"}), 404
+
+    if sess_row['status'] != 'completed':
+        return jsonify({"error": "Reviews can only be submitted for completed sessions"}), 400
+
+    if reviewer_id not in (sess_row['teacher_id'], sess_row['learner_id']):
+        return jsonify({"error": "Unauthorized to review this session"}), 403
+
+    # Determine reviewee & role
+    if reviewer_id == sess_row['learner_id']:
+        reviewee_id = sess_row['teacher_id']
+        role = 'learner_rating_teacher'
+    else:
+        reviewee_id = sess_row['learner_id']
+        role = 'teacher_rating_learner'
+
+    # Check for existing review
+    existing = db.execute(
+        'SELECT id FROM session_reviews WHERE session_id = ? AND reviewer_id = ?',
+        (session_id, reviewer_id)
+    ).fetchone()
+    if existing:
+        return jsonify({"error": "You have already reviewed this session"}), 400
+
+    tags_json = _json.dumps(tags)
+
+    # 1. Insert Review
+    db.execute('''
+        INSERT INTO session_reviews (session_id, reviewer_id, reviewee_id, role, rating, tags, comment)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (session_id, reviewer_id, reviewee_id, role, rating, tags_json, comment))
+
+    # 2. Recalculate Reviewee's rating_avg and rating_count
+    db.execute('''
+        UPDATE users 
+        SET rating_avg = (SELECT ROUND(AVG(rating), 2) FROM session_reviews WHERE reviewee_id = ?),
+            rating_count = (SELECT COUNT(*) FROM session_reviews WHERE reviewee_id = ?)
+        WHERE id = ?
+    ''', (reviewee_id, reviewee_id, reviewee_id))
+    db.commit()
+
+    # Get updated stats
+    updated_user = db.execute('SELECT rating_avg, rating_count FROM users WHERE id = ?', (reviewee_id,)).fetchone()
+
+    return jsonify({
+        "status": "created",
+        "message": "Review submitted successfully!",
+        "new_rating_avg": updated_user['rating_avg'] if updated_user else rating,
+        "new_rating_count": updated_user['rating_count'] if updated_user else 1
+    }), 201
+
+
+@app.route('/api/sessions/<int:session_id>/reviews', methods=['GET'])
+def get_session_reviews(session_id):
+    """Retrieve all reviews attached to a session."""
+    db = get_db()
+    init_sessions_db(db)
+
+    rows = db.execute('''
+        SELECT r.*, u.full_name AS reviewer_name, u.username AS reviewer_username, u.avatar_color AS reviewer_avatar
+        FROM session_reviews r
+        JOIN users u ON r.reviewer_id = u.id
+        WHERE r.session_id = ?
+        ORDER BY r.created_at ASC
+    ''', (session_id,)).fetchall()
+
+    reviews = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d['tags'] = _json.loads(d['tags']) if d['tags'] else []
+        except Exception:
+            d['tags'] = []
+        reviews.append(d)
+
+    return jsonify({"reviews": reviews}), 200
 
 
 # =============================================================================

@@ -313,11 +313,21 @@
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2.5">
+              <!-- Schedule Session Button -->
+              <button
+                @click="openBookModal(activePeer)"
+                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#543ce0]/10 to-[#99366c]/10 border border-[#543ce0]/30 hover:border-[#543ce0] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-xs transition-all transform hover:-translate-y-0.5 active:scale-95"
+                title="Schedule a dedicated skill exchange session"
+              >
+                <span class="material-symbols-outlined text-base">event</span>
+                <span>Schedule Session</span>
+              </button>
+
               <!-- Test Camera & Mic Button -->
               <button
                 @click="testMediaDevices"
                 :disabled="isCallActive"
-                class="px-4 py-2 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-2 shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+                class="px-3 sm:px-4 py-2 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-2 shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
                 title="Test Camera and Microphone before calling"
               >
                 <span class="material-symbols-outlined text-base">settings_video_camera</span>
@@ -328,26 +338,140 @@
               <button
                 @click="startCall"
                 :disabled="isCallActive"
-                class="px-4 py-2 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white text-xs font-bold font-headline flex items-center gap-2 shadow-md shadow-[#543ce0]/25 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+                class="px-3 sm:px-4 py-2 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white text-xs font-bold font-headline flex items-center gap-2 shadow-md shadow-[#543ce0]/25 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
               >
                 <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">videocam</span>
-                <span>Start Video Call</span>
+                <span class="hidden sm:inline">Start Video Call</span>
               </button>
             </div>
           </header>
 
           <!-- 2. SCROLLABLE MESSAGES FEED -->
           <div ref="messageContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gradient-to-b from-[#fdfaff]/60 via-[#fbf4ff]/30 to-[#fdfaff]">
-            <!-- Peer Escrow Banner -->
-            <div class="max-w-xl mx-auto p-3 bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#eaddff] rounded-2xl flex items-center gap-3 text-xs shadow-xs">
-              <div class="w-9 h-9 rounded-xl bg-white border border-[#eaddff] flex items-center justify-center text-[#543ce0] flex-shrink-0 shadow-xs">
-                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">lock_clock</span>
+            <!-- Dynamic Escrow & Session Lifecycle Banner (Pillar 1) -->
+            <div
+              v-if="activePeerSession"
+              class="max-w-2xl mx-auto p-4 rounded-2xl border transition-all shadow-sm"
+              :class="{
+                'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-white border-amber-300': activePeerSession.status === 'pending',
+                'bg-gradient-to-r from-[#543ce0]/10 via-[#99366c]/10 to-white border-[#543ce0]/40': activePeerSession.status === 'accepted',
+                'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-white border-emerald-300': activePeerSession.status === 'completed'
+              }"
+            >
+              <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs"
+                    :class="{
+                      'bg-amber-500/20 text-amber-700': activePeerSession.status === 'pending',
+                      'bg-[#543ce0]/20 text-[#543ce0]': activePeerSession.status === 'accepted',
+                      'bg-emerald-500/20 text-emerald-700': activePeerSession.status === 'completed'
+                    }"
+                  >
+                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">
+                      {{ activePeerSession.status === 'pending' ? 'hourglass_top' : (activePeerSession.status === 'accepted' ? 'handshake' : 'verified') }}
+                    </span>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-headline font-bold text-sm text-[#1e1a2b]">
+                        {{ activePeerSession.status === 'pending' ? 'Exchange Pending Approval' : (activePeerSession.status === 'accepted' ? 'Active Skill Exchange' : 'Session Completed') }}
+                      </span>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono"
+                        :class="{
+                          'bg-amber-100 text-amber-800': activePeerSession.status === 'pending',
+                          'bg-[#543ce0]/15 text-[#543ce0]': activePeerSession.status === 'accepted',
+                          'bg-emerald-100 text-emerald-800': activePeerSession.status === 'completed'
+                        }"
+                      >
+                        {{ activePeerSession.credit_cost }} Escrow Credit
+                      </span>
+                    </div>
+                    <p class="text-xs text-[#6b6680] mt-0.5">
+                      Skill: <strong class="text-[#1e1a2b]">{{ activePeerSession.skill_name }}</strong> • {{ activePeerSession.duration_minutes }} min
+                      <span v-if="activePeerSession.scheduled_at">• {{ new Date(activePeerSession.scheduled_at).toLocaleDateString() }}</span>
+                    </p>
+                    <p v-if="activePeerSession.topic_notes" class="text-[11px] text-[#6b6680] italic mt-0.5">
+                      "{{ activePeerSession.topic_notes }}"
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-2 self-end sm:self-center">
+                  <!-- Pending Teacher -->
+                  <template v-if="activePeerSession.status === 'pending' && activePeerSession.my_role === 'teacher'">
+                    <button
+                      @click="respondSession(activePeerSession.id, 'accept')"
+                      class="px-3 py-1.5 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                    >
+                      <span class="material-symbols-outlined text-sm">check_circle</span>
+                      <span>Accept</span>
+                    </button>
+                    <button
+                      @click="respondSession(activePeerSession.id, 'reject')"
+                      class="px-2.5 py-1.5 rounded-xl bg-white border border-[#eaddff] text-[#6b6680] hover:text-rose-600 hover:border-rose-300 font-headline text-xs font-semibold active:scale-95 transition-all"
+                    >
+                      Decline
+                    </button>
+                  </template>
+
+                  <!-- Pending Learner -->
+                  <template v-else-if="activePeerSession.status === 'pending' && activePeerSession.my_role === 'learner'">
+                    <span class="text-[11px] text-amber-700 font-medium">Awaiting teacher...</span>
+                    <button
+                      @click="cancelSession(activePeerSession.id)"
+                      class="px-2.5 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 text-[11px] font-bold active:scale-95 transition-all"
+                    >
+                      Cancel &amp; Refund
+                    </button>
+                  </template>
+
+                  <!-- Accepted: Direct Completion (Works for text or video) -->
+                  <template v-else-if="activePeerSession.status === 'accepted'">
+                    <button
+                      @click="completeSessionAction(activePeerSession)"
+                      class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center gap-1.5"
+                      title="Complete session and release locked escrow to teacher"
+                    >
+                      <span class="material-symbols-outlined text-base">task_alt</span>
+                      <span>Complete &amp; Release Escrow</span>
+                    </button>
+                  </template>
+
+                  <!-- Completed: Review -->
+                  <template v-else-if="activePeerSession.status === 'completed' && !activePeerSession.my_review">
+                    <button
+                      @click="openReviewModal(activePeerSession)"
+                      class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                    >
+                      <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+                      <span>Review Mentor</span>
+                    </button>
+                  </template>
+                </div>
               </div>
-              <div class="flex-1">
-                <p class="font-bold text-[#1e1a2b]">SkillLoop Direct Exchange Channel</p>
-                <p class="text-[#6b6680]">Messages and video calls are direct peer-to-peer and verified on your campus node.</p>
+            </div>
+
+            <!-- Default info banner if no active session -->
+            <div v-else class="max-w-xl mx-auto p-3 bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#eaddff] rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white border border-[#eaddff] flex items-center justify-center text-[#543ce0] flex-shrink-0 shadow-xs">
+                  <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">lock_clock</span>
+                </div>
+                <div>
+                  <p class="font-bold text-[#1e1a2b]">SkillLoop Direct Exchange Channel</p>
+                  <p class="text-[#6b6680]">Live chat, direct escrow guarantee, and campus peer verification.</p>
+                </div>
               </div>
-              <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">Encrypted</span>
+              <button
+                @click="openBookModal(activePeer)"
+                class="px-2.5 py-1 rounded-xl bg-[#543ce0]/10 hover:bg-[#543ce0]/20 text-[#543ce0] font-headline font-bold text-xs shrink-0 active:scale-95 transition-all flex items-center gap-1"
+              >
+                <span class="material-symbols-outlined text-sm">event</span>
+                <span>Schedule Session</span>
+              </button>
             </div>
 
             <div v-if="messages.length === 0" class="text-center py-12 text-xs text-[#6b6680]">
@@ -989,11 +1113,233 @@
         </div>
       </div>
     </div>
+
+    <!-- 8. BOOK / SCHEDULE SESSION MODAL (PILLAR 1 ESCROW ENGINE) -->
+    <div
+      v-if="showBookModal && bookTargetPeer"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      @click.self="showBookModal = false"
+    >
+      <div class="bg-white rounded-3xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden flex flex-col p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center">
+              <span class="material-symbols-outlined text-xl">event_available</span>
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#1e1a2b]">Schedule Skill Exchange</h3>
+              <p class="text-[11px] text-[#6b6680]">Lock credits in escrow &amp; confirm 1:1 mentorship</p>
+            </div>
+          </div>
+          <button @click="showBookModal = false" class="p-1.5 rounded-full hover:bg-[#f6effe] text-[#6b6680] transition-colors">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Peer Info Strip -->
+        <div class="p-3 bg-[#f6effe] border border-[#eaddff]/80 rounded-2xl flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-xl text-white font-bold text-sm flex items-center justify-center uppercase shadow-xs shrink-0"
+            :style="{ background: bookTargetPeer.avatar_color || '#543ce0' }"
+          >
+            {{ (bookTargetPeer.full_name || bookTargetPeer.username || '?').charAt(0) }}
+          </div>
+          <div class="min-w-0">
+            <h4 class="font-headline font-bold text-xs text-[#1e1a2b] truncate">{{ bookTargetPeer.full_name }}</h4>
+            <p class="text-[10px] text-[#6b6680] truncate">Teacher • @{{ bookTargetPeer.username }} • {{ bookTargetPeer.department || 'Peer' }}</p>
+          </div>
+        </div>
+
+        <!-- Form fields -->
+        <div class="space-y-3.5">
+          <!-- Skill Name -->
+          <div>
+            <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1 block">Skill to Learn</label>
+            <input
+              v-model="bookForm.skill_name"
+              type="text"
+              placeholder="e.g. Python, Docker, UI Design..."
+              class="w-full px-4 py-2.5 rounded-xl bg-[#fdfaff] border border-[#eaddff] text-sm text-[#1e1a2b] focus:outline-none focus:border-[#543ce0] transition-colors font-medium"
+            />
+          </div>
+
+          <!-- Duration Selector -->
+          <div>
+            <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1 block">Session Duration &amp; Cost</label>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                @click="bookForm.duration_minutes = 30"
+                class="p-3 rounded-2xl border text-left transition-all"
+                :class="bookForm.duration_minutes === 30 ? 'border-[#543ce0] bg-[#543ce0]/10 text-[#543ce0] shadow-xs' : 'border-[#eaddff] bg-[#fdfaff] text-[#1e1a2b] hover:border-[#543ce0]/40'"
+              >
+                <span class="font-headline font-bold text-sm block">30 Minutes</span>
+                <span class="text-[11px] font-mono text-[#6b6680]">0.5 Time Credit</span>
+              </button>
+              <button
+                type="button"
+                @click="bookForm.duration_minutes = 60"
+                class="p-3 rounded-2xl border text-left transition-all"
+                :class="bookForm.duration_minutes === 60 ? 'border-[#543ce0] bg-[#543ce0]/10 text-[#543ce0] shadow-xs' : 'border-[#eaddff] bg-[#fdfaff] text-[#1e1a2b] hover:border-[#543ce0]/40'"
+              >
+                <span class="font-headline font-bold text-sm block">60 Minutes</span>
+                <span class="text-[11px] font-mono text-[#6b6680]">1.0 Time Credit</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Date & Time (Optional) -->
+          <div>
+            <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1 block">Scheduled Date &amp; Time (Optional)</label>
+            <input
+              v-model="bookForm.scheduled_at"
+              type="datetime-local"
+              class="w-full px-4 py-2.5 rounded-xl bg-[#fdfaff] border border-[#eaddff] text-xs sm:text-sm text-[#1e1a2b] focus:outline-none focus:border-[#543ce0] transition-colors"
+            />
+            <p class="text-[10px] text-[#6b6680] mt-1">Leave empty to conduct the session right now via Chat.</p>
+          </div>
+
+          <!-- Topic Notes -->
+          <div>
+            <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1 block">Session Goals / Questions</label>
+            <textarea
+              v-model="bookForm.topic_notes"
+              rows="2"
+              placeholder="What specific problems or topics do you want to cover?"
+              class="w-full px-4 py-2.5 rounded-xl bg-[#fdfaff] border border-[#eaddff] text-sm text-[#1e1a2b] focus:outline-none focus:border-[#543ce0] transition-colors resize-none"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Escrow Notice -->
+        <div class="p-3 rounded-2xl bg-[#543ce0]/5 border border-[#543ce0]/20 text-[11px] text-[#6b6680] flex items-start gap-2">
+          <span class="material-symbols-outlined text-base text-[#543ce0] shrink-0">lock</span>
+          <div>
+            <p class="font-bold text-[#1e1a2b]">Escrow Guarantee</p>
+            <p>{{ bookForm.duration_minutes <= 30 ? '0.5' : '1.0' }} Time Credit will be held in escrow. It is only released to the teacher when the session is completed. If cancelled, it is immediately refunded.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button
+            @click="submitBookSession"
+            :disabled="isBooking || !bookForm.skill_name.trim()"
+            class="flex-1 py-2.5 rounded-xl bg-[#543ce0] text-white font-headline font-semibold text-sm hover:bg-[#432dbb] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xs flex items-center justify-center gap-2"
+          >
+            <span v-if="isBooking" class="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
+            <span>{{ isBooking ? 'Booking...' : 'Book & Hold Escrow' }}</span>
+          </button>
+          <button @click="showBookModal = false" class="px-5 py-2.5 rounded-xl border border-[#eaddff] text-[#6b6680] hover:bg-[#f6effe] font-headline font-semibold text-sm transition-all">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. POST-SESSION RATING & REVIEW MODAL (PILLAR 1 ESCROW ENGINE) -->
+    <div
+      v-if="showReviewModal && reviewingSession"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      @click.self="showReviewModal = false"
+    >
+      <div class="bg-white rounded-3xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden flex flex-col p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">star</span>
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#1e1a2b]">Rate Your Exchange</h3>
+              <p class="text-[11px] text-[#6b6680]">Build campus trust &amp; verified peer reputation</p>
+            </div>
+          </div>
+          <button @click="showReviewModal = false" class="p-1.5 rounded-full hover:bg-[#f6effe] text-[#6b6680] transition-colors">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Peer info -->
+        <div class="p-3 bg-[#f6effe] border border-[#eaddff]/80 rounded-2xl flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-xl text-white font-bold text-sm flex items-center justify-center uppercase shadow-xs shrink-0"
+            :style="{ background: reviewingSession.peer_avatar || '#543ce0' }"
+          >
+            {{ (reviewingSession.peer_name || reviewingSession.peer_username || '?').charAt(0) }}
+          </div>
+          <div class="min-w-0">
+            <h4 class="font-headline font-bold text-xs text-[#1e1a2b] truncate">{{ reviewingSession.peer_name }}</h4>
+            <p class="text-[10px] text-[#6b6680] truncate">Session: {{ reviewingSession.skill_name }} ({{ reviewingSession.duration_minutes }}m)</p>
+          </div>
+        </div>
+
+        <!-- Star Selector -->
+        <div class="text-center space-y-2 py-2">
+          <div class="flex items-center justify-center gap-2">
+            <button
+              v-for="star in 5"
+              :key="'star_' + star"
+              type="button"
+              @click="reviewForm.rating = star"
+              class="transition-transform active:scale-125 focus:outline-none"
+            >
+              <span
+                class="material-symbols-outlined text-3xl"
+                :class="star <= reviewForm.rating ? 'text-amber-500' : 'text-slate-200'"
+                :style="star <= reviewForm.rating ? `font-variation-settings: 'FILL' 1;` : ''"
+              >
+                star
+              </span>
+            </button>
+          </div>
+          <p class="text-xs font-bold font-headline text-[#1e1a2b]">
+            {{ reviewForm.rating === 5 ? 'Exceptional Mentor! ⭐⭐⭐⭐⭐' : (reviewForm.rating === 4 ? 'Very Helpful & Clear ⭐⭐⭐⭐' : (reviewForm.rating === 3 ? 'Good Session ⭐⭐⭐' : 'Needs Improvement')) }}
+          </p>
+        </div>
+
+        <!-- Tag Badges -->
+        <div>
+          <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1.5 block">Endorse Strengths (Optional)</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="tag in ['Clear Explanations', 'Hands-on Code', 'Patient', 'Great Mentor', 'Punctual', 'Debugging Pro']"
+              :key="tag"
+              type="button"
+              @click="toggleReviewTag(tag)"
+              class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+              :class="reviewForm.tags.includes(tag) ? 'bg-[#543ce0] text-white shadow-xs' : 'bg-[#f6effe] text-[#6b6680] hover:bg-[#eaddff]/60'"
+            >
+              {{ tag }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Comment -->
+        <div>
+          <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1 block">Feedback / Testimonial</label>
+          <textarea
+            v-model="reviewForm.comment"
+            rows="2"
+            placeholder="What made this session great?"
+            class="w-full px-4 py-2.5 rounded-xl bg-[#fdfaff] border border-[#eaddff] text-sm text-[#1e1a2b] focus:outline-none focus:border-[#543ce0] transition-colors resize-none"
+          ></textarea>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button
+            @click="submitReview"
+            :disabled="isSubmittingReview"
+            class="flex-1 py-2.5 rounded-xl bg-[#543ce0] text-white font-headline font-semibold text-sm hover:bg-[#432dbb] active:scale-95 transition-all shadow-xs flex items-center justify-center gap-2"
+          >
+            <span v-if="isSubmittingReview" class="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
+            <span>{{ isSubmittingReview ? 'Submitting...' : 'Submit Review' }}</span>
+          </button>
+          <button @click="showReviewModal = false" class="px-5 py-2.5 rounded-xl border border-[#eaddff] text-[#6b6680] hover:bg-[#f6effe] font-headline font-semibold text-sm transition-all">Skip</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import { io } from 'socket.io-client'
 
 const currentUser = ref(null)
@@ -1004,6 +1350,38 @@ const inputMessage = ref('')
 const searchQuery = ref('')
 const isLoadingPeers = ref(true)
 const messageContainer = ref(null)
+
+// ─── Exchange Sessions & Escrow (Pillar 1) ──────────────────────────────────
+const exchangeSessions = ref([])
+const loadingSessions = ref(false)
+
+const showBookModal = ref(false)
+const isBooking = ref(false)
+const bookTargetPeer = ref(null)
+const bookForm = reactive({
+  teacher_id: '',
+  skill_name: '',
+  duration_minutes: 30,
+  scheduled_at: '',
+  topic_notes: ''
+})
+
+const showReviewModal = ref(false)
+const reviewingSession = ref(null)
+const isSubmittingReview = ref(false)
+const reviewForm = reactive({
+  rating: 5,
+  tags: [],
+  comment: ''
+})
+
+const activePeerSession = computed(() => {
+  if (!activePeer.value || !exchangeSessions.value) return null
+  const peerId = activePeer.value.id
+  return exchangeSessions.value.find(s =>
+    s.peer_id === peerId && (s.status === 'accepted' || s.status === 'pending' || (s.status === 'completed' && !s.my_review))
+  ) || null
+})
 
 // Group Chat State
 const sidebarTab = ref('peers') // 'peers' or 'groups'
@@ -1234,6 +1612,7 @@ onMounted(async () => {
   await fetchCurrentUser()
   await fetchPeers()
   await fetchGroups()
+  await fetchSessions()
   setupSocket()
   startMessageSync()
   // Fetch TURN credentials non-blockingly in the background so socket connects immediately
@@ -1267,6 +1646,168 @@ const fetchCurrentUser = async () => {
     }
   } catch (e) {
     console.error(e)
+  }
+}
+
+// ─── Session Methods (Pillar 1) ──────────────────────────────────────────────
+const fetchSessions = async () => {
+  loadingSessions.value = true
+  try {
+    const res = await fetch('/api/sessions', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      exchangeSessions.value = data.sessions || []
+    }
+  } catch (e) {
+    console.error('Error fetching sessions in chat:', e)
+  } finally {
+    loadingSessions.value = false
+  }
+}
+
+const openBookModal = (peer, defaultSkill = '') => {
+  if (!peer) return
+  bookTargetPeer.value = peer
+  bookForm.teacher_id = peer.id || peer.user_id
+  bookForm.skill_name = defaultSkill || (peer.teaches && peer.teaches.length > 0 ? peer.teaches[0] : '')
+  bookForm.duration_minutes = 30
+  bookForm.scheduled_at = ''
+  bookForm.topic_notes = ''
+  showBookModal.value = true
+}
+
+const submitBookSession = async () => {
+  if (!bookForm.teacher_id || !bookForm.skill_name.trim()) {
+    alert('Please enter a skill to learn.')
+    return
+  }
+  const cost = bookForm.duration_minutes <= 30 ? 0.5 : 1.0
+  if ((currentUser.value?.time_credits || 0) < cost) {
+    alert(`Insufficient Time Credits! You have ${currentUser.value?.time_credits || 0} credits, but this session requires ${cost} credits. Earn credits by teaching skills to peers!`)
+    return
+  }
+  isBooking.value = true
+  try {
+    const res = await fetch('/api/sessions/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(bookForm)
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showBookModal.value = false
+      alert(data.message || 'Session booked! Escrow credits locked until completion.')
+      await Promise.all([fetchSessions(), fetchCurrentUser()])
+    } else {
+      alert(data.error || 'Failed to book session.')
+    }
+  } catch (e) {
+    console.error('Error booking session:', e)
+    alert('Network error while booking session.')
+  } finally {
+    isBooking.value = false
+  }
+}
+
+const respondSession = async (sessionId, action) => {
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/respond`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(data.message || `Session ${action}ed!`)
+      await Promise.all([fetchSessions(), fetchCurrentUser()])
+    } else {
+      alert(data.error || 'Failed to update session.')
+    }
+  } catch (e) {
+    console.error('Error responding to session:', e)
+  }
+}
+
+const cancelSession = async (sessionId) => {
+  if (!confirm('Are you sure you want to cancel this session? Your locked escrow credits will be refunded.')) return
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/cancel`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(data.message || 'Session cancelled and escrow refunded.')
+      await Promise.all([fetchSessions(), fetchCurrentUser()])
+    } else {
+      alert(data.error || 'Failed to cancel session.')
+    }
+  } catch (e) {
+    console.error('Error cancelling session:', e)
+  }
+}
+
+const completeSessionAction = async (session) => {
+  if (!confirm(`Mark session for "${session.skill_name}" as complete?\n\nThis will release ${session.credit_cost} Time Credit from escrow to the teacher and award XP!`)) return
+  try {
+    const res = await fetch(`/api/sessions/${session.id}/complete`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(`🎉 Session completed! ${data.escrow_released} Time Credit transferred and +${data.xp_awarded} XP earned!`)
+      await Promise.all([fetchSessions(), fetchCurrentUser()])
+      openReviewModal(session)
+    } else {
+      alert(data.error || 'Failed to complete session.')
+    }
+  } catch (e) {
+    console.error('Error completing session:', e)
+  }
+}
+
+const openReviewModal = (session) => {
+  reviewingSession.value = session
+  reviewForm.rating = 5
+  reviewForm.tags = []
+  reviewForm.comment = ''
+  showReviewModal.value = true
+}
+
+const toggleReviewTag = (tag) => {
+  const idx = reviewForm.tags.indexOf(tag)
+  if (idx > -1) {
+    reviewForm.tags.splice(idx, 1)
+  } else {
+    reviewForm.tags.push(tag)
+  }
+}
+
+const submitReview = async () => {
+  if (!reviewingSession.value) return
+  isSubmittingReview.value = true
+  try {
+    const res = await fetch(`/api/sessions/${reviewingSession.value.id}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(reviewForm)
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showReviewModal.value = false
+      alert(data.message || 'Thank you for rating your peer!')
+      await fetchSessions()
+    } else {
+      alert(data.error || 'Failed to submit review.')
+    }
+  } catch (e) {
+    console.error('Error submitting review:', e)
+  } finally {
+    isSubmittingReview.value = false
   }
 }
 
@@ -1816,6 +2357,25 @@ const setupSocket = () => {
       activeGroup.value = null
       groupMessages.value = []
     }
+  })
+
+  // ─── Real-time Exchange Session Listeners (Pillar 1) ───
+  socket.value.on('session_requested', (data) => {
+    fetchSessions()
+  })
+
+  socket.value.on('session_accepted', (data) => {
+    fetchSessions()
+  })
+
+  socket.value.on('session_rejected', (data) => {
+    fetchSessions()
+    fetchCurrentUser()
+  })
+
+  socket.value.on('session_completed', (data) => {
+    fetchSessions()
+    fetchCurrentUser()
   })
 
   // Do NOT wipe queued ICE here — candidates often arrive before the ringing event.

@@ -175,6 +175,150 @@
           </div>
         </div>
 
+        <!-- ── SCHEDULED & PENDING SKILL EXCHANGES (PILLAR 1 ESCROW ENGINE) ──── -->
+        <div v-if="exchangeSessions.length > 0" class="bg-surface-container-lowest rounded-3xl p-5 border border-primary/30 shadow-sm space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-surface-container/60">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">handshake</span>
+              </div>
+              <div>
+                <h3 class="font-headline font-bold text-base text-on-surface">Skill Exchanges &amp; Escrow</h3>
+                <p class="text-[11px] text-on-surface-variant">Scheduled 1:1 sessions, live escrow holding, and peer completion</p>
+              </div>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold font-label">
+              {{ exchangeSessions.filter(s => s.status !== 'cancelled' && s.status !== 'rejected').length }} Active / Total
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+            <div
+              v-for="item in exchangeSessions.filter(s => s.status === 'pending' || s.status === 'accepted' || (s.status === 'completed' && !s.my_review))"
+              :key="'sess_' + item.id"
+              class="p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 shadow-xs"
+              :class="item.status === 'accepted' ? 'bg-gradient-to-br from-[#fdfaff] to-[#f6effe]/40 border-[#543ce0]/30' : (item.status === 'pending' ? 'bg-amber-50/40 border-amber-200' : 'bg-surface-container-lowest border-surface-container')"
+            >
+              <div>
+                <!-- Status & Skill header -->
+                <div class="flex items-center justify-between mb-2">
+                  <span
+                    class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                    :class="{
+                      'bg-amber-100 text-amber-800': item.status === 'pending',
+                      'bg-emerald-100 text-emerald-800': item.status === 'accepted',
+                      'bg-primary/10 text-primary': item.status === 'completed'
+                    }"
+                  >
+                    {{ item.status === 'pending' ? 'Pending Approval' : (item.status === 'accepted' ? 'Scheduled / Ready' : 'Completed') }}
+                  </span>
+                  <span class="text-[11px] font-bold text-primary font-mono flex items-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs">lock</span>
+                    <span>{{ item.credit_cost }} Credit held</span>
+                  </span>
+                </div>
+
+                <!-- Peer Info -->
+                <div class="flex items-center gap-2.5 mb-2">
+                  <div
+                    class="w-8 h-8 rounded-xl text-white font-bold text-xs flex items-center justify-center uppercase shrink-0 shadow-xs"
+                    :style="{ background: item.peer_avatar || '#543ce0' }"
+                  >
+                    {{ (item.peer_name || item.peer_username || '?').charAt(0) }}
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="font-headline font-bold text-xs text-on-surface truncate">{{ item.peer_name }}</h4>
+                    <p class="text-[10px] text-on-surface-variant truncate">
+                      {{ item.my_role === 'teacher' ? 'Learner: ' : 'Teacher: ' }}@{{ item.peer_username }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Topic & Details -->
+                <div class="space-y-1 text-xs">
+                  <p class="font-semibold text-on-surface flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs text-primary">school</span>
+                    <span>Skill: {{ item.skill_name }}</span>
+                    <span class="text-[10px] text-on-surface-variant font-mono">({{ item.duration_minutes }}m)</span>
+                  </p>
+                  <p v-if="item.topic_notes" class="text-on-surface-variant text-[11px] line-clamp-2">
+                    "{{ item.topic_notes }}"
+                  </p>
+                  <p v-if="item.scheduled_at" class="text-[10px] text-on-surface-variant flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">calendar_today</span>
+                    <span>{{ new Date(item.scheduled_at).toLocaleDateString() }} at {{ new Date(item.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Action Buttons based on status & role -->
+              <div class="pt-2 border-t border-surface-container/60 space-y-1.5">
+                <!-- 1. Teacher responding to pending request -->
+                <div v-if="item.status === 'pending' && item.my_role === 'teacher'" class="flex items-center gap-2">
+                  <button
+                    @click="respondSession(item.id, 'accept')"
+                    class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                  >
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span>Accept Session</span>
+                  </button>
+                  <button
+                    @click="respondSession(item.id, 'reject')"
+                    class="py-1.5 px-3 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error hover:bg-error/10 font-headline text-xs font-semibold active:scale-95 transition-all"
+                  >
+                    Decline
+                  </button>
+                </div>
+
+                <!-- 2. Learner waiting for teacher response -->
+                <div v-else-if="item.status === 'pending' && item.my_role === 'learner'" class="flex items-center justify-between">
+                  <span class="text-[11px] text-amber-700 font-medium">Waiting for @{{ item.peer_username }}</span>
+                  <button
+                    @click="cancelSession(item.id)"
+                    class="text-[11px] text-error hover:underline font-semibold"
+                  >
+                    Cancel &amp; Refund
+                  </button>
+                </div>
+
+                <!-- 3. Accepted Session (Ready to chat or complete) -->
+                <div v-else-if="item.status === 'accepted'" class="flex items-center gap-2">
+                  <NuxtLink
+                    :to="'/chat?id=' + item.peer_id"
+                    class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                  >
+                    <span class="material-symbols-outlined text-sm">chat</span>
+                    <span>Open Chat</span>
+                  </NuxtLink>
+                  <button
+                    @click="completeSessionAction(item)"
+                    class="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                    title="Complete session and release escrow"
+                  >
+                    <span class="material-symbols-outlined text-sm">task_alt</span>
+                    <span>Complete</span>
+                  </button>
+                </div>
+
+                <!-- 4. Completed but not reviewed -->
+                <div v-else-if="item.status === 'completed' && !item.my_review" class="flex items-center justify-between">
+                  <span class="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">done_all</span>
+                    <span>Escrow Released</span>
+                  </span>
+                  <button
+                    @click="openReviewModal(item)"
+                    class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                  >
+                    <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span>
+                    <span>Review Peer</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 3 Column Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -221,14 +365,21 @@
             </div>
 
             <!-- Stats -->
-            <div class="grid grid-cols-2 gap-2">
-              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-3 text-center">
-                <span class="text-base font-bold font-headline text-on-surface block">{{ user.sessions_completed || 0 }}</span>
-                <span class="text-[11px] font-medium text-on-surface-variant">Sessions</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
+                <span class="text-sm sm:text-base font-bold font-headline text-on-surface block">{{ user.total_sessions || user.sessions_completed || 0 }}</span>
+                <span class="text-[10px] font-medium text-on-surface-variant">Sessions</span>
               </div>
-              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-3 text-center">
-                <span class="text-base font-bold font-headline text-on-surface block">{{ user.time_credits || 0 }}</span>
-                <span class="text-[11px] font-medium text-on-surface-variant">Credits</span>
+              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
+                <span class="text-sm sm:text-base font-bold font-headline text-primary block">{{ (user.time_credits || 0).toFixed(1) }}</span>
+                <span class="text-[10px] font-medium text-on-surface-variant">Credits</span>
+              </div>
+              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
+                <span class="text-sm sm:text-base font-bold font-headline text-amber-500 flex items-center justify-center gap-0.5">
+                  <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span>
+                  <span>{{ user.rating_avg > 0 ? user.rating_avg.toFixed(1) : 'New' }}</span>
+                </span>
+                <span class="text-[10px] font-medium text-on-surface-variant">Rating ({{ user.rating_count || 0 }})</span>
               </div>
             </div>
 
@@ -657,13 +808,23 @@
                   </p>
                 </div>
               </div>
-              <NuxtLink
-                :to="'/chat?id=' + c.user_id"
-                class="px-3 py-2 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1.5 shrink-0"
-              >
-                <span>Chat &amp; Call</span>
-                <span class="material-symbols-outlined text-sm">videocam</span>
-              </NuxtLink>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  @click="openBookModal(c)"
+                  class="px-2.5 py-1.5 rounded-xl border border-primary/40 text-primary hover:bg-primary/5 font-headline text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+                  title="Schedule a skill exchange session"
+                >
+                  <span class="material-symbols-outlined text-sm">event</span>
+                  <span>Book</span>
+                </button>
+                <NuxtLink
+                  :to="'/chat?id=' + c.user_id"
+                  class="px-2.5 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                >
+                  <span class="material-symbols-outlined text-sm">chat</span>
+                  <span>Chat</span>
+                </NuxtLink>
+              </div>
             </div>
           </div>
         </section>
@@ -800,6 +961,216 @@
           </div>
         </div>
       </div>
+
+      <!-- ── BOOK SKILL EXCHANGE SESSION MODAL (PILLAR 1 ESCROW) ──── -->
+      <div v-if="showBookModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-surface-container-high space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl">event_available</span>
+              </div>
+              <div>
+                <h2 class="font-display text-lg font-bold text-on-surface">Book Skill Exchange</h2>
+                <p class="text-[11px] text-on-surface-variant">Time credit escrow &amp; live scheduling</p>
+              </div>
+            </div>
+            <button @click="showBookModal = false" class="p-1.5 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors">
+              <span class="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Peer info -->
+            <div v-if="bookTargetPeer" class="p-3 bg-surface-container-low rounded-2xl flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-primary/20 text-primary font-bold text-sm flex items-center justify-center uppercase">
+                {{ (bookTargetPeer.full_name || bookTargetPeer.name || bookTargetPeer.username || '?').charAt(0) }}
+              </div>
+              <div>
+                <h4 class="font-headline font-bold text-xs text-on-surface">{{ bookTargetPeer.full_name || bookTargetPeer.name }}</h4>
+                <p class="text-[10px] text-on-surface-variant">Teacher • @{{ bookTargetPeer.username || 'peer' }}</p>
+              </div>
+            </div>
+
+            <!-- Skill Name -->
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Skill to Learn *</label>
+              <input
+                v-model="bookForm.skill_name"
+                type="text"
+                placeholder="e.g. React, Python, Data Structures..."
+                class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-sm focus:outline-none focus:border-primary transition-colors font-medium"
+              />
+            </div>
+
+            <!-- Duration Selector -->
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Session Duration &amp; Cost</label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  @click="bookForm.duration_minutes = 30"
+                  class="p-3 rounded-2xl border text-left transition-all"
+                  :class="bookForm.duration_minutes === 30 ? 'border-primary bg-primary/10 text-primary shadow-xs' : 'border-surface-container bg-surface-bright text-on-surface hover:border-primary/40'"
+                >
+                  <span class="font-headline font-bold text-sm block">30 Minutes</span>
+                  <span class="text-[11px] font-mono text-on-surface-variant">0.5 Time Credit</span>
+                </button>
+                <button
+                  type="button"
+                  @click="bookForm.duration_minutes = 60"
+                  class="p-3 rounded-2xl border text-left transition-all"
+                  :class="bookForm.duration_minutes === 60 ? 'border-primary bg-primary/10 text-primary shadow-xs' : 'border-surface-container bg-surface-bright text-on-surface hover:border-primary/40'"
+                >
+                  <span class="font-headline font-bold text-sm block">60 Minutes</span>
+                  <span class="text-[11px] font-mono text-on-surface-variant">1.0 Time Credit</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Date & Time (Optional for immediate vs scheduled) -->
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Scheduled Date &amp; Time (Optional)</label>
+              <input
+                v-model="bookForm.scheduled_at"
+                type="datetime-local"
+                class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-xs sm:text-sm focus:outline-none focus:border-primary transition-colors text-on-surface"
+              />
+              <p class="text-[10px] text-on-surface-variant mt-1">Leave empty to conduct the session right now via Chat.</p>
+            </div>
+
+            <!-- Topic Notes -->
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Session Goals / Questions</label>
+              <textarea
+                v-model="bookForm.topic_notes"
+                rows="2"
+                placeholder="What specific problems or topics do you want to cover?"
+                class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-sm focus:outline-none focus:border-primary transition-colors resize-none"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Escrow Trust Notice -->
+          <div class="p-3 rounded-2xl bg-primary/5 border border-primary/20 text-[11px] text-on-surface-variant flex items-start gap-2">
+            <span class="material-symbols-outlined text-base text-primary shrink-0">lock</span>
+            <div>
+              <p class="font-bold text-on-surface">Escrow Guarantee</p>
+              <p>{{ bookForm.duration_minutes <= 30 ? '0.5' : '1.0' }} Time Credit will be held in escrow. It is only released to the teacher when the session is completed. If cancelled, it is immediately refunded.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button
+              @click="submitBookSession"
+              :disabled="isBooking || !bookForm.skill_name.trim()"
+              class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary font-headline font-semibold text-sm hover:bg-primary-dim active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xs flex items-center justify-center gap-2"
+            >
+              <span v-if="isBooking" class="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
+              <span>{{ isBooking ? 'Booking...' : 'Book & Hold Escrow' }}</span>
+            </button>
+            <button @click="showBookModal = false" class="px-5 py-2.5 rounded-xl border border-surface-variant text-on-surface-variant hover:bg-surface-container font-headline font-semibold text-sm transition-all">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── POST-SESSION RATING & REVIEW MODAL ───────────────────────── -->
+      <div v-if="showReviewModal && reviewingSession" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-surface-container-high space-y-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">star</span>
+              </div>
+              <div>
+                <h2 class="font-display text-lg font-bold text-on-surface">Rate Your Exchange</h2>
+                <p class="text-[11px] text-on-surface-variant">Build campus trust &amp; verified peer reputation</p>
+              </div>
+            </div>
+            <button @click="showReviewModal = false" class="p-1.5 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors">
+              <span class="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+
+          <!-- Peer info -->
+          <div class="p-3 bg-surface-container-low rounded-2xl flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl text-white font-bold text-sm flex items-center justify-center uppercase shadow-xs"
+              :style="{ background: reviewingSession.peer_avatar || '#543ce0' }"
+            >
+              {{ (reviewingSession.peer_name || reviewingSession.peer_username || '?').charAt(0) }}
+            </div>
+            <div>
+              <h4 class="font-headline font-bold text-sm text-on-surface">{{ reviewingSession.peer_name }}</h4>
+              <p class="text-xs text-on-surface-variant">Session: {{ reviewingSession.skill_name }} ({{ reviewingSession.duration_minutes }}m)</p>
+            </div>
+          </div>
+
+          <!-- Star Selector -->
+          <div class="text-center space-y-2 py-2">
+            <div class="flex items-center justify-center gap-2">
+              <button
+                v-for="star in 5"
+                :key="'star_' + star"
+                type="button"
+                @click="reviewForm.rating = star"
+                class="transition-transform active:scale-125 focus:outline-none"
+              >
+                <span
+                  class="material-symbols-outlined text-3xl"
+                  :class="star <= reviewForm.rating ? 'text-amber-500' : 'text-surface-container-highest'"
+                  :style="star <= reviewForm.rating ? `font-variation-settings: 'FILL' 1;` : ''"
+                >
+                  star
+                </span>
+              </button>
+            </div>
+            <p class="text-xs font-bold font-headline text-on-surface">
+              {{ reviewForm.rating === 5 ? 'Exceptional Mentor! ⭐⭐⭐⭐⭐' : (reviewForm.rating === 4 ? 'Very Helpful & Clear ⭐⭐⭐⭐' : (reviewForm.rating === 3 ? 'Good Session ⭐⭐⭐' : 'Needs Improvement')) }}
+            </p>
+          </div>
+
+          <!-- Tag Badges -->
+          <div>
+            <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">Endorse Strengths (Optional)</label>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                v-for="tag in ['Clear Explanations', 'Hands-on Code', 'Patient', 'Great Mentor', 'Punctual', 'Debugging Pro']"
+                :key="tag"
+                type="button"
+                @click="toggleReviewTag(tag)"
+                class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+                :class="reviewForm.tags.includes(tag) ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'"
+              >
+                {{ tag }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Comment -->
+          <div>
+            <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Feedback / Testimonial</label>
+            <textarea
+              v-model="reviewForm.comment"
+              rows="2"
+              placeholder="What made this session great?"
+              class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-sm focus:outline-none focus:border-primary transition-colors resize-none"
+            ></textarea>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button
+              @click="submitReview"
+              :disabled="isSubmittingReview"
+              class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary font-headline font-semibold text-sm hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center justify-center gap-2"
+            >
+              <span v-if="isSubmittingReview" class="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
+              <span>{{ isSubmittingReview ? 'Submitting...' : 'Submit Review' }}</span>
+            </button>
+            <button @click="showReviewModal = false" class="px-5 py-2.5 rounded-xl border border-surface-variant text-on-surface-variant hover:bg-surface-container font-headline font-semibold text-sm transition-all">Skip</button>
+          </div>
+        </div>
+      </div>
     </template>
 
     <!-- ── LIVE INCOMING CONNECTION REQUEST MODAL ─────────────────── -->
@@ -882,6 +1253,30 @@ const verifiedSkills = ref([])
 const editProfile = ref({
   full_name: '', department: '', semester: 1,
   bio: '', education: '', qualifications: '', experience: '', github: '', linkedin: ''
+})
+
+// ─── Exchange Sessions & Escrow (Pillar 1) ──────────────────────────────────
+const exchangeSessions = ref([])
+const loadingSessions = ref(true)
+
+const showBookModal = ref(false)
+const isBooking = ref(false)
+const bookTargetPeer = ref(null)
+const bookForm = reactive({
+  teacher_id: '',
+  skill_name: '',
+  duration_minutes: 30,
+  scheduled_at: '',
+  topic_notes: ''
+})
+
+const showReviewModal = ref(false)
+const reviewingSession = ref(null)
+const isSubmittingReview = ref(false)
+const reviewForm = reactive({
+  rating: 5,
+  tags: [],
+  comment: ''
 })
 
 // ─── Proof-of-Work Half-Life & A.E.E. State ─────────────────────────────────
@@ -1032,6 +1427,29 @@ const setupDashSocket = () => {
   dashSocket.on('aee_request_declined', (data) => {
     fetchAeePending()
   })
+
+  // ─── Real-time Exchange Session Listeners (Pillar 1) ───
+  dashSocket.on('session_requested', (data) => {
+    fetchSessions()
+    liveNotifCount.value++
+  })
+
+  dashSocket.on('session_accepted', (data) => {
+    fetchSessions()
+    alert(`🎉 Session Accepted! ${data.teacher_name || 'Your mentor'} accepted your exchange for ${data.skill_name}.`)
+  })
+
+  dashSocket.on('session_rejected', (data) => {
+    fetchSessions()
+    fetchUserData()
+    alert(`ℹ️ Session for ${data.skill_name} was declined. Your escrow credits have been refunded.`)
+  })
+
+  dashSocket.on('session_completed', (data) => {
+    fetchSessions()
+    fetchUserData()
+    fetchVerifications()
+  })
 }
 
 const acceptLiveRequest = async () => {
@@ -1133,7 +1551,7 @@ onMounted(async () => {
         github: user.value.github || '',
         linkedin: user.value.linkedin || ''
       }
-      await Promise.all([fetchSkills(), fetchCycles(), fetchConnections(), fetchVerifications(), fetchAeePending()])
+      await Promise.all([fetchSkills(), fetchCycles(), fetchConnections(), fetchVerifications(), fetchAeePending(), fetchSessions()])
       setupDashSocket()
     } else {
       error.value = 'Not authenticated'
@@ -1211,6 +1629,178 @@ const removeSkill = async (id) => {
     await fetch(`/api/skills/${id}`, { method: 'DELETE', credentials: 'include' })
     await Promise.all([fetchSkills(), fetchCycles()])
   } catch(e) { console.error(e) }
+}
+
+const fetchUserData = async () => {
+  try {
+    const res = await fetch('/api/user/me', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      user.value = data.user
+    }
+  } catch (e) {
+    console.error('Error fetching user:', e)
+  }
+}
+
+const fetchSessions = async () => {
+  loadingSessions.value = true
+  try {
+    const res = await fetch('/api/sessions', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      exchangeSessions.value = data.sessions || []
+    }
+  } catch (e) {
+    console.error('Error fetching exchange sessions:', e)
+  } finally {
+    loadingSessions.value = false
+  }
+}
+
+const openBookModal = (peer, defaultSkill = '') => {
+  bookTargetPeer.value = peer
+  bookForm.teacher_id = peer.user_id || peer.id
+  bookForm.skill_name = defaultSkill || (peer.teaches && peer.teaches.length > 0 ? peer.teaches[0] : '')
+  bookForm.duration_minutes = 30
+  bookForm.scheduled_at = ''
+  bookForm.topic_notes = ''
+  showBookModal.value = true
+}
+
+const submitBookSession = async () => {
+  if (!bookForm.teacher_id || !bookForm.skill_name.trim()) {
+    alert('Please enter a skill to learn.')
+    return
+  }
+  const cost = bookForm.duration_minutes <= 30 ? 0.5 : 1.0
+  if ((user.value?.time_credits || 0) < cost) {
+    alert(`Insufficient Time Credits! You have ${user.value?.time_credits || 0} credits, but this session requires ${cost} credits. Earn credits by teaching skills to peers!`)
+    return
+  }
+  isBooking.value = true
+  try {
+    const res = await fetch('/api/sessions/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(bookForm)
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showBookModal.value = false
+      alert(data.message || 'Session booked! Escrow credits locked until completion.')
+      await Promise.all([fetchSessions(), fetchUserData()])
+    } else {
+      alert(data.error || 'Failed to book session.')
+    }
+  } catch (e) {
+    console.error('Error booking session:', e)
+    alert('Network error while booking session.')
+  } finally {
+    isBooking.value = false
+  }
+}
+
+const respondSession = async (sessionId, action) => {
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/respond`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(data.message || `Session ${action}ed!`)
+      await Promise.all([fetchSessions(), fetchUserData()])
+    } else {
+      alert(data.error || 'Failed to update session.')
+    }
+  } catch (e) {
+    console.error('Error responding to session:', e)
+  }
+}
+
+const cancelSession = async (sessionId) => {
+  if (!confirm('Are you sure you want to cancel this session? Your locked escrow credits will be refunded.')) return
+  try {
+    const res = await fetch(`/api/sessions/${sessionId}/cancel`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(data.message || 'Session cancelled and escrow refunded.')
+      await Promise.all([fetchSessions(), fetchUserData()])
+    } else {
+      alert(data.error || 'Failed to cancel session.')
+    }
+  } catch (e) {
+    console.error('Error cancelling session:', e)
+  }
+}
+
+const completeSessionAction = async (session) => {
+  if (!confirm(`Mark session for "${session.skill_name}" as complete?\n\nThis will release ${session.credit_cost} Time Credit from escrow to the teacher and award XP!`)) return
+  try {
+    const res = await fetch(`/api/sessions/${session.id}/complete`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert(`🎉 Session completed! ${data.escrow_released} Time Credit transferred and +${data.xp_awarded} XP earned!`)
+      await Promise.all([fetchSessions(), fetchUserData(), fetchVerifications()])
+      openReviewModal(session)
+    } else {
+      alert(data.error || 'Failed to complete session.')
+    }
+  } catch (e) {
+    console.error('Error completing session:', e)
+  }
+}
+
+const openReviewModal = (session) => {
+  reviewingSession.value = session
+  reviewForm.rating = 5
+  reviewForm.tags = []
+  reviewForm.comment = ''
+  showReviewModal.value = true
+}
+
+const toggleReviewTag = (tag) => {
+  const idx = reviewForm.tags.indexOf(tag)
+  if (idx > -1) {
+    reviewForm.tags.splice(idx, 1)
+  } else {
+    reviewForm.tags.push(tag)
+  }
+}
+
+const submitReview = async () => {
+  if (!reviewingSession.value) return
+  isSubmittingReview.value = true
+  try {
+    const res = await fetch(`/api/sessions/${reviewingSession.value.id}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(reviewForm)
+    })
+    const data = await res.json()
+    if (res.ok) {
+      showReviewModal.value = false
+      alert(data.message || 'Thank you for rating your peer!')
+      await fetchSessions()
+    } else {
+      alert(data.error || 'Failed to submit review.')
+    }
+  } catch (e) {
+    console.error('Error submitting review:', e)
+  } finally {
+    isSubmittingReview.value = false
+  }
 }
 
 const logout = async () => {
