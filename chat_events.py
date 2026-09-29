@@ -34,7 +34,41 @@ def register_chat_events(socketio):
             socket_users[request.sid] = uid
             join_room(f"user_{uid}")
             print(f"[SocketIO] User {uid} authenticated explicitly, sid={request.sid}", flush=True)
+
+            # Also join all group rooms this user belongs to
+            try:
+                db = get_db()
+                group_rows = db.execute(
+                    'SELECT group_id FROM group_members WHERE user_id = ?', (uid,)
+                ).fetchall()
+                for row in group_rows:
+                    gid = row['group_id']
+                    join_room(f"group_{gid}")
+                    print(f"[SocketIO] User {uid} joined group room group_{gid}", flush=True)
+            except Exception as e:
+                print(f"[SocketIO] Could not join group rooms for user {uid}: {e}", flush=True)
+
             emit('authenticated', {'user_id': uid, 'status': 'ok'})
+
+    @socketio.on('join_group_rooms')
+    def handle_join_group_rooms(data):
+        """Called when user is added to a new group mid-session so they join the Socket.IO room."""
+        uid = socket_users.get(request.sid) or session.get('user_id')
+        group_id = (data or {}).get('group_id')
+        if uid and group_id:
+            uid = int(uid)
+            g_id = int(group_id)
+            try:
+                db = get_db()
+                membership = db.execute(
+                    'SELECT id FROM group_members WHERE group_id = ? AND user_id = ?',
+                    (g_id, uid)
+                ).fetchone()
+                if membership:
+                    join_room(f"group_{g_id}")
+                    print(f"[SocketIO] User {uid} joined new group room group_{g_id}", flush=True)
+            except Exception as e:
+                print(f"[SocketIO] join_group_rooms error: {e}", flush=True)
 
     @socketio.on('disconnect')
     def handle_disconnect():
@@ -53,12 +87,13 @@ def register_chat_events(socketio):
 
     @socketio.on('send_message')
     def handle_send_message(data):
-        """Save message to SQLite and deliver in real-time to receiver."""
+        """Save message to SQLite and deliver in real-time. Supports both 1:1 and group messages."""
         data = data or {}
         sender_id = session.get('user_id') or socket_users.get(request.sid) or data.get('sender_id')
         if not sender_id:
             return {'error': 'Unauthorized'}
-            
+
+        group_id = data.get('group_id')
         receiver_id = data.get('receiver_id')
         content = data.get('content', '')
         message_type = data.get('message_type', 'text')
@@ -66,21 +101,54 @@ def register_chat_events(socketio):
         file_name = data.get('file_name')
         file_size = data.get('file_size')
 
-        if not receiver_id:
-            return {'error': 'Missing receiver'}
+        if not group_id and not receiver_id:
+            return {'error': 'Missing receiver or group'}
 
         s_id = int(sender_id)
+        db = get_db()
+        now_str = datetime.now().strftime('%I:%M %p')
+
+        # ── GROUP MESSAGE PATH ──────────────────────────────────
+        if group_id:
+            g_id = int(group_id)
+            cursor = db.execute('''
+                INSERT INTO group_messages (group_id, sender_id, content, message_type, file_url, file_name, file_size)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (g_id, s_id, content, message_type, file_url, file_name, file_size))
+            db.commit()
+            msg_id = cursor.lastrowid
+
+            sender = db.execute(
+                'SELECT full_name, username, avatar_color FROM users WHERE id = ?', (s_id,)
+            ).fetchone()
+
+            msg_payload = {
+                'id': msg_id,
+                'group_id': g_id,
+                'sender_id': s_id,
+                'sender_name': (sender['full_name'] or sender['username']) if sender else 'Unknown',
+                'sender_username': sender['username'] if sender else '',
+                'sender_avatar_color': sender['avatar_color'] if sender else '#543ce0',
+                'content': content,
+                'message_type': message_type,
+                'file_url': file_url,
+                'file_name': file_name,
+                'file_size': file_size,
+                'created_at': now_str,
+            }
+
+            emit('receive_group_message', msg_payload, room=f"group_{g_id}")
+            return {'status': 'sent', 'message': msg_payload}
+
+        # ── 1:1 MESSAGE PATH (unchanged) ───────────────────────
         r_id = int(receiver_id)
 
-        db = get_db()
         cursor = db.execute('''
             INSERT INTO messages (sender_id, receiver_id, content, message_type, file_url, file_name, file_size)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (s_id, r_id, content, message_type, file_url, file_name, file_size))
         db.commit()
         msg_id = cursor.lastrowid
-
-        now_str = datetime.now().strftime('%I:%M %p')
 
         msg_payload = {
             'id': msg_id,

@@ -68,94 +68,200 @@
     <main class="flex-1 max-w-[1720px] w-full mx-auto p-3 sm:p-5 flex gap-4 min-h-0 overflow-hidden">
       <!-- LEFT SIDEBAR: PEER CONVERSATIONS -->
       <aside class="w-full md:w-[360px] lg:w-[380px] bg-white rounded-2xl border border-[#eaddff] flex flex-col h-full overflow-hidden shadow-sm flex-shrink-0">
-        <!-- Search & Filter Bar -->
-        <div class="p-4 border-b border-[#eaddff]/70 space-y-3 bg-gradient-to-b from-[#fdfaff] to-white">
+        <!-- Header & Tabs -->
+        <div class="p-3.5 border-b border-[#eaddff]/70 space-y-2.5 bg-gradient-to-b from-[#fdfaff] to-white">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <h2 class="font-headline font-bold text-lg text-[#1e1a2b]">Loop Partners</h2>
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#543ce0]/10 text-[#543ce0]">{{ peers.length }} Connected</span>
+              <h2 class="font-headline font-bold text-base text-[#1e1a2b]">Conversations</h2>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#543ce0]/10 text-[#543ce0]">
+                {{ sidebarTab === 'peers' ? `${peers.length} Peers` : `${groups.length} Groups` }}
+              </span>
             </div>
+            <button
+              v-if="sidebarTab === 'groups'"
+              @click="openCreateGroupModal"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#543ce0] text-white text-[11px] font-bold hover:bg-[#432ec4] active:scale-95 transition-all shadow-sm"
+              title="Create new group"
+            >
+              <span class="material-symbols-outlined text-sm">add</span>
+              <span>New</span>
+            </button>
           </div>
+
+          <!-- Tabs: Partners / Groups -->
+          <div class="flex items-center p-1 bg-[#f6effe] rounded-xl border border-[#eaddff]/80">
+            <button
+              @click="sidebarTab = 'peers'"
+              class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold font-headline transition-all flex items-center justify-center gap-1.5"
+              :class="sidebarTab === 'peers' ? 'bg-white text-[#543ce0] shadow-xs' : 'text-[#6b6680] hover:text-[#1e1a2b]'"
+            >
+              <span class="material-symbols-outlined text-sm">chat_bubble</span>
+              <span>Partners ({{ peers.length }})</span>
+            </button>
+            <button
+              @click="sidebarTab = 'groups'"
+              class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold font-headline transition-all flex items-center justify-center gap-1.5"
+              :class="sidebarTab === 'groups' ? 'bg-white text-[#543ce0] shadow-xs' : 'text-[#6b6680] hover:text-[#1e1a2b]'"
+            >
+              <span class="material-symbols-outlined text-sm">groups</span>
+              <span>Groups ({{ groups.length }})</span>
+            </button>
+          </div>
+
           <!-- Search input -->
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-2.5 text-[#6b6680] text-lg">search</span>
+            <span class="material-symbols-outlined absolute left-3 top-2 text-[#6b6680] text-base">search</span>
             <input
               v-model="searchQuery"
-              class="w-full pl-9 pr-4 py-2 bg-[#f6effe]/70 border border-[#eaddff] rounded-xl text-xs font-medium placeholder-[#6b6680]/70 focus:outline-none focus:ring-2 focus:ring-[#543ce0]/20 focus:border-[#543ce0] transition-all"
-              placeholder="Search connected partners..."
+              class="w-full pl-8 pr-4 py-1.5 bg-[#f6effe]/60 border border-[#eaddff] rounded-xl text-xs font-medium placeholder-[#6b6680]/70 focus:outline-none focus:ring-2 focus:ring-[#543ce0]/20 focus:border-[#543ce0] transition-all"
+              :placeholder="sidebarTab === 'peers' ? 'Search connected partners...' : 'Search groups...'"
               type="text"
             />
           </div>
         </div>
 
-        <!-- Peer List (Scrollable) -->
+        <!-- Scrollable Conversations List (Peers or Groups) -->
         <div class="flex-1 overflow-y-auto divide-y divide-[#eaddff]/40 p-2 space-y-1 flex flex-col">
-          <div v-if="isLoadingPeers" class="p-6 text-center text-xs text-[#6b6680] flex items-center justify-center gap-2 m-auto">
-            <span class="w-4 h-4 rounded-full border-2 border-[#543ce0] border-t-transparent animate-spin"></span>
-            <span>Loading loop partners...</span>
-          </div>
-
-          <div v-else-if="peers.length === 0" class="p-6 text-center space-y-3 m-auto">
-            <div class="w-12 h-12 rounded-2xl bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center mx-auto">
-              <span class="material-symbols-outlined text-2xl">sync_alt</span>
+          <!-- 1. LOOP PARTNERS TAB -->
+          <template v-if="sidebarTab === 'peers'">
+            <div v-if="isLoadingPeers" class="p-6 text-center text-xs text-[#6b6680] flex items-center justify-center gap-2 m-auto">
+              <span class="w-4 h-4 rounded-full border-2 border-[#543ce0] border-t-transparent animate-spin"></span>
+              <span>Loading loop partners...</span>
             </div>
-            <div class="space-y-1">
-              <h3 class="font-headline font-bold text-sm text-[#1e1a2b]">No Connected Peers Yet</h3>
-              <p class="text-xs text-[#6b6680] leading-relaxed">
-                Connect with peers through Loop Exchanges on your Dashboard to chat and video call here.
-              </p>
-            </div>
-            <NuxtLink to="/dashboard" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#543ce0] text-white text-xs font-bold font-headline shadow-sm hover:bg-[#432ec4] active:scale-95 transition-all">
-              <span>View Loop Exchanges</span>
-              <span class="material-symbols-outlined text-sm">arrow_forward</span>
-            </NuxtLink>
-          </div>
 
-          <div v-else-if="filteredPeers.length === 0" class="p-6 text-center text-xs text-[#6b6680]">
-            No connected peers match "{{ searchQuery }}".
-          </div>
-
-          <div
-            v-for="peer in filteredPeers"
-            :key="peer.id"
-            @click="selectPeer(peer)"
-            class="group p-3 rounded-xl transition-all cursor-pointer relative"
-            :class="activePeer?.id === peer.id ? 'bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#543ce0]/30 shadow-sm' : 'hover:bg-[#f6effe]/60 border border-transparent'"
-          >
-            <div class="flex items-start gap-3">
-              <div class="relative flex-shrink-0">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0]/20 to-[#99366c]/20 text-[#543ce0] flex items-center justify-center font-bold font-headline text-base shadow-xs">
-                  {{ (peer.full_name || peer.username).charAt(0).toUpperCase() }}
-                </div>
-                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+            <div v-else-if="peers.length === 0" class="p-6 text-center space-y-3 m-auto">
+              <div class="w-12 h-12 rounded-2xl bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-2xl">sync_alt</span>
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-0.5">
-                  <h3 class="font-headline font-bold text-sm text-[#1e1a2b] truncate">{{ peer.full_name }}</h3>
-                  <span class="text-[10px] font-medium text-[#6b6680]">@{{ peer.username }}</span>
+              <div class="space-y-1">
+                <h3 class="font-headline font-bold text-sm text-[#1e1a2b]">No Connected Peers Yet</h3>
+                <p class="text-xs text-[#6b6680] leading-relaxed">
+                  Connect with peers through Loop Exchanges on your Dashboard to chat and video call here.
+                </p>
+              </div>
+              <NuxtLink to="/dashboard" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#543ce0] text-white text-xs font-bold font-headline shadow-sm hover:bg-[#432ec4] active:scale-95 transition-all">
+                <span>View Loop Exchanges</span>
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+              </NuxtLink>
+            </div>
+
+            <div v-else-if="filteredPeers.length === 0" class="p-6 text-center text-xs text-[#6b6680]">
+              No connected peers match "{{ searchQuery }}".
+            </div>
+
+            <div
+              v-for="peer in filteredPeers"
+              :key="peer.id"
+              @click="selectPeer(peer)"
+              class="group p-3 rounded-xl transition-all cursor-pointer relative"
+              :class="activePeer?.id === peer.id && !activeGroup ? 'bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#543ce0]/30 shadow-sm' : 'hover:bg-[#f6effe]/60 border border-transparent'"
+            >
+              <div class="flex items-start gap-3">
+                <div class="relative flex-shrink-0">
+                  <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0]/20 to-[#99366c]/20 text-[#543ce0] flex items-center justify-center font-bold font-headline text-base shadow-xs">
+                    {{ (peer.full_name || peer.username).charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
                 </div>
-                <div class="flex items-center gap-1.5 mb-1">
-                  <span v-if="peer.connection_status === 'connected'" class="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">
-                    Connected
-                  </span>
-                  <span class="px-1.5 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[10px] font-semibold text-[#543ce0] rounded">
-                    {{ peer.department || 'Campus Peer' }}
-                  </span>
-                  <span v-if="peer.teaches && peer.teaches.length" class="px-1.5 py-0.5 bg-[#99366c]/10 text-[10px] font-bold text-[#99366c] rounded truncate">
-                    {{ peer.teaches[0] }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <p class="text-xs text-[#6b6680] truncate">{{ peer.last_message }}</p>
-                  <span v-if="peer.unread_count > 0" class="w-4 h-4 rounded-full bg-[#543ce0] text-white text-[10px] font-bold flex items-center justify-center ml-1 flex-shrink-0">
-                    {{ peer.unread_count }}
-                  </span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <h3 class="font-headline font-bold text-sm text-[#1e1a2b] truncate">{{ peer.full_name }}</h3>
+                    <span class="text-[10px] font-medium text-[#6b6680]">@{{ peer.username }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <span v-if="peer.connection_status === 'connected'" class="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">
+                      Connected
+                    </span>
+                    <span class="px-1.5 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[10px] font-semibold text-[#543ce0] rounded">
+                      {{ peer.department || 'Campus Peer' }}
+                    </span>
+                    <span v-if="peer.teaches && peer.teaches.length" class="px-1.5 py-0.5 bg-[#99366c]/10 text-[10px] font-bold text-[#99366c] rounded truncate">
+                      {{ peer.teaches[0] }}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <p class="text-xs text-[#6b6680] truncate">{{ peer.last_message }}</p>
+                    <span v-if="peer.unread_count > 0" class="w-4 h-4 rounded-full bg-[#543ce0] text-white text-[10px] font-bold flex items-center justify-center ml-1 flex-shrink-0">
+                      {{ peer.unread_count }}
+                    </span>
+                  </div>
                 </div>
               </div>
+              <!-- Selection bar -->
+              <div v-if="activePeer?.id === peer.id && !activeGroup" class="absolute left-0 top-3 bottom-3 w-1 bg-[#543ce0] rounded-r-full"></div>
             </div>
-            <!-- Selection bar -->
-            <div v-if="activePeer?.id === peer.id" class="absolute left-0 top-3 bottom-3 w-1 bg-[#543ce0] rounded-r-full"></div>
-          </div>
+          </template>
+
+          <!-- 2. GROUPS TAB -->
+          <template v-else-if="sidebarTab === 'groups'">
+            <div v-if="isLoadingGroups" class="p-6 text-center text-xs text-[#6b6680] flex items-center justify-center gap-2 m-auto">
+              <span class="w-4 h-4 rounded-full border-2 border-[#543ce0] border-t-transparent animate-spin"></span>
+              <span>Loading groups...</span>
+            </div>
+
+            <div v-else-if="groups.length === 0" class="p-6 text-center space-y-3 m-auto">
+              <div class="w-12 h-12 rounded-2xl bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-2xl">groups</span>
+              </div>
+              <div class="space-y-1">
+                <h3 class="font-headline font-bold text-sm text-[#1e1a2b]">No Groups Yet</h3>
+                <p class="text-xs text-[#6b6680] leading-relaxed">
+                  Create a study squad, project team, or skill cohort to chat together in real-time.
+                </p>
+              </div>
+              <button
+                @click="openCreateGroupModal"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#543ce0] text-white text-xs font-bold font-headline shadow-sm hover:bg-[#432ec4] active:scale-95 transition-all"
+              >
+                <span class="material-symbols-outlined text-sm">add</span>
+                <span>Create First Group</span>
+              </button>
+            </div>
+
+            <div v-else-if="filteredGroups.length === 0" class="p-6 text-center text-xs text-[#6b6680]">
+              No groups match "{{ searchQuery }}".
+            </div>
+
+            <div
+              v-for="group in filteredGroups"
+              :key="'grp_' + group.id"
+              @click="selectGroup(group)"
+              class="group p-3 rounded-xl transition-all cursor-pointer relative"
+              :class="activeGroup?.id === group.id ? 'bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#543ce0]/30 shadow-sm' : 'hover:bg-[#f6effe]/60 border border-transparent'"
+            >
+              <div class="flex items-start gap-3">
+                <div class="relative flex-shrink-0">
+                  <div
+                    class="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-base shadow-xs"
+                    :style="{ background: group.avatar_color || '#543ce0' }"
+                  >
+                    {{ group.name.charAt(0).toUpperCase() }}
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <h3 class="font-headline font-bold text-sm text-[#1e1a2b] truncate">{{ group.name }}</h3>
+                    <span v-if="group.last_message_time" class="text-[10px] text-[#6b6680]">{{ group.last_message_time }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <span class="px-1.5 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[10px] font-semibold text-[#543ce0] rounded">
+                      {{ group.member_count }} {{ group.member_count === 1 ? 'member' : 'members' }}
+                    </span>
+                    <span v-if="group.role === 'admin'" class="px-1.5 py-0.5 bg-amber-50 text-amber-800 text-[9px] font-bold rounded border border-amber-200">
+                      Admin
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <p class="text-xs text-[#6b6680] truncate">
+                      {{ group.last_message || 'Created group' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <!-- Selection bar -->
+              <div v-if="activeGroup?.id === group.id" class="absolute left-0 top-3 bottom-3 w-1 bg-[#543ce0] rounded-r-full"></div>
+            </div>
+          </template>
         </div>
 
         <!-- Left Sidebar Footer -->
@@ -346,14 +452,180 @@
           </footer>
         </template>
 
-        <!-- No Peer Selected State -->
+        <!-- ACTIVE GROUP CHAT WORKSPACE -->
+        <template v-else-if="activeGroup">
+          <!-- 1. GROUP CHAT HEADER -->
+          <header class="p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex flex-wrap items-center justify-between gap-3 z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div
+                  class="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm"
+                  :style="{ background: activeGroup.avatar_color || '#543ce0' }"
+                >
+                  {{ activeGroup.name.charAt(0).toUpperCase() }}
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="font-headline font-bold text-base text-[#1e1a2b]">{{ activeGroup.name }}</h2>
+                  <span class="px-2 py-0.5 bg-[#543ce0]/10 border border-[#543ce0]/20 text-[#543ce0] text-[10px] font-bold rounded-full">
+                    {{ activeGroup.member_count || groupMembers.length }} Members
+                  </span>
+                  <span v-if="activeGroupRole === 'admin'" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-full">
+                    Admin
+                  </span>
+                </div>
+                <p class="text-xs text-[#6b6680] truncate max-w-md">
+                  {{ activeGroup.description || 'WhatsApp-style Campus Group Discussion' }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Group Header Actions -->
+            <div class="flex items-center gap-2">
+              <button
+                @click="openGroupInfoModal"
+                class="px-3.5 py-1.5 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95"
+                title="View group members and info"
+              >
+                <span class="material-symbols-outlined text-base">group</span>
+                <span>Group Info</span>
+              </button>
+            </div>
+          </header>
+
+          <!-- 2. SCROLLABLE GROUP MESSAGES FEED -->
+          <div ref="groupMessageContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gradient-to-b from-[#fdfaff]/60 via-[#fbf4ff]/30 to-[#fdfaff]">
+            <!-- Group Banner -->
+            <div class="max-w-xl mx-auto p-3 bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#eaddff] rounded-2xl flex items-center gap-3 text-xs shadow-xs">
+              <div class="w-9 h-9 rounded-xl bg-white border border-[#eaddff] flex items-center justify-center text-[#543ce0] flex-shrink-0 shadow-xs">
+                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">groups</span>
+              </div>
+              <div class="flex-1">
+                <p class="font-bold text-[#1e1a2b]">SkillLoop Campus Circle: {{ activeGroup.name }}</p>
+                <p class="text-[#6b6680]">Messages in this group are shared in real-time with all members.</p>
+              </div>
+              <span class="px-2.5 py-1 bg-[#543ce0]/10 text-[#543ce0] text-[10px] font-extrabold rounded-full">Group Room</span>
+            </div>
+
+            <div v-if="groupMessages.length === 0" class="text-center py-12 text-xs text-[#6b6680]">
+              No messages in {{ activeGroup.name }} yet. Start the conversation!
+            </div>
+
+            <!-- Messages List -->
+            <template v-for="msg in groupMessages" :key="'gmsg_' + msg.id">
+              <!-- Outgoing message (Current User) -->
+              <div v-if="msg.sender_id === currentUser?.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto">
+                <div class="space-y-1 text-right">
+                  <!-- Text message -->
+                  <div v-if="msg.message_type === 'text'" class="bg-[#543ce0] text-white p-3.5 rounded-2xl rounded-br-sm text-xs leading-relaxed shadow-md shadow-[#543ce0]/15 text-left">
+                    {{ msg.content }}
+                  </div>
+                  <!-- Image message -->
+                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#543ce0] rounded-2xl rounded-br-sm shadow-md shadow-[#543ce0]/15 overflow-hidden">
+                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl"/>
+                    <p class="text-[11px] text-white/90 p-1 text-left truncate">{{ msg.file_name }} ({{ msg.file_size }})</p>
+                  </div>
+                  <!-- File/Doc message -->
+                  <div v-else-if="msg.message_type === 'file'" class="p-3 bg-[#543ce0] text-white rounded-2xl rounded-br-sm shadow-md flex items-center gap-3 text-left">
+                    <span class="material-symbols-outlined text-2xl">description</span>
+                    <div class="flex-1 min-w-0">
+                      <a :href="msg.file_url" target="_blank" download class="text-xs font-bold underline truncate block">{{ msg.file_name }}</a>
+                      <span class="text-[10px] text-white/80">{{ msg.file_size }}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-end gap-1 px-1 text-[10px] text-[#6b6680]">
+                    <span>{{ msg.created_at }}</span>
+                    <span class="material-symbols-outlined text-sm text-[#543ce0]" style="font-variation-settings: 'FILL' 1;">done_all</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Incoming message (Group Peer) -->
+              <div v-else class="flex items-end gap-2.5 max-w-lg">
+                <div
+                  class="w-7 h-7 rounded-lg text-white flex items-center justify-center font-bold text-xs mb-1 ring-1 ring-[#eaddff] flex-shrink-0"
+                  :style="{ background: msg.sender_avatar_color || '#543ce0' }"
+                >
+                  {{ (msg.sender_name || msg.sender_username || 'U').charAt(0).toUpperCase() }}
+                </div>
+                <div class="space-y-1">
+                  <!-- Sender name display above incoming bubble -->
+                  <div class="flex items-center gap-1.5 px-1">
+                    <span class="text-[11px] font-bold text-[#543ce0]">{{ msg.sender_name || msg.sender_username }}</span>
+                    <span class="text-[9px] text-[#6b6680]">@{{ msg.sender_username }}</span>
+                  </div>
+                  <!-- Text message -->
+                  <div v-if="msg.message_type === 'text'" class="bg-[#f6effe] border border-[#eaddff]/80 text-[#1e1a2b] p-3.5 rounded-2xl rounded-bl-sm text-xs leading-relaxed shadow-xs">
+                    {{ msg.content }}
+                  </div>
+                  <!-- Image message -->
+                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#f6effe] border border-[#eaddff] rounded-2xl rounded-bl-sm shadow-xs overflow-hidden">
+                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl"/>
+                    <p class="text-[11px] text-[#1e1a2b] p-1 truncate">{{ msg.file_name }} ({{ msg.file_size }})</p>
+                  </div>
+                  <!-- File message -->
+                  <div v-else-if="msg.message_type === 'file'" class="p-3 bg-[#f6effe] border border-[#eaddff] text-[#1e1a2b] rounded-2xl rounded-bl-sm shadow-xs flex items-center gap-3">
+                    <span class="material-symbols-outlined text-2xl text-[#99366c]">description</span>
+                    <div class="flex-1 min-w-0">
+                      <a :href="msg.file_url" target="_blank" download class="text-xs font-bold text-[#543ce0] hover:underline truncate block">{{ msg.file_name }}</a>
+                      <span class="text-[10px] text-[#6b6680]">{{ msg.file_size }}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 px-1 text-[10px] text-[#6b6680]">
+                    <span>{{ msg.created_at }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- 3. GROUP BOTTOM INPUT BAR -->
+          <footer class="p-3 sm:p-4 bg-white border-t border-[#eaddff] relative z-10 flex-shrink-0">
+            <form @submit.prevent="sendMessage" class="flex items-center gap-2 bg-[#fdfaff] border border-[#eaddff] rounded-2xl p-1.5 sm:p-2 focus-within:border-[#543ce0] focus-within:ring-2 focus-within:ring-[#543ce0]/20 transition-all shadow-xs">
+              <!-- File Attachment Button -->
+              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Attach Document">
+                <span class="material-symbols-outlined text-xl">attach_file</span>
+                <input type="file" class="hidden" @change="handleFileUpload"/>
+              </label>
+
+              <!-- Image Upload Button -->
+              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Upload Image">
+                <span class="material-symbols-outlined text-xl">image</span>
+                <input type="file" accept="image/*" class="hidden" @change="handleFileUpload"/>
+              </label>
+
+              <!-- Text Input -->
+              <input
+                v-model="inputMessage"
+                class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-[#1e1a2b] placeholder-[#6b6680]/60 focus:outline-none px-2"
+                :placeholder="`Message in ${activeGroup.name}... (Press Enter)`"
+                type="text"
+              />
+
+              <!-- Send Button -->
+              <button
+                type="submit"
+                :disabled="!inputMessage.trim()"
+                class="w-10 h-10 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white flex items-center justify-center shadow-md shadow-[#543ce0]/25 transition-all active:scale-95 flex-shrink-0 disabled:opacity-40"
+                title="Send message"
+              >
+                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">send</span>
+              </button>
+            </form>
+          </footer>
+        </template>
+
+        <!-- No Peer or Group Selected State -->
         <div v-else class="flex-1 flex items-center justify-center text-center p-6 space-y-3">
           <div class="w-16 h-16 rounded-2xl bg-[#f6effe] text-[#543ce0] flex items-center justify-center mx-auto shadow-xs">
             <span class="material-symbols-outlined text-3xl">chat</span>
           </div>
           <div>
-            <h3 class="font-headline font-bold text-base text-[#1e1a2b]">Select a peer to start messaging</h3>
-            <p class="text-xs text-[#6b6680] mt-1">Choose any connected peer from the left sidebar to exchange notes or start a video call.</p>
+            <h3 class="font-headline font-bold text-base text-[#1e1a2b]">Select a conversation to start messaging</h3>
+            <p class="text-xs text-[#6b6680] mt-1 max-w-sm mx-auto">
+              Choose any connected partner or group from the left sidebar to exchange notes, discuss projects, or collaborate.
+            </p>
           </div>
         </div>
 
@@ -474,6 +746,249 @@
         </div>
       </section>
     </main>
+
+    <!-- 6. CREATE GROUP MODAL -->
+    <div
+      v-if="showCreateGroupModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      @click.self="showCreateGroupModal = false"
+    >
+      <div class="bg-white rounded-2xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[85vh]">
+        <!-- Modal Header -->
+        <div class="p-4 border-b border-[#eaddff] bg-gradient-to-r from-white to-[#f6effe]/40 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center">
+              <span class="material-symbols-outlined text-xl">group_add</span>
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#1e1a2b]">Create New Group</h3>
+              <p class="text-[11px] text-[#6b6680]">WhatsApp-style circle for study & projects</p>
+            </div>
+          </div>
+          <button
+            @click="showCreateGroupModal = false"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b6680] hover:bg-[#f6effe] hover:text-[#1e1a2b] transition-all"
+          >
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+          <!-- Group Name -->
+          <div>
+            <label class="block text-xs font-bold text-[#1e1a2b] mb-1">Group Name *</label>
+            <input
+              v-model="newGroupName"
+              type="text"
+              maxlength="40"
+              placeholder="e.g. AI Hackathon Squad, DSA Masters..."
+              class="w-full px-3 py-2 bg-[#fdfaff] border border-[#eaddff] rounded-xl text-xs sm:text-sm text-[#1e1a2b] placeholder-[#6b6680]/60 focus:outline-none focus:ring-2 focus:ring-[#543ce0]/20 focus:border-[#543ce0]"
+            />
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-xs font-bold text-[#1e1a2b] mb-1">Topic / Description</label>
+            <textarea
+              v-model="newGroupDescription"
+              rows="2"
+              placeholder="What will you discuss and build here?"
+              class="w-full px-3 py-2 bg-[#fdfaff] border border-[#eaddff] rounded-xl text-xs sm:text-sm text-[#1e1a2b] placeholder-[#6b6680]/60 focus:outline-none focus:ring-2 focus:ring-[#543ce0]/20 focus:border-[#543ce0] resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Select Members -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-bold text-[#1e1a2b]">Select Members ({{ selectedMemberIds.length }} selected)</label>
+              <span class="text-[10px] text-[#6b6680]">From your connected peers</span>
+            </div>
+
+            <div class="max-h-48 overflow-y-auto border border-[#eaddff] rounded-xl p-2 divide-y divide-[#eaddff]/40 bg-[#fdfaff]">
+              <div v-if="peers.length === 0" class="p-4 text-center text-xs text-[#6b6680]">
+                No connected peers found to add.
+              </div>
+              <label
+                v-for="p in peers"
+                :key="'sel_' + p.id"
+                class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#f6effe]/70 cursor-pointer transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  :value="p.id"
+                  v-model="selectedMemberIds"
+                  class="rounded text-[#543ce0] focus:ring-[#543ce0]"
+                />
+                <div class="w-7 h-7 rounded-lg bg-[#543ce0]/20 text-[#543ce0] flex items-center justify-center font-bold text-xs">
+                  {{ (p.full_name || p.username).charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-bold text-[#1e1a2b] truncate">{{ p.full_name }}</div>
+                  <div class="text-[10px] text-[#6b6680]">@{{ p.username }} • {{ p.department || 'Campus Peer' }}</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-4 border-t border-[#eaddff] bg-[#fdfaff] flex items-center justify-end gap-2">
+          <button
+            @click="showCreateGroupModal = false"
+            class="px-4 py-2 rounded-xl border border-[#eaddff] text-xs font-bold text-[#6b6680] hover:bg-[#f6effe] transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            @click="submitCreateGroup"
+            :disabled="!newGroupName.trim() || isSubmittingGroup"
+            class="px-4 py-2 rounded-xl bg-[#543ce0] hover:bg-[#432ec4] text-white text-xs font-bold shadow-md shadow-[#543ce0]/20 active:scale-95 disabled:opacity-40 transition-all flex items-center gap-1.5"
+          >
+            <span v-if="isSubmittingGroup" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <span>Create Group</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. GROUP INFO / MEMBERS MODAL -->
+    <div
+      v-if="showGroupInfoModal && activeGroup"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      @click.self="showGroupInfoModal = false"
+    >
+      <div class="bg-white rounded-2xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[85vh]">
+        <!-- Header -->
+        <div class="p-4 border-b border-[#eaddff] bg-gradient-to-r from-white to-[#f6effe]/40 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold font-headline text-base shadow-xs"
+              :style="{ background: activeGroup.avatar_color || '#543ce0' }"
+            >
+              {{ activeGroup.name.charAt(0).toUpperCase() }}
+            </div>
+            <div>
+              <h3 class="font-headline font-bold text-base text-[#1e1a2b]">{{ activeGroup.name }}</h3>
+              <p class="text-[11px] text-[#6b6680]">{{ groupMembers.length }} Members</p>
+            </div>
+          </div>
+          <button
+            @click="showGroupInfoModal = false"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b6680] hover:bg-[#f6effe] hover:text-[#1e1a2b] transition-all"
+          >
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+          <div v-if="activeGroup.description" class="p-3 bg-[#f6effe]/50 border border-[#eaddff] rounded-xl text-xs text-[#1e1a2b]">
+            <span class="font-bold block text-[10px] text-[#6b6680] uppercase tracking-wider mb-0.5">Description</span>
+            {{ activeGroup.description }}
+          </div>
+
+          <!-- Add Member section (admin only) -->
+          <div v-if="activeGroupRole === 'admin'" class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-[#1e1a2b]">Add New Member</span>
+              <button
+                @click="showAddMemberRow = !showAddMemberRow"
+                class="text-[11px] font-bold text-[#543ce0] hover:underline"
+              >
+                {{ showAddMemberRow ? 'Hide' : '+ Add from Peers' }}
+              </button>
+            </div>
+            <div v-if="showAddMemberRow" class="p-2 border border-[#eaddff] rounded-xl bg-[#fdfaff] space-y-2">
+              <select
+                v-model="memberToAddId"
+                class="w-full px-2.5 py-1.5 bg-white border border-[#eaddff] rounded-lg text-xs text-[#1e1a2b] focus:outline-none focus:ring-1 focus:ring-[#543ce0]"
+              >
+                <option value="">Choose peer to add...</option>
+                <option
+                  v-for="p in availablePeersToAdd"
+                  :key="'addp_' + p.id"
+                  :value="p.id"
+                >
+                  {{ p.full_name }} (@{{ p.username }})
+                </option>
+              </select>
+              <button
+                @click="addMemberToGroup"
+                :disabled="!memberToAddId"
+                class="w-full py-1.5 rounded-lg bg-[#543ce0] text-white text-xs font-bold hover:bg-[#432ec4] disabled:opacity-40 transition-all"
+              >
+                Add to Group
+              </button>
+            </div>
+          </div>
+
+          <!-- Members List -->
+          <div>
+            <h4 class="text-xs font-bold text-[#1e1a2b] mb-2">Members</h4>
+            <div class="divide-y divide-[#eaddff]/50 border border-[#eaddff] rounded-xl overflow-hidden bg-white">
+              <div
+                v-for="m in groupMembers"
+                :key="'mem_' + m.id"
+                class="p-2.5 flex items-center justify-between gap-2.5 hover:bg-[#fdfaff]"
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div
+                    class="w-8 h-8 rounded-lg text-white flex items-center justify-center font-bold text-xs flex-shrink-0"
+                    :style="{ background: m.avatar_color || '#543ce0' }"
+                  >
+                    {{ (m.full_name || m.username || 'U').charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-[#1e1a2b] truncate flex items-center gap-1.5">
+                      <span>{{ m.full_name || m.username }}</span>
+                      <span v-if="m.id === currentUser?.id" class="text-[9px] text-[#6b6680] font-normal">(You)</span>
+                    </div>
+                    <div class="text-[10px] text-[#6b6680]">@{{ m.username }}</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <span
+                    class="px-2 py-0.5 rounded text-[10px] font-bold"
+                    :class="m.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'"
+                  >
+                    {{ m.role === 'admin' ? 'Admin' : 'Member' }}
+                  </span>
+
+                  <!-- Remove button (admin can remove others) -->
+                  <button
+                    v-if="activeGroupRole === 'admin' && m.id !== currentUser?.id"
+                    @click="removeMemberFromGroup(m.id)"
+                    class="w-6 h-6 rounded flex items-center justify-center text-rose-500 hover:bg-rose-50"
+                    title="Remove member"
+                  >
+                    <span class="material-symbols-outlined text-sm">person_remove</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-[#eaddff] bg-[#fdfaff] flex items-center justify-between">
+          <button
+            @click="leaveActiveGroup"
+            class="px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold flex items-center gap-1 transition-all"
+          >
+            <span class="material-symbols-outlined text-sm">logout</span>
+            <span>Leave Group</span>
+          </button>
+          <button
+            @click="showGroupInfoModal = false"
+            class="px-4 py-2 rounded-xl bg-[#543ce0] text-white text-xs font-bold hover:bg-[#432ec4] transition-all"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -489,6 +1004,28 @@ const inputMessage = ref('')
 const searchQuery = ref('')
 const isLoadingPeers = ref(true)
 const messageContainer = ref(null)
+
+// Group Chat State
+const sidebarTab = ref('peers') // 'peers' or 'groups'
+const groups = ref([])
+const activeGroup = ref(null)
+const groupMessages = ref([])
+const groupMembers = ref([])
+const activeGroupRole = ref('member')
+const isLoadingGroups = ref(false)
+const groupMessageContainer = ref(null)
+
+// Create Group Modal state
+const showCreateGroupModal = ref(false)
+const newGroupName = ref('')
+const newGroupDescription = ref('')
+const selectedMemberIds = ref([])
+const isSubmittingGroup = ref(false)
+
+// Group Info Modal state
+const showGroupInfoModal = ref(false)
+const showAddMemberRow = ref(false)
+const memberToAddId = ref('')
 
 // WebRTC & Call State
 const socket = ref(null)
@@ -678,9 +1215,25 @@ const filteredPeers = computed(() => {
   )
 })
 
+const filteredGroups = computed(() => {
+  if (!searchQuery.value.trim()) return groups.value
+  const q = searchQuery.value.toLowerCase()
+  return groups.value.filter(g =>
+    (g.name && g.name.toLowerCase().includes(q)) ||
+    (g.description && g.description.toLowerCase().includes(q))
+  )
+})
+
+const availablePeersToAdd = computed(() => {
+  if (!groupMembers.value || !peers.value) return []
+  const memberIds = new Set(groupMembers.value.map(m => m.id))
+  return peers.value.filter(p => !memberIds.has(p.id))
+})
+
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchPeers()
+  await fetchGroups()
   setupSocket()
   startMessageSync()
   // Fetch TURN credentials non-blockingly in the background so socket connects immediately
@@ -776,6 +1329,7 @@ const fetchPeersSilent = async () => {
 }
 
 const selectPeer = async (peer) => {
+  activeGroup.value = null
   activePeer.value = peer
   peer.unread_count = 0
   await fetchMessages(peer.id)
@@ -789,6 +1343,254 @@ const fetchMessages = async (peerId) => {
       const data = await res.json()
       messages.value = data.messages || []
       scrollToBottom()
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+// ─── Group Chat Methods ──────────────────────────────────────────────────────
+const fetchGroups = async () => {
+  isLoadingGroups.value = true
+  try {
+    const res = await fetch('/api/chat/groups', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      groups.value = data.groups || []
+    }
+  } catch (e) {
+    console.error('Error loading groups:', e)
+  } finally {
+    isLoadingGroups.value = false
+  }
+}
+
+const fetchGroupsSilent = async () => {
+  try {
+    const res = await fetch('/api/chat/groups', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      const newGroups = data.groups || []
+      for (const ng of newGroups) {
+        const existing = groups.value.find(g => g.id === ng.id)
+        if (existing) {
+          existing.name = ng.name
+          existing.member_count = ng.member_count
+          existing.last_message = ng.last_message
+          existing.last_message_time = ng.last_message_time
+        } else {
+          groups.value.push(ng)
+        }
+      }
+    }
+  } catch (e) {
+    // Silent background poll error
+  }
+}
+
+const selectGroup = async (group) => {
+  activePeer.value = null
+  activeGroup.value = group
+  groupMessages.value = []
+  await fetchGroupMessages(group.id)
+  fetchGroupDetails(group.id)
+  fetchGroupDeltaMessages(group.id)
+}
+
+const fetchGroupMessages = async (groupId) => {
+  try {
+    const res = await fetch(`/api/chat/groups/${groupId}/messages`, { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      groupMessages.value = data.messages || []
+      scrollGroupToBottom()
+    }
+  } catch (e) {
+    console.error('Error fetching group messages:', e)
+  }
+}
+
+const fetchGroupDetails = async (groupId) => {
+  try {
+    const res = await fetch(`/api/chat/groups/${groupId}`, { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      groupMembers.value = data.members || []
+      activeGroupRole.value = data.my_role || 'member'
+      if (activeGroup.value) {
+        activeGroup.value.member_count = data.members ? data.members.length : activeGroup.value.member_count
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching group details:', e)
+  }
+}
+
+const scrollGroupToBottom = () => {
+  nextTick(() => {
+    if (groupMessageContainer.value) {
+      groupMessageContainer.value.scrollTop = groupMessageContainer.value.scrollHeight
+    }
+  })
+}
+
+const getLastGroupMessageId = () => {
+  if (!groupMessages.value || groupMessages.value.length === 0) return 0
+  const ids = groupMessages.value
+    .map(m => (typeof m.id === 'number' ? m.id : 0))
+    .filter(id => id > 0)
+  return ids.length > 0 ? Math.max(...ids) : 0
+}
+
+let isGroupSyncing = false
+const fetchGroupDeltaMessages = async (groupId) => {
+  if (!groupId || isGroupSyncing) return
+  isGroupSyncing = true
+  try {
+    const lastId = getLastGroupMessageId()
+    const res = await fetch(`/api/chat/groups/${groupId}/messages?after=${lastId}`, { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      const newMsgs = data.messages || []
+      if (newMsgs.length > 0) {
+        let hasAdded = false
+        for (const m of newMsgs) {
+          const existingIdx = groupMessages.value.findIndex(
+            x => x.id === m.id || (x.sending && x.content === m.content && x.sender_id === m.sender_id)
+          )
+          if (existingIdx !== -1) {
+            groupMessages.value[existingIdx] = m
+          } else {
+            groupMessages.value.push(m)
+            hasAdded = true
+          }
+        }
+        if (hasAdded) {
+          scrollGroupToBottom()
+        }
+        if (activeGroup.value && newMsgs[newMsgs.length - 1]) {
+          const last = newMsgs[newMsgs.length - 1]
+          activeGroup.value.last_message = last.content || (last.message_type === 'image' ? '[Photo]' : '[File]')
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore delta tick jitter
+  } finally {
+    isGroupSyncing = false
+  }
+}
+
+const openCreateGroupModal = () => {
+  newGroupName.value = ''
+  newGroupDescription.value = ''
+  selectedMemberIds.value = []
+  showCreateGroupModal.value = true
+}
+
+const submitCreateGroup = async () => {
+  if (!newGroupName.value.trim() || isSubmittingGroup.value) return
+  isSubmittingGroup.value = true
+  try {
+    const res = await fetch('/api/chat/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        name: newGroupName.value.trim(),
+        description: newGroupDescription.value.trim(),
+        member_ids: selectedMemberIds.value
+      })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      showCreateGroupModal.value = false
+      await fetchGroups()
+      if (data.group) {
+        selectGroup(data.group)
+        if (socket.value && socket.value.connected) {
+          socket.value.emit('join_group_rooms', { group_id: data.group.id })
+        }
+      }
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Failed to create group.')
+    }
+  } catch (e) {
+    console.error(e)
+    alert('Network error creating group.')
+  } finally {
+    isSubmittingGroup.value = false
+  }
+}
+
+const openGroupInfoModal = async () => {
+  if (!activeGroup.value) return
+  showAddMemberRow.value = false
+  memberToAddId.value = ''
+  await fetchGroupDetails(activeGroup.value.id)
+  showGroupInfoModal.value = true
+}
+
+const addMemberToGroup = async () => {
+  if (!activeGroup.value || !memberToAddId.value) return
+  try {
+    const res = await fetch(`/api/chat/groups/${activeGroup.value.id}/members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ user_ids: [parseInt(memberToAddId.value)] })
+    })
+    if (res.ok) {
+      memberToAddId.value = ''
+      showAddMemberRow.value = false
+      await fetchGroupDetails(activeGroup.value.id)
+      await fetchGroups()
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Failed to add member.')
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const removeMemberFromGroup = async (targetUid) => {
+  if (!activeGroup.value || !confirm('Are you sure you want to remove this member?')) return
+  try {
+    const res = await fetch(`/api/chat/groups/${activeGroup.value.id}/members/${targetUid}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    if (res.ok) {
+      await fetchGroupDetails(activeGroup.value.id)
+      await fetchGroups()
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Failed to remove member.')
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const leaveActiveGroup = async () => {
+  if (!activeGroup.value || !currentUser.value) return
+  if (!confirm(`Are you sure you want to leave ${activeGroup.value.name}?`)) return
+  try {
+    const res = await fetch(`/api/chat/groups/${activeGroup.value.id}/members/${currentUser.value.id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    if (res.ok) {
+      showGroupInfoModal.value = false
+      const gid = activeGroup.value.id
+      groups.value = groups.value.filter(g => g.id !== gid)
+      activeGroup.value = null
+      groupMessages.value = []
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Could not leave group.')
     }
   } catch (e) {
     console.error(e)
@@ -850,15 +1652,20 @@ const startMessageSync = () => {
   stopMessageSync()
   // High-frequency 1-second delta sync guarantees sub-second delivery even if WebSocket is disconnected
   syncInterval = setInterval(() => {
-    if (activePeer.value?.id && typeof document !== 'undefined' && !document.hidden) {
-      fetchDeltaMessages(activePeer.value.id)
+    if (typeof document !== 'undefined' && !document.hidden) {
+      if (activePeer.value?.id) {
+        fetchDeltaMessages(activePeer.value.id)
+      } else if (activeGroup.value?.id) {
+        fetchGroupDeltaMessages(activeGroup.value.id)
+      }
     }
   }, 1000)
 
-  // Periodically refresh peers list every 4 seconds for sidebar previews and unread badges
+  // Periodically refresh peers and groups list every 4 seconds for sidebar previews and unread badges
   peersInterval = setInterval(() => {
-    if (typeof document !== 'undefined' && !document.hidden && !isLoadingPeers.value) {
-      fetchPeersSilent()
+    if (typeof document !== 'undefined' && !document.hidden) {
+      if (!isLoadingPeers.value) fetchPeersSilent()
+      if (!isLoadingGroups.value) fetchGroupsSilent()
     }
   }, 4000)
 }
@@ -877,13 +1684,20 @@ const stopMessageSync = () => {
 const handleWindowFocus = () => {
   if (activePeer.value?.id) {
     fetchDeltaMessages(activePeer.value.id)
+  } else if (activeGroup.value?.id) {
+    fetchGroupDeltaMessages(activeGroup.value.id)
   }
   fetchPeersSilent()
+  fetchGroupsSilent()
 }
 
 const handleVisibilityChange = () => {
-  if (typeof document !== 'undefined' && !document.hidden && activePeer.value?.id) {
-    fetchDeltaMessages(activePeer.value.id)
+  if (typeof document !== 'undefined' && !document.hidden) {
+    if (activePeer.value?.id) {
+      fetchDeltaMessages(activePeer.value.id)
+    } else if (activeGroup.value?.id) {
+      fetchGroupDeltaMessages(activeGroup.value.id)
+    }
   }
 }
 
@@ -929,6 +1743,8 @@ const setupSocket = () => {
     // Immediate delta sync on connect/reconnect to catch anything sent during transition
     if (activePeer.value?.id) {
       fetchDeltaMessages(activePeer.value.id)
+    } else if (activeGroup.value?.id) {
+      fetchGroupDeltaMessages(activeGroup.value.id)
     }
   })
 
@@ -957,6 +1773,48 @@ const setupSocket = () => {
       if (activePeer.value?.id !== peer.id && msg.sender_id === peer.id) {
         peer.unread_count = (peer.unread_count || 0) + 1
       }
+    }
+  })
+
+  socket.value.on('receive_group_message', (msg) => {
+    if (!msg || !msg.group_id) return
+    if (activeGroup.value && activeGroup.value.id === msg.group_id) {
+      const existingIdx = groupMessages.value.findIndex(m => m.id === msg.id || (m.sending && m.content === msg.content && m.sender_id === msg.sender_id))
+      if (existingIdx !== -1) {
+        groupMessages.value[existingIdx] = msg
+      } else {
+        groupMessages.value.push(msg)
+      }
+      scrollGroupToBottom()
+    }
+    const grp = groups.value.find(g => g.id === msg.group_id)
+    if (grp) {
+      grp.last_message = msg.content || (msg.message_type === 'image' ? '[Photo]' : '[File]')
+      grp.last_message_time = msg.created_at
+    }
+  })
+
+  socket.value.on('group_created', (grp) => {
+    if (!grp) return
+    if (!groups.value.some(g => g.id === grp.id)) {
+      groups.value.unshift(grp)
+      if (socket.value && socket.value.connected) {
+        socket.value.emit('join_group_rooms', { group_id: grp.id })
+      }
+    }
+  })
+
+  socket.value.on('join_group_room', ({ group_id }) => {
+    if (socket.value && socket.value.connected && group_id) {
+      socket.value.emit('join_group_rooms', { group_id })
+    }
+  })
+
+  socket.value.on('removed_from_group', ({ group_id }) => {
+    groups.value = groups.value.filter(g => g.id !== group_id)
+    if (activeGroup.value && activeGroup.value.id === group_id) {
+      activeGroup.value = null
+      groupMessages.value = []
     }
   })
 
@@ -1023,16 +1881,86 @@ const setupSocket = () => {
 // ─── Text & Media Messaging ──────────────────────────────────────────────────
 const sendMessage = async () => {
   const text = inputMessage.value.trim()
-  if (!text || !activePeer.value) return
-
-  const receiverId = activePeer.value.id
-  inputMessage.value = ''
+  if (!text) return
+  if (!activePeer.value && !activeGroup.value) return
 
   const tempId = 'temp_' + Date.now()
   const now = new Date()
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  inputMessage.value = ''
 
-  // 1. Optimistic message insertion in local feed
+  // 1. Group Message Send
+  if (activeGroup.value) {
+    const groupId = activeGroup.value.id
+    const tempMsg = {
+      id: tempId,
+      group_id: groupId,
+      sender_id: currentUser.value?.id,
+      sender_name: currentUser.value?.full_name || currentUser.value?.username || 'You',
+      sender_username: currentUser.value?.username || '',
+      sender_avatar_color: currentUser.value?.avatar_color || '#543ce0',
+      content: text,
+      message_type: 'text',
+      created_at: timeStr,
+      sending: true
+    }
+    groupMessages.value.push(tempMsg)
+    scrollGroupToBottom()
+
+    activeGroup.value.last_message = text
+    activeGroup.value.last_message_time = timeStr
+
+    const payload = {
+      group_id: groupId,
+      content: text,
+      message_type: 'text',
+      sender_id: currentUser.value?.id
+    }
+
+    try {
+      const res = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const confirmed = data.message
+        const idx = groupMessages.value.findIndex(m => m.id === tempId)
+        if (idx !== -1 && confirmed) {
+          groupMessages.value[idx] = confirmed
+        }
+      } else if (socket.value && socket.value.connected) {
+        socket.value.emit('send_message', payload, (ack) => {
+          if (ack && ack.status === 'sent') {
+            const idx = groupMessages.value.findIndex(m => m.id === tempId)
+            if (idx !== -1 && ack.message) {
+              groupMessages.value[idx] = ack.message
+            }
+          }
+        })
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        alert(errData.error || 'Failed to send message.')
+        groupMessages.value = groupMessages.value.filter(m => m.id !== tempId)
+        inputMessage.value = text
+      }
+    } catch (err) {
+      if (socket.value && socket.value.connected) {
+        socket.value.emit('send_message', payload)
+      } else {
+        alert('Could not deliver message. Please check your network connection.')
+        groupMessages.value = groupMessages.value.filter(m => m.id !== tempId)
+        inputMessage.value = text
+      }
+    }
+    return
+  }
+
+  // 2. Direct Peer Message Send
+  const receiverId = activePeer.value.id
   const tempMsg = {
     id: tempId,
     sender_id: currentUser.value?.id,
@@ -1057,7 +1985,7 @@ const sendMessage = async () => {
     sender_id: currentUser.value?.id
   }
 
-  // 2. Primary: Send via HTTP REST with guaranteed delivery
+  // Primary: Send via HTTP REST with guaranteed delivery
   try {
     const res = await fetch('/api/chat/send', {
       method: 'POST',
@@ -1112,7 +2040,7 @@ const sendMessage = async () => {
 
 const handleFileUpload = async (event) => {
   const file = event.target.files?.[0]
-  if (!file || !activePeer.value) return
+  if (!file || (!activePeer.value && !activeGroup.value)) return
 
   const formData = new FormData()
   formData.append('file', file)
@@ -1126,13 +2054,18 @@ const handleFileUpload = async (event) => {
     if (res.ok) {
       const data = await res.json()
       const payload = {
-        receiver_id: activePeer.value.id,
         content: data.file_name,
         message_type: data.message_type,
         file_url: data.file_url,
         file_name: data.file_name,
         file_size: data.file_size,
         sender_id: currentUser.value?.id
+      }
+
+      if (activeGroup.value) {
+        payload.group_id = activeGroup.value.id
+      } else {
+        payload.receiver_id = activePeer.value.id
       }
 
       // Send file message via HTTP
@@ -1146,10 +2079,16 @@ const handleFileUpload = async (event) => {
       if (sendRes.ok) {
         const sendData = await sendRes.json()
         if (sendData.message) {
-          messages.value.push(sendData.message)
-          scrollToBottom()
-          if (activePeer.value) {
-            activePeer.value.last_message = data.file_name
+          if (activeGroup.value) {
+            groupMessages.value.push(sendData.message)
+            scrollGroupToBottom()
+            activeGroup.value.last_message = data.file_name
+          } else {
+            messages.value.push(sendData.message)
+            scrollToBottom()
+            if (activePeer.value) {
+              activePeer.value.last_message = data.file_name
+            }
           }
         }
       } else if (socket.value && socket.value.connected) {

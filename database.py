@@ -128,6 +128,44 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            avatar_color TEXT NOT NULL DEFAULT '#543ce0',
+            created_by INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+    ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS group_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            role TEXT DEFAULT 'member',
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (group_id) REFERENCES groups(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE(group_id, user_id)
+        )
+    ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS group_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            sender_id INTEGER NOT NULL,
+            content TEXT,
+            message_type TEXT DEFAULT 'text',
+            file_url TEXT,
+            file_name TEXT,
+            file_size TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (group_id) REFERENCES groups(id),
+            FOREIGN KEY (sender_id) REFERENCES users(id)
+        )
+    ''')
 
     # Safe schema migration for existing databases
     cursor = db.cursor()
