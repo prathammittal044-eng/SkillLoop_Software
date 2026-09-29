@@ -1271,8 +1271,10 @@ def book_session():
     data = request.json or {}
     teacher_id = data.get('teacher_id')
     skill_name = (data.get('skill_name') or '').strip()
-    duration = int(data.get('duration_minutes') or 60)
-    scheduled_at = data.get('scheduled_at')  # ISO date string or None for 'now'
+    raw_scheduled = data.get('scheduled_at')
+    scheduled_at = None
+    if raw_scheduled and isinstance(raw_scheduled, str) and raw_scheduled.strip():
+        scheduled_at = raw_scheduled.strip()
     topic_notes = (data.get('topic_notes') or '').strip()
 
     if not teacher_id or not skill_name:
@@ -1438,10 +1440,15 @@ def respond_session(session_id):
         db.execute('UPDATE exchange_sessions SET status = "accepted" WHERE id = ?', (session_id,))
         db.commit()
 
+        teacher_user = db.execute('SELECT full_name, username FROM users WHERE id = ?', (teacher_id,)).fetchone()
+        teacher_name = (teacher_user['full_name'] or teacher_user['username']) if teacher_user else 'Your mentor'
+
         try:
             socketio.emit('session_accepted', {
                 "session_id": session_id,
                 "skill_name": sess_row['skill_name'],
+                "teacher_name": teacher_name,
+                "teacher_id": teacher_id,
                 "scheduled_at": sess_row['scheduled_at']
             }, room=f"user_{learner_id}")
         except Exception:

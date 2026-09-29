@@ -390,7 +390,7 @@
                     </div>
                     <p class="text-xs text-[#6b6680] mt-0.5">
                       Skill: <strong class="text-[#1e1a2b]">{{ activePeerSession.skill_name }}</strong> • {{ activePeerSession.duration_minutes }} min
-                      <span v-if="activePeerSession.scheduled_at">• {{ new Date(activePeerSession.scheduled_at).toLocaleDateString() }}</span>
+                      <span>• {{ formatSessionTime(activePeerSession.scheduled_at) }}</span>
                     </p>
                     <p v-if="activePeerSession.topic_notes" class="text-[11px] text-[#6b6680] italic mt-0.5">
                       "{{ activePeerSession.topic_notes }}"
@@ -1154,13 +1154,28 @@
         <div class="space-y-3.5">
           <!-- Skill Name -->
           <div>
-            <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider mb-1 block">Skill to Learn</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-semibold text-[#6b6680] uppercase tracking-wider">Skill to Learn</label>
+              <span v-if="bookTargetPeerTeaches.length > 0" class="text-[10px] text-[#543ce0] font-semibold">Click to auto-fill</span>
+            </div>
             <input
               v-model="bookForm.skill_name"
               type="text"
               placeholder="e.g. Python, Docker, UI Design..."
               class="w-full px-4 py-2.5 rounded-xl bg-[#fdfaff] border border-[#eaddff] text-sm text-[#1e1a2b] focus:outline-none focus:border-[#543ce0] transition-colors font-medium"
             />
+            <div v-if="bookTargetPeerTeaches.length > 0" class="flex flex-wrap gap-1.5 mt-2">
+              <button
+                v-for="s in bookTargetPeerTeaches"
+                :key="s"
+                type="button"
+                @click="bookForm.skill_name = s"
+                class="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
+                :class="bookForm.skill_name.toLowerCase() === s.toLowerCase() ? 'bg-[#543ce0] text-white shadow-xs' : 'bg-[#543ce0]/10 text-[#543ce0] hover:bg-[#543ce0]/20'"
+              >
+                {{ s }}
+              </button>
+            </div>
           </div>
 
           <!-- Duration Selector -->
@@ -1378,10 +1393,31 @@ const reviewForm = reactive({
 const activePeerSession = computed(() => {
   if (!activePeer.value || !exchangeSessions.value) return null
   const peerId = activePeer.value.id
-  return exchangeSessions.value.find(s =>
-    s.peer_id === peerId && (s.status === 'accepted' || s.status === 'pending' || (s.status === 'completed' && !s.my_review))
-  ) || null
+  const matching = exchangeSessions.value.filter(s => s.peer_id === peerId)
+  return matching.find(s => s.status === 'accepted')
+    || matching.find(s => s.status === 'pending')
+    || matching.find(s => s.status === 'completed' && !s.my_review)
+    || null
 })
+
+const bookTargetPeerTeaches = computed(() => {
+  if (!bookTargetPeer.value) return []
+  const t = bookTargetPeer.value.teaches || bookTargetPeer.value.teach_skills || bookTargetPeer.value.skills_offered
+  if (Array.isArray(t)) return t
+  if (typeof t === 'string' && t.trim()) return t.split(',').map(s => s.trim()).filter(Boolean)
+  return []
+})
+
+const formatSessionTime = (isoStr) => {
+  if (!isoStr) return 'Flexible / Instant'
+  try {
+    const d = new Date(isoStr)
+    if (isNaN(d.getTime())) return 'Flexible time'
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return 'Flexible time'
+  }
+}
 
 // Group Chat State
 const sidebarTab = ref('peers') // 'peers' or 'groups'
@@ -1666,10 +1702,13 @@ const fetchSessions = async () => {
 }
 
 const openBookModal = (peer, defaultSkill = '') => {
-  if (!peer) return
-  bookTargetPeer.value = peer
-  bookForm.teacher_id = peer.id || peer.user_id
-  bookForm.skill_name = defaultSkill || (peer.teaches && peer.teaches.length > 0 ? peer.teaches[0] : '')
+  const target = peer || activePeer.value
+  if (!target) return
+  bookTargetPeer.value = target
+  bookForm.teacher_id = target.id || target.user_id
+  const teaches = target.teaches || target.teach_skills || target.skills_offered
+  const skillList = Array.isArray(teaches) ? teaches : (typeof teaches === 'string' ? teaches.split(',').map(s => s.trim()) : [])
+  bookForm.skill_name = defaultSkill || (skillList.length > 0 ? skillList[0] : '')
   bookForm.duration_minutes = 30
   bookForm.scheduled_at = ''
   bookForm.topic_notes = ''
@@ -1873,7 +1912,10 @@ const selectPeer = async (peer) => {
   activeGroup.value = null
   activePeer.value = peer
   peer.unread_count = 0
-  await fetchMessages(peer.id)
+  await Promise.all([
+    fetchMessages(peer.id),
+    fetchSessions()
+  ])
   fetchDeltaMessages(peer.id)
 }
 
@@ -2369,6 +2411,11 @@ const setupSocket = () => {
   })
 
   socket.value.on('session_rejected', (data) => {
+    fetchSessions()
+    fetchCurrentUser()
+  })
+
+  socket.value.on('session_cancelled', (data) => {
     fetchSessions()
     fetchCurrentUser()
   })

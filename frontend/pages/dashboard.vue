@@ -176,143 +176,255 @@
         </div>
 
         <!-- ── SCHEDULED & PENDING SKILL EXCHANGES (PILLAR 1 ESCROW ENGINE) ──── -->
-        <div v-if="exchangeSessions.length > 0" class="bg-surface-container-lowest rounded-3xl p-5 border border-primary/30 shadow-sm space-y-4">
-          <div class="flex items-center justify-between pb-2 border-b border-surface-container/60">
+        <div class="bg-surface-container-lowest rounded-3xl p-5 border border-primary/30 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-surface-container/60 gap-3">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">handshake</span>
+              <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">handshake</span>
               </div>
               <div>
                 <h3 class="font-headline font-bold text-base text-on-surface">Skill Exchanges &amp; Escrow</h3>
                 <p class="text-[11px] text-on-surface-variant">Scheduled 1:1 sessions, live escrow holding, and peer completion</p>
               </div>
             </div>
-            <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold font-label">
-              {{ exchangeSessions.filter(s => s.status !== 'cancelled' && s.status !== 'rejected').length }} Active / Total
-            </span>
+
+            <!-- Tab Switcher & Schedule Action -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="bg-surface-container-low p-1 rounded-xl flex gap-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  @click="sessionTab = 'active'"
+                  class="px-3 py-1 rounded-lg transition-all"
+                  :class="sessionTab === 'active' ? 'bg-white shadow-xs text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'"
+                >
+                  Active &amp; Pending ({{ activeSessionsList.length }})
+                </button>
+                <button
+                  type="button"
+                  @click="sessionTab = 'history'"
+                  class="px-3 py-1 rounded-lg transition-all"
+                  :class="sessionTab === 'history' ? 'bg-white shadow-xs text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'"
+                >
+                  History ({{ historySessionsList.length }})
+                </button>
+              </div>
+
+              <button
+                type="button"
+                @click="openBookModal(null)"
+                class="px-3.5 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1.5 shrink-0"
+              >
+                <span class="material-symbols-outlined text-sm">add</span>
+                <span>Schedule Exchange</span>
+              </button>
+            </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-            <div
-              v-for="item in exchangeSessions.filter(s => s.status === 'pending' || s.status === 'accepted' || (s.status === 'completed' && !s.my_review))"
-              :key="'sess_' + item.id"
-              class="p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 shadow-xs"
-              :class="item.status === 'accepted' ? 'bg-gradient-to-br from-[#fdfaff] to-[#f6effe]/40 border-[#543ce0]/30' : (item.status === 'pending' ? 'bg-amber-50/40 border-amber-200' : 'bg-surface-container-lowest border-surface-container')"
-            >
-              <div>
-                <!-- Status & Skill header -->
-                <div class="flex items-center justify-between mb-2">
+          <!-- Active & Pending Tab Content -->
+          <div v-if="sessionTab === 'active'">
+            <!-- Empty state if no active sessions -->
+            <div v-if="activeSessionsList.length === 0" class="py-8 px-4 text-center rounded-2xl bg-surface-bright/50 border border-dashed border-surface-container flex flex-col items-center justify-center gap-2.5">
+              <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">event_available</span>
+              </div>
+              <div class="space-y-0.5">
+                <h4 class="font-headline font-bold text-sm text-on-surface">No active exchange sessions</h4>
+                <p class="text-xs text-on-surface-variant max-w-sm">Schedule a 1:1 session with a learning partner below. Your credits are locked safely in escrow until you confirm completion.</p>
+              </div>
+              <button
+                type="button"
+                @click="openBookModal(null)"
+                class="mt-1 px-4 py-2 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1.5"
+              >
+                <span class="material-symbols-outlined text-sm">add</span>
+                <span>Schedule Your First Session</span>
+              </button>
+            </div>
+
+            <!-- Active Sessions Grid -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+              <div
+                v-for="item in activeSessionsList"
+                :key="'sess_' + item.id"
+                class="p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 shadow-xs"
+                :class="item.status === 'accepted' ? 'bg-gradient-to-br from-[#fdfaff] to-[#f6effe]/40 border-[#543ce0]/30' : (item.status === 'pending' ? 'bg-amber-50/40 border-amber-200' : 'bg-surface-container-lowest border-surface-container')"
+              >
+                <div>
+                  <!-- Status & Skill header -->
+                  <div class="flex items-center justify-between mb-2">
+                    <span
+                      class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                      :class="{
+                        'bg-amber-100 text-amber-800': item.status === 'pending',
+                        'bg-emerald-100 text-emerald-800': item.status === 'accepted',
+                        'bg-primary/10 text-primary': item.status === 'completed'
+                      }"
+                    >
+                      {{ item.status === 'pending' ? 'Pending Approval' : (item.status === 'accepted' ? 'Scheduled / Ready' : 'Completed') }}
+                    </span>
+                    <span class="text-[11px] font-bold text-primary font-mono flex items-center gap-0.5">
+                      <span class="material-symbols-outlined text-xs">lock</span>
+                      <span>{{ item.credit_cost }} Credit held</span>
+                    </span>
+                  </div>
+
+                  <!-- Peer Info -->
+                  <div class="flex items-center gap-2.5 mb-2">
+                    <div
+                      class="w-8 h-8 rounded-xl text-white font-bold text-xs flex items-center justify-center uppercase shrink-0 shadow-xs"
+                      :style="{ background: item.peer_avatar || '#543ce0' }"
+                    >
+                      {{ (item.peer_name || item.peer_username || '?').charAt(0) }}
+                    </div>
+                    <div class="min-w-0">
+                      <h4 class="font-headline font-bold text-xs text-on-surface truncate">{{ item.peer_name }}</h4>
+                      <p class="text-[10px] text-on-surface-variant truncate">
+                        {{ item.my_role === 'teacher' ? 'Learner: ' : 'Teacher: ' }}@{{ item.peer_username }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Topic & Details -->
+                  <div class="space-y-1 text-xs">
+                    <p class="font-semibold text-on-surface flex items-center gap-1">
+                      <span class="material-symbols-outlined text-xs text-primary">school</span>
+                      <span>Skill: {{ item.skill_name }}</span>
+                      <span class="text-[10px] text-on-surface-variant font-mono">({{ item.duration_minutes }}m)</span>
+                    </p>
+                    <p v-if="item.topic_notes" class="text-on-surface-variant text-[11px] line-clamp-2">
+                      "{{ item.topic_notes }}"
+                    </p>
+                    <p class="text-[10px] text-on-surface-variant flex items-center gap-1">
+                      <span class="material-symbols-outlined text-xs">calendar_today</span>
+                      <span>{{ formatSessionTime(item.scheduled_at) }}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Action Buttons based on status & role -->
+                <div class="pt-2 border-t border-surface-container/60 space-y-1.5">
+                  <!-- 1. Teacher responding to pending request -->
+                  <div v-if="item.status === 'pending' && item.my_role === 'teacher'" class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      @click="respondSession(item.id, 'accept')"
+                      class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                    >
+                      <span class="material-symbols-outlined text-sm">check_circle</span>
+                      <span>Accept Session</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="respondSession(item.id, 'reject')"
+                      class="py-1.5 px-3 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error hover:bg-error/10 font-headline text-xs font-semibold active:scale-95 transition-all"
+                    >
+                      Decline
+                    </button>
+                  </div>
+
+                  <!-- 2. Learner waiting for teacher response -->
+                  <div v-else-if="item.status === 'pending' && item.my_role === 'learner'" class="flex items-center justify-between">
+                    <span class="text-[11px] text-amber-700 font-medium">Waiting for @{{ item.peer_username }}</span>
+                    <button
+                      type="button"
+                      @click="cancelSession(item.id)"
+                      class="text-[11px] text-error hover:underline font-semibold"
+                    >
+                      Cancel &amp; Refund
+                    </button>
+                  </div>
+
+                  <!-- 3. Accepted Session (Ready to chat or complete) -->
+                  <div v-else-if="item.status === 'accepted'" class="flex items-center gap-2">
+                    <NuxtLink
+                      :to="'/chat?id=' + item.peer_id"
+                      class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                    >
+                      <span class="material-symbols-outlined text-sm">chat</span>
+                      <span>Open Chat</span>
+                    </NuxtLink>
+                    <button
+                      type="button"
+                      @click="completeSessionAction(item)"
+                      class="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                      title="Complete session and release escrow"
+                    >
+                      <span class="material-symbols-outlined text-sm">task_alt</span>
+                      <span>Complete</span>
+                    </button>
+                  </div>
+
+                  <!-- 4. Completed but not reviewed -->
+                  <div v-else-if="item.status === 'completed' && !item.my_review" class="flex items-center justify-between">
+                    <span class="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                      <span class="material-symbols-outlined text-xs">done_all</span>
+                      <span>Escrow Released</span>
+                    </span>
+                    <button
+                      type="button"
+                      @click="openReviewModal(item)"
+                      class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                    >
+                      <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span>
+                      <span>Review Peer</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- History Tab Content -->
+          <div v-else-if="sessionTab === 'history'">
+            <div v-if="historySessionsList.length === 0" class="py-8 px-4 text-center rounded-2xl bg-surface-bright/50 border border-dashed border-surface-container text-xs text-on-surface-variant">
+              No completed or past exchange sessions yet.
+            </div>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+              <div
+                v-for="item in historySessionsList"
+                :key="'hist_' + item.id"
+                class="p-4 rounded-2xl border bg-surface-container-lowest border-surface-container shadow-xs space-y-2.5"
+              >
+                <div class="flex items-center justify-between">
                   <span
                     class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
                     :class="{
-                      'bg-amber-100 text-amber-800': item.status === 'pending',
-                      'bg-emerald-100 text-emerald-800': item.status === 'accepted',
-                      'bg-primary/10 text-primary': item.status === 'completed'
+                      'bg-emerald-100 text-emerald-800': item.status === 'completed',
+                      'bg-rose-100 text-rose-800': item.status === 'cancelled' || item.status === 'rejected'
                     }"
                   >
-                    {{ item.status === 'pending' ? 'Pending Approval' : (item.status === 'accepted' ? 'Scheduled / Ready' : 'Completed') }}
+                    {{ item.status }}
                   </span>
-                  <span class="text-[11px] font-bold text-primary font-mono flex items-center gap-0.5">
-                    <span class="material-symbols-outlined text-xs">lock</span>
-                    <span>{{ item.credit_cost }} Credit held</span>
+                  <span class="text-[11px] text-on-surface-variant font-mono">
+                    {{ item.duration_minutes }}m • {{ item.credit_cost }} credit
                   </span>
                 </div>
-
-                <!-- Peer Info -->
-                <div class="flex items-center gap-2.5 mb-2">
+                <div class="flex items-center gap-2">
                   <div
-                    class="w-8 h-8 rounded-xl text-white font-bold text-xs flex items-center justify-center uppercase shrink-0 shadow-xs"
+                    class="w-7 h-7 rounded-lg text-white font-bold text-xs flex items-center justify-center uppercase shrink-0"
                     :style="{ background: item.peer_avatar || '#543ce0' }"
                   >
                     {{ (item.peer_name || item.peer_username || '?').charAt(0) }}
                   </div>
                   <div class="min-w-0">
-                    <h4 class="font-headline font-bold text-xs text-on-surface truncate">{{ item.peer_name }}</h4>
-                    <p class="text-[10px] text-on-surface-variant truncate">
-                      {{ item.my_role === 'teacher' ? 'Learner: ' : 'Teacher: ' }}@{{ item.peer_username }}
-                    </p>
+                    <p class="text-xs font-bold text-on-surface truncate">{{ item.peer_name }}</p>
+                    <p class="text-[10px] text-on-surface-variant">Skill: {{ item.skill_name }}</p>
                   </div>
                 </div>
-
-                <!-- Topic & Details -->
-                <div class="space-y-1 text-xs">
-                  <p class="font-semibold text-on-surface flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs text-primary">school</span>
-                    <span>Skill: {{ item.skill_name }}</span>
-                    <span class="text-[10px] text-on-surface-variant font-mono">({{ item.duration_minutes }}m)</span>
-                  </p>
-                  <p v-if="item.topic_notes" class="text-on-surface-variant text-[11px] line-clamp-2">
-                    "{{ item.topic_notes }}"
-                  </p>
-                  <p v-if="item.scheduled_at" class="text-[10px] text-on-surface-variant flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">calendar_today</span>
-                    <span>{{ new Date(item.scheduled_at).toLocaleDateString() }} at {{ new Date(item.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Action Buttons based on status & role -->
-              <div class="pt-2 border-t border-surface-container/60 space-y-1.5">
-                <!-- 1. Teacher responding to pending request -->
-                <div v-if="item.status === 'pending' && item.my_role === 'teacher'" class="flex items-center gap-2">
+                <div class="pt-2 border-t border-surface-container/60 flex items-center justify-between text-[11px]">
+                  <span class="text-on-surface-variant">{{ formatSessionTime(item.scheduled_at) }}</span>
                   <button
-                    @click="respondSession(item.id, 'accept')"
-                    class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
-                  >
-                    <span class="material-symbols-outlined text-sm">check_circle</span>
-                    <span>Accept Session</span>
-                  </button>
-                  <button
-                    @click="respondSession(item.id, 'reject')"
-                    class="py-1.5 px-3 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error hover:bg-error/10 font-headline text-xs font-semibold active:scale-95 transition-all"
-                  >
-                    Decline
-                  </button>
-                </div>
-
-                <!-- 2. Learner waiting for teacher response -->
-                <div v-else-if="item.status === 'pending' && item.my_role === 'learner'" class="flex items-center justify-between">
-                  <span class="text-[11px] text-amber-700 font-medium">Waiting for @{{ item.peer_username }}</span>
-                  <button
-                    @click="cancelSession(item.id)"
-                    class="text-[11px] text-error hover:underline font-semibold"
-                  >
-                    Cancel &amp; Refund
-                  </button>
-                </div>
-
-                <!-- 3. Accepted Session (Ready to chat or complete) -->
-                <div v-else-if="item.status === 'accepted'" class="flex items-center gap-2">
-                  <NuxtLink
-                    :to="'/chat?id=' + item.peer_id"
-                    class="flex-1 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
-                  >
-                    <span class="material-symbols-outlined text-sm">chat</span>
-                    <span>Open Chat</span>
-                  </NuxtLink>
-                  <button
-                    @click="completeSessionAction(item)"
-                    class="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
-                    title="Complete session and release escrow"
-                  >
-                    <span class="material-symbols-outlined text-sm">task_alt</span>
-                    <span>Complete</span>
-                  </button>
-                </div>
-
-                <!-- 4. Completed but not reviewed -->
-                <div v-else-if="item.status === 'completed' && !item.my_review" class="flex items-center justify-between">
-                  <span class="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">done_all</span>
-                    <span>Escrow Released</span>
-                  </span>
-                  <button
+                    v-if="item.status === 'completed' && !item.my_review"
+                    type="button"
                     @click="openReviewModal(item)"
-                    class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                    class="text-amber-600 font-bold hover:underline"
                   >
-                    <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span>
-                    <span>Review Peer</span>
+                    Leave Review ★
                   </button>
+                  <span v-else-if="item.status === 'completed'" class="text-emerald-700 font-semibold flex items-center gap-0.5">
+                    <span class="material-symbols-outlined text-xs">verified</span>
+                    <span>Completed</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -568,6 +680,16 @@
                   <div class="pt-2 border-t border-surface-container/50 flex items-center justify-between">
                     <span class="text-[11px] text-on-surface-variant">Everyone learns & gives knowledge</span>
                     <div v-if="getCyclePeer(cycle)" class="flex items-center gap-2">
+                      <button
+                        v-if="isPeerConnected(getCyclePeer(cycle).user_id)"
+                        type="button"
+                        @click="openBookModal(getCyclePeer(cycle), getCyclePeer(cycle)?.teaches_next)"
+                        class="px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                        title="Schedule Skill Exchange"
+                      >
+                        <span class="material-symbols-outlined text-sm">event</span>
+                        <span>Schedule</span>
+                      </button>
                       <NuxtLink
                         v-if="isPeerConnected(getCyclePeer(cycle).user_id)"
                         :to="'/chat?id=' + getCyclePeer(cycle).user_id"
@@ -578,6 +700,7 @@
                       </NuxtLink>
                       <button
                         v-else
+                        type="button"
                         @click="sendConnectRequest(getCyclePeer(cycle).user_id)"
                         class="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1"
                       >
@@ -981,26 +1104,63 @@
           </div>
 
           <div class="space-y-4">
-            <!-- Peer info -->
-            <div v-if="bookTargetPeer" class="p-3 bg-surface-container-low rounded-2xl flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-primary/20 text-primary font-bold text-sm flex items-center justify-center uppercase">
-                {{ (bookTargetPeer.full_name || bookTargetPeer.name || bookTargetPeer.username || '?').charAt(0) }}
+            <!-- Learning Partner Selector / Info -->
+            <div>
+              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Learning Partner (Teacher) *</label>
+              <div v-if="activeConnections.length > 0">
+                <select
+                  v-model="bookForm.teacher_id"
+                  @change="onSelectPeerChange"
+                  class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-xs sm:text-sm focus:outline-none focus:border-primary transition-colors font-medium text-on-surface"
+                >
+                  <option :value="''" disabled>Select a learning partner...</option>
+                  <option
+                    v-for="c in activeConnections"
+                    :key="c.id"
+                    :value="c.user_id || c.id"
+                  >
+                    {{ c.full_name || c.username }} (@{{ c.username }}) {{ c.teaches && c.teaches.length ? '— Teaches: ' + (Array.isArray(c.teaches) ? c.teaches.join(', ') : c.teaches) : '' }}
+                  </option>
+                </select>
               </div>
-              <div>
-                <h4 class="font-headline font-bold text-xs text-on-surface">{{ bookTargetPeer.full_name || bookTargetPeer.name }}</h4>
-                <p class="text-[10px] text-on-surface-variant">Teacher • @{{ bookTargetPeer.username || 'peer' }}</p>
+              <div v-else-if="bookTargetPeer" class="p-3 bg-surface-container-low rounded-2xl flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-primary/20 text-primary font-bold text-sm flex items-center justify-center uppercase">
+                  {{ (bookTargetPeer.full_name || bookTargetPeer.name || bookTargetPeer.username || '?').charAt(0) }}
+                </div>
+                <div>
+                  <h4 class="font-headline font-bold text-xs text-on-surface">{{ bookTargetPeer.full_name || bookTargetPeer.name }}</h4>
+                  <p class="text-[10px] text-on-surface-variant">Teacher • @{{ bookTargetPeer.username || 'peer' }}</p>
+                </div>
+              </div>
+              <div v-else class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                You don't have any active learning partners yet. Connect with a peer first to book an exchange session.
               </div>
             </div>
 
             <!-- Skill Name -->
             <div>
-              <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1 block">Skill to Learn *</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Skill to Learn *</label>
+                <span v-if="bookTargetPeerTeaches.length > 0" class="text-[10px] text-primary font-semibold">Click to auto-fill</span>
+              </div>
               <input
                 v-model="bookForm.skill_name"
                 type="text"
                 placeholder="e.g. React, Python, Data Structures..."
                 class="w-full px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-sm focus:outline-none focus:border-primary transition-colors font-medium"
               />
+              <div v-if="bookTargetPeerTeaches.length > 0" class="flex flex-wrap gap-1.5 mt-2">
+                <button
+                  v-for="s in bookTargetPeerTeaches"
+                  :key="s"
+                  type="button"
+                  @click="bookForm.skill_name = s"
+                  class="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
+                  :class="bookForm.skill_name.toLowerCase() === s.toLowerCase() ? 'bg-primary text-on-primary shadow-xs' : 'bg-primary/10 text-primary hover:bg-primary/20'"
+                >
+                  {{ s }}
+                </button>
+              </div>
             </div>
 
             <!-- Duration Selector -->
@@ -1258,6 +1418,15 @@ const editProfile = ref({
 // ─── Exchange Sessions & Escrow (Pillar 1) ──────────────────────────────────
 const exchangeSessions = ref([])
 const loadingSessions = ref(true)
+const sessionTab = ref('active') // 'active' or 'history'
+
+const activeSessionsList = computed(() => {
+  return exchangeSessions.value.filter(s => s.status === 'pending' || s.status === 'accepted' || (s.status === 'completed' && !s.my_review))
+})
+
+const historySessionsList = computed(() => {
+  return exchangeSessions.value.filter(s => (s.status === 'completed' && s.my_review) || s.status === 'rejected' || s.status === 'cancelled')
+})
 
 const showBookModal = ref(false)
 const isBooking = ref(false)
@@ -1269,6 +1438,25 @@ const bookForm = reactive({
   scheduled_at: '',
   topic_notes: ''
 })
+
+const bookTargetPeerTeaches = computed(() => {
+  if (!bookTargetPeer.value) return []
+  const t = bookTargetPeer.value.teaches || bookTargetPeer.value.teach_skills || bookTargetPeer.value.skills_offered
+  if (Array.isArray(t)) return t
+  if (typeof t === 'string' && t.trim()) return t.split(',').map(s => s.trim()).filter(Boolean)
+  return []
+})
+
+const formatSessionTime = (isoStr) => {
+  if (!isoStr) return 'Flexible / Instant'
+  try {
+    const d = new Date(isoStr)
+    if (isNaN(d.getTime())) return 'Flexible time'
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return 'Flexible time'
+  }
+}
 
 const showReviewModal = ref(false)
 const reviewingSession = ref(null)
@@ -1386,6 +1574,12 @@ const setupDashSocket = () => {
     : 'http://localhost:5000'
   dashSocket = io(backendUrl, { withCredentials: true, transports: ['polling', 'websocket'] })
 
+  dashSocket.on('connect', () => {
+    if (user.value?.id) {
+      dashSocket.emit('authenticate', { user_id: user.value.id })
+    }
+  })
+
   dashSocket.on('connection_request', (data) => {
     liveRequest.value = data
     liveNotifCount.value++
@@ -1443,6 +1637,11 @@ const setupDashSocket = () => {
     fetchSessions()
     fetchUserData()
     alert(`ℹ️ Session for ${data.skill_name} was declined. Your escrow credits have been refunded.`)
+  })
+
+  dashSocket.on('session_cancelled', (data) => {
+    fetchSessions()
+    fetchUserData()
   })
 
   dashSocket.on('session_completed', (data) => {
@@ -1658,18 +1857,52 @@ const fetchSessions = async () => {
   }
 }
 
-const openBookModal = (peer, defaultSkill = '') => {
-  bookTargetPeer.value = peer
-  bookForm.teacher_id = peer.user_id || peer.id
-  bookForm.skill_name = defaultSkill || (peer.teaches && peer.teaches.length > 0 ? peer.teaches[0] : '')
+const openBookModal = (peer = null, defaultSkill = '') => {
+  if (peer) {
+    bookTargetPeer.value = {
+      ...peer,
+      full_name: peer.full_name || peer.name || peer.username,
+      username: peer.username || peer.name,
+      user_id: peer.user_id || peer.id
+    }
+    bookForm.teacher_id = peer.user_id || peer.id
+  } else {
+    if (activeConnections.value.length > 0) {
+      const firstConn = activeConnections.value[0]
+      bookTargetPeer.value = firstConn
+      bookForm.teacher_id = firstConn.user_id || firstConn.id
+    } else {
+      bookTargetPeer.value = null
+      bookForm.teacher_id = ''
+    }
+  }
+
+  const teaches = bookTargetPeer.value?.teaches
+  const skillList = Array.isArray(teaches) ? teaches : (typeof teaches === 'string' ? teaches.split(',').map(s => s.trim()) : [])
+  bookForm.skill_name = defaultSkill || (skillList.length > 0 ? skillList[0] : '')
   bookForm.duration_minutes = 30
   bookForm.scheduled_at = ''
   bookForm.topic_notes = ''
   showBookModal.value = true
 }
 
+const onSelectPeerChange = () => {
+  const found = activeConnections.value.find(c => (c.user_id || c.id) == bookForm.teacher_id)
+  bookTargetPeer.value = found || null
+  if (found?.teaches) {
+    const list = Array.isArray(found.teaches) ? found.teaches : found.teaches.split(',').map(s => s.trim())
+    if (list.length > 0 && !bookForm.skill_name) {
+      bookForm.skill_name = list[0]
+    }
+  }
+}
+
 const submitBookSession = async () => {
-  if (!bookForm.teacher_id || !bookForm.skill_name.trim()) {
+  if (!bookForm.teacher_id) {
+    alert('Please select a learning partner.')
+    return
+  }
+  if (!bookForm.skill_name.trim()) {
     alert('Please enter a skill to learn.')
     return
   }
