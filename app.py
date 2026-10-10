@@ -2458,8 +2458,20 @@ def search_institutions_api():
     return jsonify({"results": results, "query": query}), 200
 
 
+@app.route('/api/test', methods=['GET'])
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        "status": "healthy",
+        "service": "SkillLoop API",
+        "timestamp": datetime.now().isoformat()
+    }), 200
+
+
 if __name__ == '__main__':
-    # Listen on 0.0.0.0 so both localhost and teammate devices on LAN can connect.
-    # use_reloader=False prevents Windows eventlet port collision crashes (WinError 10048)
-    socketio.run(app, host='0.0.0.0', debug=True, use_reloader=False, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1')
+    print(f"[SkillLoop] Starting server on 0.0.0.0:{port} (debug={debug})", flush=True)
+    socketio.run(app, host='0.0.0.0', debug=debug, use_reloader=False, port=port)
+
 
