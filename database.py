@@ -205,6 +205,20 @@ def init_db():
         )
     ''')
 
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS teaching_call_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            teacher_id INTEGER NOT NULL,
+            learner_id INTEGER NOT NULL,
+            skill_name TEXT NOT NULL,
+            session_id INTEGER,
+            duration_seconds INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (teacher_id) REFERENCES users(id),
+            FOREIGN KEY (learner_id) REFERENCES users(id)
+        )
+    ''')
+
     # Safe schema migration for existing databases
     cursor = db.cursor()
     cursor.execute("PRAGMA table_info(skill_verifications)")
@@ -216,6 +230,18 @@ def init_db():
         cursor.execute("ALTER TABLE skill_verifications ADD COLUMN activity_type TEXT DEFAULT 'quiz'")
     if 'sessions_taught' not in existing_cols:
         cursor.execute("ALTER TABLE skill_verifications ADD COLUMN sessions_taught INTEGER DEFAULT 0")
+
+    cursor.execute("PRAGMA table_info(users)")
+    user_cols = [row[1] for row in cursor.fetchall()]
+    if 'total_teaching_seconds' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN total_teaching_seconds INTEGER DEFAULT 0")
+    if 'total_learning_seconds' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN total_learning_seconds INTEGER DEFAULT 0")
+
+    cursor.execute("PRAGMA table_info(exchange_sessions)")
+    sess_cols = [row[1] for row in cursor.fetchall()]
+    if 'actual_duration_seconds' not in sess_cols:
+        cursor.execute("ALTER TABLE exchange_sessions ADD COLUMN actual_duration_seconds INTEGER DEFAULT 0")
 
     db.commit()
     db.close()

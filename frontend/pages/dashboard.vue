@@ -477,7 +477,7 @@
             </div>
 
             <!-- Stats -->
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 gap-2">
               <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
                 <span class="text-sm sm:text-base font-bold font-headline text-on-surface block">{{ user.total_sessions || user.sessions_completed || 0 }}</span>
                 <span class="text-[10px] font-medium text-on-surface-variant">Sessions</span>
@@ -485,6 +485,13 @@
               <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
                 <span class="text-sm sm:text-base font-bold font-headline text-primary block">{{ (user.time_credits || 0).toFixed(1) }}</span>
                 <span class="text-[10px] font-medium text-on-surface-variant">Credits</span>
+              </div>
+              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
+                <span class="text-sm sm:text-base font-bold font-headline text-emerald-600 flex items-center justify-center gap-0.5">
+                  <span class="material-symbols-outlined text-xs">timer</span>
+                  <span>{{ formatTeachingDuration(user.total_teaching_seconds) }}</span>
+                </span>
+                <span class="text-[10px] font-medium text-on-surface-variant">Time Taught</span>
               </div>
               <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
                 <span class="text-sm sm:text-base font-bold font-headline text-amber-500 flex items-center justify-center gap-0.5">
@@ -1649,6 +1656,14 @@ const setupDashSocket = () => {
     fetchUserData()
     fetchVerifications()
   })
+
+  dashSocket.on('teaching_time_recorded', (data) => {
+    if (data.teacher_id === user.value?.id) {
+      user.value.total_teaching_seconds = data.total_teaching_seconds
+    }
+    fetchUserData()
+    fetchVerifications()
+  })
 }
 
 const acceptLiveRequest = async () => {
@@ -1828,6 +1843,14 @@ const removeSkill = async (id) => {
     await fetch(`/api/skills/${id}`, { method: 'DELETE', credentials: 'include' })
     await Promise.all([fetchSkills(), fetchCycles()])
   } catch(e) { console.error(e) }
+}
+
+const formatTeachingDuration = (sec) => {
+  if (!sec || sec <= 0) return '0m'
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
 }
 
 const fetchUserData = async () => {

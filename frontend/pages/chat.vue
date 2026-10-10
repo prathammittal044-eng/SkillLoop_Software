@@ -772,100 +772,290 @@
           </div>
         </div>
 
-        <!-- 5. FLOATING PICTURE-IN-PICTURE / ACTIVE VIDEO CALL OVERLAY -->
-        <div v-if="isCallActive" class="absolute top-18 right-5 w-96 sm:w-[460px] bg-slate-900 rounded-2xl shadow-2xl border-2 border-white/90 overflow-hidden z-30 transition-all">
-          <!-- Video Feeds Container -->
-          <div class="relative h-64 sm:h-72 w-full bg-slate-950 flex items-center justify-center overflow-hidden">
-            <!-- Remote Peer Video -->
-            <video ref="remoteVideoRef" autoplay playsinline class="w-full h-full object-cover"></video>
+        <!-- 5. FULL-SCREEN IMMERSIVE VIDEO CALL OVERLAY & PIP MODE -->
+        <div
+          v-if="isCallActive"
+          class="transition-all duration-300 z-50 overflow-hidden flex flex-col font-body"
+          :class="isCallMinimized 
+            ? 'fixed bottom-5 right-5 w-80 sm:w-96 h-56 sm:h-64 rounded-2xl shadow-2xl border-2 border-white/20 bg-[#0c0915] text-white' 
+            : 'fixed inset-0 bg-[#0b0814] text-white'"
+        >
+          <!-- FULLSCREEN TOP BAR (Shown in full screen mode) -->
+          <div
+            v-if="!isCallMinimized"
+            class="h-16 px-6 bg-black/60 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shrink-0 z-30"
+          >
+            <!-- Left: Session & Teacher Indicator -->
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-[#543ce0] text-white flex items-center justify-center shadow-md">
+                <span class="material-symbols-outlined text-xl">all_inclusive</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-white uppercase tracking-wider font-headline">SkillLoop Live</span>
+                  <span class="text-white/30">•</span>
+                  <span class="text-xs font-semibold text-[#c084fc] bg-[#543ce0]/20 px-2.5 py-0.5 rounded-full border border-[#543ce0]/40">
+                    🎓 {{ currentCallSkillName }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-white/70 mt-0.5">
+                  <span>Teacher: <strong class="text-white">{{ activeTeacherName }}</strong></span>
+                  <button
+                    @click="toggleTeacherRole"
+                    class="text-[10px] font-semibold text-[#c084fc] hover:text-white bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded transition-all"
+                    title="Click to switch who is teaching this session"
+                  >
+                    ⇄ Switch Role
+                  </button>
+                </div>
+              </div>
+            </div>
 
-            <!-- Autoplay Unlock Overlay (For Brave / Chrome autoplay policy) -->
+            <!-- Center: LIVE TEACHING TIMER & RECORDING STATUS -->
+            <div class="flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-inner">
+              <span class="relative flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+              </span>
+              <span class="text-xs font-semibold text-rose-300 font-mono tracking-wider">REC</span>
+              <span class="text-white/40">|</span>
+              <div class="flex items-center gap-1.5 font-mono font-bold text-sm text-white">
+                <span class="material-symbols-outlined text-base text-amber-400">timer</span>
+                <span>{{ formattedCallDuration }}</span>
+              </div>
+              <span class="hidden md:inline text-[11px] text-white/50 pl-1">
+                (Recording to {{ activeTeacherName }}'s record)
+              </span>
+            </div>
+
+            <!-- Right: Quality & Window Controls -->
+            <div class="flex items-center gap-2">
+              <div class="hidden sm:flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full text-[11px] text-white/80 border border-white/10">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{{ iceConnectionStatus || 'HD Connected' }}</span>
+              </div>
+              <button
+                @click="toggleCallMinimized"
+                class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                title="Minimize to Picture-in-Picture to view chat"
+              >
+                <span class="material-symbols-outlined text-lg">close_fullscreen</span>
+              </button>
+              <button
+                @click="toggleBrowserFullscreen"
+                class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                title="Toggle Fullscreen"
+              >
+                <span class="material-symbols-outlined text-lg">{{ isBrowserFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- MINIMIZED TOP BAR (Shown when in small PiP mode) -->
+          <div
+            v-else
+            class="h-9 px-3 bg-black/80 border-b border-white/10 flex items-center justify-between shrink-0 z-30"
+          >
+            <div class="flex items-center gap-2 text-xs">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              <span class="font-mono font-bold text-white">{{ formattedCallDuration }}</span>
+              <span class="text-[10px] text-white/60 truncate max-w-[120px]">{{ activePeer?.full_name }}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <button
+                @click="toggleCallMinimized"
+                class="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                title="Maximize to Full Screen"
+              >
+                <span class="material-symbols-outlined text-sm">open_in_full</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- VIDEO STAGE CONTAINER -->
+          <div class="relative flex-1 w-full bg-[#07050d] flex items-center justify-center overflow-hidden">
+            <!-- STATE A: CALLING / RINGING SCREEN (Waiting for Peer to answer) -->
             <div
-              v-if="isAutoplayBlocked"
-              @click="resumeRemoteVideo"
-              class="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center cursor-pointer z-40 transition-all hover:bg-black/75"
+              v-if="callStatus === 'calling'"
+              class="w-full h-full flex flex-col items-center justify-center p-6 text-center select-none z-20"
             >
-              <div class="w-14 h-14 rounded-full bg-[#543ce0] text-white flex items-center justify-center mb-3 animate-pulse shadow-lg shadow-[#543ce0]/50">
-                <span class="material-symbols-outlined text-3xl">play_arrow</span>
+              <div class="relative flex items-center justify-center mb-6">
+                <div class="absolute w-44 h-44 rounded-full bg-[#543ce0]/20 animate-ping"></div>
+                <div class="absolute w-36 h-36 rounded-full bg-[#543ce0]/30 animate-pulse"></div>
+                <div
+                  class="w-28 h-28 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-2xl z-10 border-4 border-white/20"
+                  :style="{ background: activePeer?.avatar_color || '#543ce0' }"
+                >
+                  {{ (activePeer?.full_name || activePeer?.username || 'P').charAt(0).toUpperCase() }}
+                </div>
               </div>
-              <p class="font-bold text-sm text-white font-headline">Click here to enable video & audio</p>
-              <p class="text-[11px] text-white/70 mt-1">Brave/Chrome requires one click to allow live remote playback</p>
+
+              <h2 class="text-2xl sm:text-3xl font-bold font-headline text-white tracking-tight">
+                Calling {{ activePeer?.full_name || 'Peer' }}...
+              </h2>
+              <p class="text-sm text-white/70 mt-2 max-w-sm">
+                Waiting for them to accept the incoming video exchange request.
+              </p>
+
+              <div class="mt-4 px-4 py-1.5 rounded-full bg-white/10 text-xs text-white/80 border border-white/10 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm text-[#c084fc]">school</span>
+                <span>Topic: {{ currentCallSkillName }}</span>
+              </div>
+
+              <div class="mt-8 flex items-center gap-4">
+                <button
+                  @click="endCall"
+                  class="px-6 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-2 shadow-lg shadow-rose-600/40 active:scale-95 transition-all text-sm"
+                >
+                  <span class="material-symbols-outlined text-base">call_end</span>
+                  <span>Cancel Call</span>
+                </button>
+              </div>
+
+              <!-- Floating local preview while calling -->
+              <div class="absolute bottom-6 right-6 w-32 h-24 sm:w-40 sm:h-28 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30">
+                <video ref="localVideoRef" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                <div class="absolute bottom-1.5 left-2 text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded">
+                  You
+                </div>
+              </div>
             </div>
 
-            <!-- Video Header Badges -->
-            <div class="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-20">
-              <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white text-xs font-semibold">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                </span>
-                <span>Live Exchange</span>
-                <span class="text-white/40">|</span>
-                <span class="text-[#c084fc] font-bold">{{ activePeer?.full_name || 'Peer' }}</span>
+            <!-- STATE B: CONNECTED ACTIVE CALL -->
+            <template v-else>
+              <!-- Remote Video Stream -->
+              <video
+                ref="remoteVideoRef"
+                autoplay
+                playsinline
+                class="w-full h-full object-contain sm:object-cover transition-opacity duration-300"
+                :class="{ 'opacity-0': !hasRemoteVideo || isRemoteVideoMuted }"
+              ></video>
+
+              <!-- Remote Avatar / Camera Paused Fallback -->
+              <div
+                v-if="!hasRemoteVideo || isRemoteVideoMuted"
+                class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none"
+              >
+                <div
+                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-2xl border-4 border-white/20 mb-4 animate-pulse"
+                  :style="{ background: activePeer?.avatar_color || '#543ce0' }"
+                >
+                  {{ (activePeer?.full_name || activePeer?.username || 'P').charAt(0).toUpperCase() }}
+                </div>
+                <h3 class="text-xl font-bold font-headline text-white">{{ activePeer?.full_name }}</h3>
+                <div class="flex items-center gap-2 mt-2 px-3 py-1 rounded-full bg-white/10 text-xs text-white/70 border border-white/10">
+                  <span class="material-symbols-outlined text-sm text-emerald-400">mic</span>
+                  <span>Microphone Active • Camera is Paused</span>
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-white text-[10px] font-medium">
-                <span class="material-symbols-outlined text-xs text-emerald-400" style="font-variation-settings: 'FILL' 1;">verified_user</span>
-                <span>{{ iceConnectionStatus || 'P2P WebRTC' }}</span>
+
+              <!-- Autoplay Unlock Overlay (For Chrome/Brave autoplay policies) -->
+              <div
+                v-if="isAutoplayBlocked"
+                @click="resumeRemoteVideo"
+                class="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center cursor-pointer z-40 transition-all hover:bg-black/75"
+              >
+                <div class="w-16 h-16 rounded-full bg-[#543ce0] text-white flex items-center justify-center mb-4 animate-pulse shadow-lg shadow-[#543ce0]/50">
+                  <span class="material-symbols-outlined text-4xl">play_arrow</span>
+                </div>
+                <p class="font-bold text-base text-white font-headline">Click anywhere to enable live audio &amp; video</p>
+                <p class="text-xs text-white/70 mt-1">Browser security requires one user interaction to allow remote audio playback.</p>
               </div>
-            </div>
 
-            <!-- Self Preview (Bottom-Right corner) -->
-            <div class="absolute bottom-16 right-3 w-28 h-20 rounded-xl overflow-hidden border-2 border-white shadow-lg bg-slate-800 z-20">
-              <video ref="localVideoRef" autoplay playsinline muted class="w-full h-full object-cover"></video>
-              <div class="absolute bottom-1 left-1.5 text-[9px] font-bold text-white bg-black/60 px-1 py-0.5 rounded">
-                You {{ isMicMuted ? '(Muted)' : '' }}
+              <!-- Floating Self Preview (Local Video PiP) -->
+              <div
+                class="absolute rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30 transition-all duration-300"
+                :class="isCallMinimized 
+                  ? 'bottom-2 right-2 w-24 h-18' 
+                  : 'bottom-20 right-6 w-36 h-28 sm:w-48 sm:h-36'"
+              >
+                <video ref="localVideoRef" autoplay playsinline muted class="w-full h-full object-cover" :class="{ 'hidden': isCameraOff }"></video>
+                <div v-if="isCameraOff" class="w-full h-full bg-slate-800 flex flex-col items-center justify-center text-white/70">
+                  <span class="material-symbols-outlined text-2xl">videocam_off</span>
+                  <span class="text-[9px] mt-1 font-semibold">Camera Off</span>
+                </div>
+                <div class="absolute bottom-1.5 left-2 text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <span>You</span>
+                  <span v-if="isMicMuted" class="text-rose-400 font-extrabold">• Muted</span>
+                </div>
               </div>
-            </div>
+            </template>
 
-            <!-- Controls (Bottom Floating Bar) -->
-            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2.5 bg-black/75 backdrop-blur-xl py-2 px-4 rounded-2xl border border-white/15 shadow-xl z-20">
-              <!-- Mic Mute/Unmute -->
-              <button
-                @click="toggleMic"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
-                :class="isMicMuted ? 'bg-rose-600 text-white' : 'bg-white/20 hover:bg-white/30 text-white'"
-                :title="isMicMuted ? 'Unmute Mic' : 'Mute Mic'"
-              >
-                <span class="material-symbols-outlined text-lg">{{ isMicMuted ? 'mic_off' : 'mic' }}</span>
-              </button>
-
-              <!-- Camera On/Off -->
-              <button
-                @click="toggleCamera"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
-                :class="isCameraOff ? 'bg-rose-600 text-white' : 'bg-white/20 hover:bg-white/30 text-white'"
-                :title="isCameraOff ? 'Turn Camera On' : 'Turn Camera Off'"
-              >
-                <span class="material-symbols-outlined text-lg">{{ isCameraOff ? 'videocam_off' : 'videocam' }}</span>
-              </button>
-
-              <!-- Screen Share -->
-              <button
-                @click="toggleScreenShare"
-                class="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
-                :class="isScreenSharing ? 'bg-emerald-600 text-white' : 'bg-white/20 hover:bg-white/30 text-white'"
-                title="Share Screen"
-              >
-                <span class="material-symbols-outlined text-lg">present_to_all</span>
-              </button>
-
-              <div class="h-5 w-px bg-white/20 mx-0.5"></div>
-
-              <!-- End Call Button -->
-              <button
-                @click="endCall"
-                class="h-9 px-4 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/40 transition-all active:scale-90"
-                title="End Call"
-              >
-                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">call_end</span>
-                <span>End Call</span>
-              </button>
-            </div>
-            
-            <!-- DEBUG STATUS STRIP -->
-            <div v-if="callDebugStatus" class="absolute top-12 left-3 right-3 bg-black/75 backdrop-blur-md text-amber-300 text-[10px] font-mono py-1 px-2.5 rounded-lg border border-amber-400/30 z-20 text-center pointer-events-none">
+            <!-- Debug Status Banner (if active) -->
+            <div v-if="callDebugStatus && !isCallMinimized" class="absolute top-4 left-6 bg-black/80 backdrop-blur-md text-amber-300 text-[10px] font-mono py-1 px-3 rounded-lg border border-amber-400/30 z-20 pointer-events-none">
               {{ callDebugStatus }}
             </div>
+          </div>
+
+          <!-- BOTTOM CONTROLS DOCK (Zoom / Google Meet Style) -->
+          <div
+            class="py-3 px-6 bg-black/80 backdrop-blur-xl border-t border-white/10 flex items-center justify-center gap-3 shrink-0 z-30"
+            :class="{ 'py-2 px-3 gap-2': isCallMinimized }"
+          >
+            <!-- Microphone Mute/Unmute -->
+            <button
+              @click="toggleMic"
+              class="rounded-full flex items-center justify-center transition-all active:scale-90"
+              :class="[
+                isCallMinimized ? 'w-8 h-8' : 'w-11 h-11',
+                isMicMuted ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' : 'bg-white/15 hover:bg-white/25 text-white'
+              ]"
+              :title="isMicMuted ? 'Unmute Mic' : 'Mute Mic'"
+            >
+              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-xl'">
+                {{ isMicMuted ? 'mic_off' : 'mic' }}
+              </span>
+            </button>
+
+            <!-- Camera Toggle -->
+            <button
+              @click="toggleCamera"
+              class="rounded-full flex items-center justify-center transition-all active:scale-90"
+              :class="[
+                isCallMinimized ? 'w-8 h-8' : 'w-11 h-11',
+                isCameraOff ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' : 'bg-white/15 hover:bg-white/25 text-white'
+              ]"
+              :title="isCameraOff ? 'Turn Camera On' : 'Turn Camera Off'"
+            >
+              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-xl'">
+                {{ isCameraOff ? 'videocam_off' : 'videocam' }}
+              </span>
+            </button>
+
+            <!-- Screen Share -->
+            <button
+              v-if="!isCallMinimized"
+              @click="toggleScreenShare"
+              class="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
+              :class="isScreenSharing ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'bg-white/15 hover:bg-white/25 text-white'"
+              :title="isScreenSharing ? 'Stop Screen Share' : 'Share Screen'"
+            >
+              <span class="material-symbols-outlined text-xl">present_to_all</span>
+            </button>
+
+            <!-- Minimize / PiP Toggle Button -->
+            <button
+              v-if="!isCallMinimized"
+              @click="toggleCallMinimized"
+              class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-90"
+              title="Minimize to view chat while staying on call"
+            >
+              <span class="material-symbols-outlined text-xl">picture_in_picture_alt</span>
+            </button>
+
+            <div v-if="!isCallMinimized" class="h-6 w-px bg-white/20 mx-1"></div>
+
+            <!-- End Call Button -->
+            <button
+              @click="endCall"
+              class="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-rose-600/40 transition-all active:scale-95"
+              :class="isCallMinimized ? 'h-8 px-3 text-[11px]' : 'h-11 px-6 text-sm'"
+              title="End Call and save teaching time"
+            >
+              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-xl'" style="font-variation-settings: 'FILL' 1;">call_end</span>
+              <span>End Call</span>
+            </button>
           </div>
         </div>
       </section>
@@ -1350,6 +1540,59 @@
         </div>
       </div>
     </div>
+
+    <!-- 10. POST-CALL TEACHING TIME SUMMARY MODAL -->
+    <div
+      v-if="showCallSummaryModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+      @click.self="showCallSummaryModal = false"
+    >
+      <div class="bg-white rounded-3xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden p-6 space-y-5">
+        <div class="text-center space-y-2">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
+            <span class="material-symbols-outlined text-3xl">verified</span>
+          </div>
+          <h3 class="font-headline font-bold text-xl text-[#1e1a2b]">Skill Exchange Completed!</h3>
+          <p class="text-xs text-[#6b6680]">Live teaching duration has been verified and recorded to the official campus ledger.</p>
+        </div>
+
+        <div class="bg-[#f6effe]/60 rounded-2xl p-4 border border-[#eaddff] space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-[#6b6680] font-medium">Session Topic</span>
+            <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.skillName || currentCallSkillName }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-[#6b6680] font-medium">Time Taught This Call</span>
+            <span class="font-bold text-emerald-600 font-mono text-sm">⏱️ {{ lastSummaryData.durationFormatted }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-[#6b6680] font-medium">Credited Teacher</span>
+            <span class="font-bold text-[#543ce0]">🎓 {{ lastSummaryData.teacherName }}</span>
+          </div>
+          <div v-if="lastSummaryData.totalTeachingFormatted" class="flex items-center justify-between text-xs pt-2 border-t border-[#eaddff]">
+            <span class="text-[#6b6680] font-medium">Teacher's Cumulative Record</span>
+            <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.totalTeachingFormatted }}</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <button
+            v-if="activePeerSession && activePeerSession.status === 'accepted'"
+            @click="showCallSummaryModal = false; completeSessionAction(activePeerSession)"
+            class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+          >
+            <span class="material-symbols-outlined text-lg">workspace_premium</span>
+            <span>Mark Exchange Complete &amp; Review</span>
+          </button>
+          <button
+            @click="showCallSummaryModal = false"
+            class="w-full py-3 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+          >
+            <span>Done</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1454,6 +1697,155 @@ const callDebugStatus = ref('')
 
 const localVideoRef = ref(null)
 const remoteVideoRef = ref(null)
+
+// ─── Enhanced Fullscreen Video Call & Live Teaching Recording State ─────────
+const callStatus = ref('idle') // 'idle' | 'calling' | 'connected' | 'ended'
+const isCallMinimized = ref(false)
+const isBrowserFullscreen = ref(false)
+const callDurationSeconds = ref(0)
+let callTimerInterval = null
+let hasRecordedCall = false
+
+const activeCallRole = ref('peer_teaching') // 'peer_teaching' | 'user_teaching'
+const hasRemoteVideo = ref(false)
+const isRemoteVideoMuted = ref(false)
+
+const showCallSummaryModal = ref(false)
+const lastSummaryData = reactive({
+  durationFormatted: '',
+  teacherName: '',
+  totalTeachingFormatted: '',
+  skillName: ''
+})
+
+const determineInitialCallRole = () => {
+  if (activePeerSession.value) {
+    if (activePeerSession.value.teacher_id === currentUser.value?.id) {
+      activeCallRole.value = 'user_teaching'
+    } else {
+      activeCallRole.value = 'peer_teaching'
+    }
+    return
+  }
+  // If no formal session booked:
+  if (activePeer.value?.teaches && activePeer.value.teaches.length > 0) {
+    activeCallRole.value = 'peer_teaching'
+  } else {
+    activeCallRole.value = 'user_teaching'
+  }
+}
+
+const activeTeacherName = computed(() => {
+  if (activeCallRole.value === 'user_teaching') {
+    return currentUser.value?.full_name || currentUser.value?.username || 'You'
+  }
+  return activePeer.value?.full_name || activePeer.value?.username || 'Peer'
+})
+
+const activeLearnerName = computed(() => {
+  if (activeCallRole.value === 'user_teaching') {
+    return activePeer.value?.full_name || activePeer.value?.username || 'Peer'
+  }
+  return currentUser.value?.full_name || currentUser.value?.username || 'You'
+})
+
+const currentCallSkillName = computed(() => {
+  if (activePeerSession.value?.skill_name) {
+    return activePeerSession.value.skill_name
+  }
+  if (activeCallRole.value === 'peer_teaching' && activePeer.value?.teaches?.length) {
+    return Array.isArray(activePeer.value.teaches) ? activePeer.value.teaches[0] : activePeer.value.teaches
+  }
+  if (activeCallRole.value === 'user_teaching' && currentUser.value?.skills_taught?.length) {
+    return Array.isArray(currentUser.value.skills_taught) ? currentUser.value.skills_taught[0] : currentUser.value.skills_taught
+  }
+  return 'Skill Exchange'
+})
+
+const formattedCallDuration = computed(() => {
+  const total = callDurationSeconds.value
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const pad = (n) => String(n).padStart(2, '0')
+  if (h > 0) {
+    return `${h}:${pad(m)}:${pad(s)}`
+  }
+  return `${pad(m)}:${pad(s)}`
+})
+
+const startCallTimer = () => {
+  if (callTimerInterval) return
+  callDurationSeconds.value = 0
+  callTimerInterval = setInterval(() => {
+    callDurationSeconds.value++
+  }, 1000)
+}
+
+const stopCallTimer = () => {
+  if (callTimerInterval) {
+    clearInterval(callTimerInterval)
+    callTimerInterval = null
+  }
+}
+
+const toggleTeacherRole = () => {
+  activeCallRole.value = activeCallRole.value === 'user_teaching' ? 'peer_teaching' : 'user_teaching'
+}
+
+const toggleCallMinimized = () => {
+  isCallMinimized.value = !isCallMinimized.value
+}
+
+const toggleBrowserFullscreen = () => {
+  if (typeof document === 'undefined') return
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {})
+    isBrowserFullscreen.value = true
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {})
+      isBrowserFullscreen.value = false
+    }
+  }
+}
+
+const recordTeachingSession = async (durationSec) => {
+  if (durationSec < 5) return null
+
+  const isUserTeacher = activeCallRole.value === 'user_teaching'
+  const teacherId = isUserTeacher ? currentUser.value?.id : activePeer.value?.id
+  const learnerId = isUserTeacher ? activePeer.value?.id : currentUser.value?.id
+  const skillName = currentCallSkillName.value || 'Skill Exchange'
+  const sessionId = activePeerSession.value?.id || null
+
+  if (!teacherId || !learnerId) return null
+
+  try {
+    const res = await $fetch('/api/sessions/record-teaching-time', {
+      method: 'POST',
+      body: {
+        teacher_id: teacherId,
+        learner_id: learnerId,
+        duration_seconds: durationSec,
+        skill_name: skillName,
+        session_id: sessionId
+      }
+    })
+
+    lastSummaryData.durationFormatted = res.recorded_duration_formatted || `${durationSec}s`
+    lastSummaryData.teacherName = activeTeacherName.value
+    lastSummaryData.totalTeachingFormatted = res.total_teaching_formatted || ''
+    lastSummaryData.skillName = skillName
+    showCallSummaryModal.value = true
+
+    await fetchCurrentUser()
+    return res
+  } catch (err) {
+    console.error('Failed to record teaching time:', err)
+    return null
+  }
+}
 
 let peerConnection = null
 let localStream = null
@@ -2435,6 +2827,8 @@ const setupSocket = () => {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
       console.log('[WebRTC] Remote description set (answer)')
       await drainQueuedIce()
+      callStatus.value = 'connected'
+      startCallTimer()
     }
   })
 
@@ -2482,6 +2876,19 @@ const setupSocket = () => {
 
   socket.value.on('call_ended', () => {
     endCall(true)
+  })
+
+  socket.value.on('teaching_time_recorded', (data) => {
+    if (currentUser.value?.id === data.teacher_id) {
+      currentUser.value.total_teaching_seconds = data.total_teaching_seconds
+    } else if (currentUser.value?.id === data.learner_id) {
+      currentUser.value.total_learning_seconds = data.total_learning_seconds
+    }
+    lastSummaryData.durationFormatted = data.duration_formatted
+    lastSummaryData.teacherName = data.teacher_name
+    lastSummaryData.totalTeachingFormatted = data.total_teaching_formatted
+    lastSummaryData.skillName = data.skill_name
+    showCallSummaryModal.value = true
   })
 }
 
@@ -2768,6 +3175,10 @@ const startCall = async () => {
   pendingICECandidates = []
   iceRetryCount = 0
   iceTransportPolicy = 'all'
+  hasRecordedCall = false
+  hasRemoteVideo.value = false
+  isRemoteVideoMuted.value = false
+  determineInitialCallRole()
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert("⚠️ Camera/Microphone Blocked by Browser:\n\nPlease open this site over HTTPS or enable insecure origin flags.")
@@ -2782,6 +3193,8 @@ const startCall = async () => {
     console.log('[WebRTC] Got local stream:', localStream.getTracks().map(t => t.kind))
 
     isCallActive.value = true
+    callStatus.value = 'calling'
+    isCallMinimized.value = false
     await nextTick()
     attachStream(localVideoRef, localStream)
 
@@ -2823,6 +3236,9 @@ const acceptCall = async () => {
   if (!incomingCall.value) return
   const callData = incomingCall.value
   incomingCall.value = null
+  hasRecordedCall = false
+  hasRemoteVideo.value = false
+  isRemoteVideoMuted.value = false
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     alert("⚠️ Camera/Microphone Blocked by Browser:\n\nPlease enable the insecure origin flag in chrome://flags or run launch-testing-browser.bat.")
@@ -2832,6 +3248,7 @@ const acceptCall = async () => {
   currentCallPeerId = callData.caller_id
   const callerPeer = peers.value.find(p => p.id === callData.caller_id)
   activePeer.value = callerPeer || { id: callData.caller_id, full_name: callData.caller_name || 'Caller' }
+  determineInitialCallRole()
 
   try {
     await fetchTurnCredentials()
@@ -2842,6 +3259,9 @@ const acceptCall = async () => {
     console.log('[WebRTC] Got local stream (accept):', localStream.getTracks().map(t => t.kind))
 
     isCallActive.value = true
+    callStatus.value = 'connected'
+    isCallMinimized.value = false
+    startCallTimer()
     await nextTick()
     attachStream(localVideoRef, localStream)
 
@@ -2933,6 +3353,10 @@ const createPeerConnection = () => {
   peerConnection.onconnectionstatechange = () => {
     const state = peerConnection?.connectionState || 'unknown'
     console.log('[WebRTC] Connection state:', state)
+    if (state === 'connected') {
+      callStatus.value = 'connected'
+      startCallTimer()
+    }
     updateCallDebug()
   }
 
@@ -2943,6 +3367,11 @@ const createPeerConnection = () => {
     }
     if (!remoteStream.getTracks().some(t => t.id === event.track.id)) {
       remoteStream.addTrack(event.track)
+    }
+    if (event.track.kind === 'video') {
+      hasRemoteVideo.value = true
+      event.track.onmute = () => { isRemoteVideoMuted.value = true }
+      event.track.onunmute = () => { isRemoteVideoMuted.value = false }
     }
     attachStream(remoteVideoRef, remoteStream)
     updateCallDebug()
@@ -3001,9 +3430,17 @@ const stopScreenShare = () => {
   isScreenSharing.value = false
 }
 
-const endCall = () => {
+const endCall = async (fromRemote = false) => {
   const targetId = currentCallPeerId || activePeer.value?.id
-  if (targetId && socket.value && isCallActive.value) {
+  const finalDuration = callDurationSeconds.value
+  stopCallTimer()
+
+  if (!hasRecordedCall && finalDuration >= 5) {
+    hasRecordedCall = true
+    await recordTeachingSession(finalDuration)
+  }
+
+  if (targetId && socket.value && isCallActive.value && !fromRemote) {
     socket.value.emit('end_call', { target_user_id: targetId })
   }
   if (peerConnection) {
@@ -3021,10 +3458,14 @@ const endCall = () => {
   currentCallPeerId = null
   pendingICECandidates = []
   isCallActive.value = false
+  callStatus.value = 'idle'
+  isCallMinimized.value = false
   isMicMuted.value = false
   isCameraOff.value = false
   isScreenSharing.value = false
   isAutoplayBlocked.value = false
+  hasRemoteVideo.value = false
+  isRemoteVideoMuted.value = false
   callDebugStatus.value = ''
 }
 </script>

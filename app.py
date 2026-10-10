@@ -131,7 +131,7 @@ def get_current_user():
         return jsonify({"error": "Not authenticated"}), 401
         
     db = get_db()
-    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, qualifications, experience, github, linkedin, xp, level, streak_count, time_credits, avatar_color, created_at, rating_avg, rating_count, total_sessions, skills_taught, skills_learned FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, qualifications, experience, github, linkedin, xp, level, streak_count, time_credits, avatar_color, created_at, rating_avg, rating_count, total_sessions, skills_taught, skills_learned, total_teaching_seconds, total_learning_seconds FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     
     if user is None:
         session.clear()
@@ -670,7 +670,7 @@ def update_profile():
 @app.route('/api/user/<username>', methods=['GET'])
 def get_public_profile(username):
     db = get_db()
-    user = db.execute('SELECT id, username, full_name, department, semester, xp, level, avatar_color FROM users WHERE username = ?', (username,)).fetchone()
+    user = db.execute('SELECT id, username, full_name, department, semester, xp, level, avatar_color, rating_avg, rating_count, total_sessions, total_teaching_seconds, total_learning_seconds FROM users WHERE username = ?', (username,)).fetchone()
     if not user: return jsonify({"error": "User not found"}), 404
     
     skills = db.execute('SELECT skill_name, skill_type FROM user_skills WHERE user_id = ?', (user['id'],)).fetchall()
@@ -1256,6 +1256,33 @@ def init_sessions_db(db):
             UNIQUE(session_id, reviewer_id)
         )
     ''')
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS teaching_call_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            teacher_id INTEGER NOT NULL,
+            learner_id INTEGER NOT NULL,
+            skill_name TEXT NOT NULL,
+            session_id INTEGER,
+            duration_seconds INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (teacher_id) REFERENCES users(id),
+            FOREIGN KEY (learner_id) REFERENCES users(id)
+        )
+    ''')
+
+    cursor = db.cursor()
+    cursor.execute("PRAGMA table_info(users)")
+    u_cols = [row[1] for row in cursor.fetchall()]
+    if 'total_teaching_seconds' not in u_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN total_teaching_seconds INTEGER DEFAULT 0")
+    if 'total_learning_seconds' not in u_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN total_learning_seconds INTEGER DEFAULT 0")
+
+    cursor.execute("PRAGMA table_info(exchange_sessions)")
+    s_cols = [row[1] for row in cursor.fetchall()]
+    if 'actual_duration_seconds' not in s_cols:
+        cursor.execute("ALTER TABLE exchange_sessions ADD COLUMN actual_duration_seconds INTEGER DEFAULT 0")
+
     db.commit()
 
 
@@ -1712,6 +1739,123 @@ def get_session_reviews(session_id):
     return jsonify({"reviews": reviews}), 200
 
 
+@app.route('/api/sessions/record-teaching-time', methods=['POST'])
+def record_teaching_time():
+    """Records duration of a completed/ongoing video teaching call in the teacher's official record.
+    Increments total_teaching_seconds for teacher and total_learning_seconds for learner,
+    creates an entry in teaching_call_logs, renews skill decay heartbeat, and notifies peers via socket.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    current_user_id = session['user_id']
+    data = request.json or {}
+    teacher_id = data.get('teacher_id')
+    learner_id = data.get('learner_id')
+    duration_seconds = int(data.get('duration_seconds') or 0)
+    skill_name = (data.get('skill_name') or 'Skill Exchange').strip()
+    session_id = data.get('session_id')
+
+    if not teacher_id or not learner_id:
+        return jsonify({"error": "teacher_id and learner_id are required"}), 400
+
+    teacher_id = int(teacher_id)
+    learner_id = int(learner_id)
+
+    # Validate caller is part of the session/call
+    if current_user_id not in (teacher_id, learner_id):
+        return jsonify({"error": "Unauthorized to log duration for this call"}), 403
+
+    if duration_seconds < 5:
+        return jsonify({"error": "Call duration too short to record (< 5 seconds)"}), 400
+
+    db = get_db()
+    init_sessions_db(db)
+
+    # 1. Update teacher total_teaching_seconds
+    db.execute('''
+        UPDATE users 
+        SET total_teaching_seconds = COALESCE(total_teaching_seconds, 0) + ? 
+        WHERE id = ?
+    ''', (duration_seconds, teacher_id))
+
+    # 2. Update learner total_learning_seconds
+    db.execute('''
+        UPDATE users 
+        SET total_learning_seconds = COALESCE(total_learning_seconds, 0) + ? 
+        WHERE id = ?
+    ''', (duration_seconds, learner_id))
+
+    # 3. If tied to an exchange_session, record actual_duration_seconds
+    if session_id:
+        try:
+            db.execute('''
+                UPDATE exchange_sessions 
+                SET actual_duration_seconds = COALESCE(actual_duration_seconds, 0) + ? 
+                WHERE id = ?
+            ''', (duration_seconds, int(session_id)))
+        except Exception as e:
+            app.logger.warning(f"Error updating exchange_session duration: {e}")
+
+    # 4. Insert into teaching_call_logs
+    db.execute('''
+        INSERT INTO teaching_call_logs (teacher_id, learner_id, skill_name, session_id, duration_seconds)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (teacher_id, learner_id, skill_name, session_id, duration_seconds))
+
+    # 5. Heartbeat skill verification for teacher (keeps decay timer active)
+    if skill_name:
+        db.execute('''
+            UPDATE skill_verifications 
+            SET last_activity_at = CURRENT_TIMESTAMP,
+                activity_type = 'live_teaching_call',
+                sessions_taught = COALESCE(sessions_taught, 0) + 1
+            WHERE user_id = ? AND LOWER(skill_name) = LOWER(?)
+        ''', (teacher_id, skill_name))
+
+    db.commit()
+
+    # 6. Fetch updated record stats
+    updated_teacher = db.execute('SELECT total_teaching_seconds, full_name, username FROM users WHERE id = ?', (teacher_id,)).fetchone()
+    updated_learner = db.execute('SELECT total_learning_seconds, full_name, username FROM users WHERE id = ?', (learner_id,)).fetchone()
+
+    minutes = duration_seconds // 60
+    secs = duration_seconds % 60
+    formatted_duration = f"{minutes}m {secs}s" if minutes > 0 else f"{secs}s"
+
+    tot_teach = (updated_teacher['total_teaching_seconds'] or 0) if updated_teacher else duration_seconds
+    tot_hours = tot_teach // 3600
+    tot_mins = (tot_teach % 3600) // 60
+    formatted_total_teaching = f"{tot_hours}h {tot_mins}m" if tot_hours > 0 else f"{tot_mins}m"
+
+    event_payload = {
+        "teacher_id": teacher_id,
+        "teacher_name": (updated_teacher['full_name'] or updated_teacher['username']) if updated_teacher else 'Teacher',
+        "learner_id": learner_id,
+        "duration_seconds": duration_seconds,
+        "duration_formatted": formatted_duration,
+        "skill_name": skill_name,
+        "session_id": session_id,
+        "total_teaching_seconds": tot_teach,
+        "total_teaching_formatted": formatted_total_teaching
+    }
+
+    try:
+        socketio.emit('teaching_time_recorded', event_payload, room=f"user_{teacher_id}")
+        socketio.emit('teaching_time_recorded', event_payload, room=f"user_{learner_id}")
+    except Exception as e:
+        app.logger.warning(f"Error emitting teaching_time_recorded: {e}")
+
+    return jsonify({
+        "status": "success",
+        "message": f"Successfully recorded {formatted_duration} of teaching time!",
+        "recorded_duration_seconds": duration_seconds,
+        "recorded_duration_formatted": formatted_duration,
+        "total_teaching_seconds": tot_teach,
+        "total_teaching_formatted": formatted_total_teaching
+    }), 200
+
+
 # =============================================================================
 # RESUME & LINKEDIN-STYLE PROFILE SYSTEM
 # =============================================================================
@@ -1724,7 +1868,7 @@ def get_resume():
     user_id = session['user_id']
     db = get_db()
     
-    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, experience, github, linkedin, time_credits, skills_taught, rating_avg, xp, level FROM users WHERE id = ?', (user_id,)).fetchone()
+    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, experience, github, linkedin, time_credits, skills_taught, rating_avg, xp, level, total_teaching_seconds, total_learning_seconds FROM users WHERE id = ?', (user_id,)).fetchone()
     if not user:
         return jsonify({"error": "User not found"}), 404
         

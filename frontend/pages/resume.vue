@@ -976,8 +976,8 @@
                   <div class="bg-surface-container-lowest rounded-xl p-2.5 border border-surface-container shadow-2xs flex items-start gap-2">
                     <span class="material-symbols-outlined text-primary text-lg shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">schedule</span>
                     <div>
-                      <p class="text-xs font-headline font-bold text-on-surface">TimeBank Escrow</p>
-                      <p class="text-[10px] font-mono text-on-surface-variant">{{ user?.time_credits ?? 5 }} credits • {{ user?.total_sessions || 0 }} sessions</p>
+                      <p class="text-xs font-headline font-bold text-on-surface">TimeBank Escrow &amp; Teaching</p>
+                      <p class="text-[10px] font-mono text-on-surface-variant">{{ user?.time_credits ?? 5 }} credits • {{ user?.total_sessions || 0 }} sessions • {{ formatResumeTeaching(user?.total_teaching_seconds) }} taught</p>
                       <span class="inline-block mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-secondary-container text-on-secondary-container">
                         {{ user?.rating_avg ? `${user.rating_avg}★ Peer Rating` : 'Verified Campus Node' }}
                       </span>
@@ -1766,9 +1766,21 @@ const populateDefaultsFromUser = () => {
   }
 
   if (!resume.mentorship_desc) {
-    const teachingList = teaches.value.length > 0 ? teaches.value.slice(0, 2).join(' & ') : (user.value.department || 'core coursework')
-    resume.mentorship_desc = `Conducted verified 1-on-1 peer reviews, code walkthroughs, and tutoring sessions in ${teachingList} with positive learner evaluations on the SkillLoop campus protocol.`
+    const teachingList = teaches.value.length > 0 ? teaches.value.slice(0, 2).join(' & ') : (user.value?.department || 'core coursework')
+    const teachSec = user.value?.total_teaching_seconds || 0
+    const hours = Math.floor(teachSec / 3600)
+    const mins = Math.floor((teachSec % 3600) / 60)
+    const timeStr = hours > 0 ? `${hours}+ hours` : (mins > 0 ? `${mins} minutes` : '10+ hours')
+    resume.mentorship_desc = `Conducted ${timeStr} of verified 1-on-1 peer reviews, code walkthroughs, and tutoring sessions in ${teachingList} with positive learner evaluations on the SkillLoop campus protocol.`
   }
+}
+
+const formatResumeTeaching = (sec) => {
+  if (!sec || sec <= 0) return '0m'
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
 }
 
 const fetchResume = async () => {
