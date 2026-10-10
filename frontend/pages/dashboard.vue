@@ -2063,6 +2063,9 @@ const logout = async () => {
   try {
     await fetch('/api/logout', { method: 'POST', credentials: 'include' })
   } catch(e) {}
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('skillloop_auth_active')
+  }
   window.location.href = '/login'
 }
 </script>

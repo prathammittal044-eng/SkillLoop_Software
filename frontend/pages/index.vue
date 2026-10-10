@@ -18,13 +18,22 @@
 </nav>
 <!-- Trailing Action Buttons -->
 <div class="flex items-center gap-3">
-<NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-semibold text-primary border border-outline-variant hover:bg-surface-container transition-all duration-200 active:scale-95" to="/login">
-          Login
-        </NuxtLink>
-<NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-semibold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1.5" to="/register">
-<span>Get Started</span>
-<span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
-</NuxtLink>
+<template v-if="currentUser">
+  <NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-bold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-2" to="/dashboard">
+    <span class="material-symbols-outlined text-base">space_dashboard</span>
+    <span>Go to Dashboard</span>
+    <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
+  </NuxtLink>
+</template>
+<template v-else>
+  <NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-semibold text-primary border border-outline-variant hover:bg-surface-container transition-all duration-200 active:scale-95" to="/login">
+    Login
+  </NuxtLink>
+  <NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-semibold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1.5" to="/register">
+    <span>Get Started</span>
+    <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
+  </NuxtLink>
+</template>
 </div>
 </div>
 </header>
@@ -54,13 +63,22 @@
             </p>
 <!-- Call to Actions -->
 <div class="flex flex-wrap items-center gap-4 pt-2 w-full sm:w-auto">
-<NuxtLink class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl font-headline text-base font-bold bg-primary text-on-primary shadow-md hover:bg-primary-dim transition-all duration-200 active:scale-95" to="/register">
-<span>Get Started</span>
-<span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
-</NuxtLink>
-<NuxtLink class="w-full sm:w-auto inline-flex justify-center items-center px-7 py-3.5 rounded-xl font-headline text-base font-semibold border-2 border-outline-variant text-on-surface hover:bg-surface-container-low transition-all duration-200 active:scale-95" to="/login">
-                Login
-              </NuxtLink>
+<template v-if="currentUser">
+  <NuxtLink class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl font-headline text-base font-bold bg-primary text-on-primary shadow-md hover:bg-primary-dim transition-all duration-200 active:scale-95" to="/dashboard">
+    <span class="material-symbols-outlined text-lg">space_dashboard</span>
+    <span>Welcome back, {{ currentUser.full_name?.split(' ')[0] || currentUser.username }} — Open Dashboard</span>
+    <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+  </NuxtLink>
+</template>
+<template v-else>
+  <NuxtLink class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-7 py-3.5 rounded-xl font-headline text-base font-bold bg-primary text-on-primary shadow-md hover:bg-primary-dim transition-all duration-200 active:scale-95" to="/register">
+    <span>Get Started</span>
+    <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+  </NuxtLink>
+  <NuxtLink class="w-full sm:w-auto inline-flex justify-center items-center px-7 py-3.5 rounded-xl font-headline text-base font-semibold border-2 border-outline-variant text-on-surface hover:bg-surface-container-low transition-all duration-200 active:scale-95" to="/login">
+    Login
+  </NuxtLink>
+</template>
 </div>
 <!-- Trust proof micro-copy -->
 <div class="flex items-center gap-2 text-on-surface-variant font-label text-xs sm:text-sm pt-2">
@@ -257,5 +275,27 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
+const currentUser = ref(null)
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/user/me', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.user) {
+        currentUser.value = data.user
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('skillloop_auth_active', 'true')
+        }
+      }
+    } else {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('skillloop_auth_active')
+      }
+    }
+  } catch (e) {}
+})
 </script>
 

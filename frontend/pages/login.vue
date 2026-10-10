@@ -93,6 +93,18 @@
               </div>
             </div>
 
+            <!-- Remember Me Checkbox -->
+            <div class="flex items-center justify-between text-xs pt-0.5">
+              <label class="flex items-center gap-2 cursor-pointer select-none text-on-surface-variant hover:text-on-surface">
+                <input
+                  type="checkbox"
+                  v-model="rememberMe"
+                  class="w-4 h-4 rounded text-primary focus:ring-primary border-surface-container-high bg-surface-bright"
+                />
+                <span class="font-medium">Remember me on this device (30 days)</span>
+              </label>
+            </div>
+
             <!-- Submit -->
             <button
               type="submit"
@@ -128,15 +140,34 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const username = ref('')
 const password = ref('')
+const rememberMe = ref(true)
 const error = ref(null)
 const loading = ref(false)
 const showPassword = ref(false)
+
+onMounted(async () => {
+  // If user already has an active session, automatically redirect to dashboard
+  try {
+    const res = await fetch('/api/user/me', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.user) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('skillloop_auth_active', 'true')
+        }
+        const target = route.query.redirect || '/dashboard'
+        window.location.href = target
+      }
+    }
+  } catch (e) {}
+})
 
 const handleLogin = async () => {
   error.value = null
@@ -146,11 +177,19 @@ const handleLogin = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ username: username.value, password: password.value })
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value,
+        remember_me: rememberMe.value
+      })
     })
     const data = await res.json()
     if (res.ok) {
-      window.location.href = '/dashboard'
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('skillloop_auth_active', 'true')
+      }
+      const target = route.query.redirect || '/dashboard'
+      window.location.href = target
     } else {
       error.value = data.error || 'Invalid credentials. Please try again.'
     }

@@ -151,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -167,6 +167,21 @@ const form = reactive({
 
 const error = ref(null)
 const loading = ref(false)
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/user/me', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.user) {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('skillloop_auth_active', 'true')
+        }
+        window.location.href = '/dashboard'
+      }
+    }
+  } catch (e) {}
+})
 
 const handleRegister = async () => {
   error.value = null
@@ -188,6 +203,9 @@ const handleRegister = async () => {
     const data = await res.json()
 
     if (res.ok) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('skillloop_auth_active', 'true')
+      }
       window.location.href = '/dashboard'
     } else {
       error.value = data.error || 'Registration failed. Please try again.'

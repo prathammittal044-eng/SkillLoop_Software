@@ -57,9 +57,9 @@
             {{ (currentUser.full_name || currentUser.username || 'U').charAt(0) }}
           </div>
 
-          <NuxtLink to="/login" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
+          <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
             Logout
-          </NuxtLink>
+          </button>
         </div>
       </div>
     </header>
@@ -2070,11 +2070,24 @@ const fetchCurrentUser = async () => {
       const data = await res.json()
       currentUser.value = data.user
     } else {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('skillloop_auth_active')
+      }
       window.location.href = '/login'
     }
   } catch (e) {
     console.error(e)
   }
+}
+
+const logout = async () => {
+  try {
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' })
+  } catch(e) {}
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('skillloop_auth_active')
+  }
+  window.location.href = '/login'
 }
 
 // ─── Session Methods (Pillar 1) ──────────────────────────────────────────────

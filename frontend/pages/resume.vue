@@ -53,9 +53,9 @@
             {{ (resume.profile.full_name || user?.full_name || user?.username || 'P').charAt(0) }}
           </div>
 
-          <NuxtLink to="/login" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
+          <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
             Logout
-          </NuxtLink>
+          </button>
         </div>
       </div>
     </header>
@@ -1896,6 +1896,16 @@ const polishWithAi = async (field = 'summary') => {
 // 1-Click PDF Export
 const exportPdf = () => {
   window.print()
+}
+
+const logout = async () => {
+  try {
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' })
+  } catch(e) {}
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('skillloop_auth_active')
+  }
+  window.location.href = '/login'
 }
 
 onMounted(async () => {

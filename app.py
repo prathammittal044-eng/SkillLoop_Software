@@ -91,9 +91,11 @@ def register():
         db.commit()
         
         user_id = cursor.lastrowid
+        session.permanent = True
         session['user_id'] = user_id
         session['username'] = username
         session['full_name'] = full_name
+        session.modified = True
         
         return jsonify({"message": "Registration successful", "user_id": user_id}), 201
     except Exception as e:
@@ -107,6 +109,7 @@ def login():
 
     username = data.get('username', '').strip()
     password = data.get('password', '')
+    remember_me = data.get('remember_me', True)
     
     if not username or not password:
         return jsonify({"error": "Please enter username and password"}), 400
@@ -119,11 +122,21 @@ def login():
     if user is None or not check_password_hash(user['password_hash'], password):
         return jsonify({"error": "Invalid username or password"}), 401
         
+    session.permanent = bool(remember_me)
     session['user_id'] = user['id']
     session['username'] = user['username']
     session['full_name'] = user['full_name']
+    session.modified = True
     
-    return jsonify({"message": "Logged in successfully", "user": {"id": user['id'], "username": user['username'], "full_name": user['full_name']}}), 200
+    return jsonify({
+        "message": "Logged in successfully",
+        "user": {
+            "id": user['id'],
+            "username": user['username'],
+            "full_name": user['full_name'],
+            "avatar_color": user['avatar_color']
+        }
+    }), 200
 
 @app.route('/api/user/me', methods=['GET'])
 def get_current_user():
@@ -137,12 +150,16 @@ def get_current_user():
         session.clear()
         return jsonify({"error": "User not found"}), 404
         
+    session.modified = True
     return jsonify({"user": dict(user)}), 200
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
     session.clear()
-    return jsonify({"message": "Logged out successfully"}), 200
+    resp = jsonify({"message": "Logged out successfully"})
+    cookie_name = app.config.get('SESSION_COOKIE_NAME', 'skillloop_session')
+    resp.delete_cookie(cookie_name)
+    return resp, 200
 
 @app.route('/api/user/xp', methods=['POST'])
 def add_xp():
