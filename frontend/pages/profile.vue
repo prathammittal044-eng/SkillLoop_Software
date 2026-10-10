@@ -63,21 +63,19 @@
       <div class="bg-surface-container-lowest rounded-3xl overflow-hidden border border-surface-container shadow-sm">
 
         <!-- Banner -->
-        <div class="relative h-44 group" :style="bannerStyle">
+        <div class="relative h-44 overflow-hidden rounded-t-3xl" :style="bannerStyle">
           <!-- Banner Image -->
           <img v-if="profile.banner_image" :src="profile.banner_image" class="w-full h-full object-cover" />
 
-          <!-- Upload Banner Overlay (own profile only) -->
-          <label v-if="isOwnProfile" class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all cursor-pointer opacity-0 group-hover:opacity-100">
-            <div class="flex flex-col items-center gap-1 text-white">
-              <span class="material-symbols-outlined text-3xl">add_photo_alternate</span>
-              <span class="text-xs font-semibold">Change Banner</span>
-            </div>
+          <!-- Visible "Change Banner" button (own profile only) -->
+          <label v-if="isOwnProfile" class="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-semibold cursor-pointer shadow-md transition-all z-20 backdrop-blur-sm">
+            <span class="material-symbols-outlined text-base">photo_camera</span>
+            <span>Change Banner</span>
             <input type="file" accept="image/*" class="hidden" @change="uploadBanner" :disabled="uploadingBanner" />
           </label>
 
           <!-- Uploading spinner -->
-          <div v-if="uploadingBanner" class="absolute inset-0 flex items-center justify-center bg-black/40">
+          <div v-if="uploadingBanner" class="absolute inset-0 flex items-center justify-center bg-black/40 z-30">
             <div class="w-8 h-8 rounded-full border-4 border-white/30 border-t-white animate-spin"></div>
           </div>
         </div>
@@ -86,17 +84,17 @@
         <div class="px-6 pb-6 relative">
           <!-- Avatar -->
           <div class="relative -mt-12 mb-3 w-fit">
-            <div class="w-24 h-24 rounded-full border-4 border-surface-container-lowest shadow-lg overflow-hidden flex items-center justify-center font-bold text-3xl text-on-primary"
+            <div class="w-24 h-24 rounded-full border-4 border-surface-container-lowest shadow-lg overflow-hidden flex items-center justify-center font-bold text-3xl text-on-primary bg-primary"
                  :style="avatarStyle(profile)">
               <img v-if="profile.profile_picture" :src="profile.profile_picture" class="w-full h-full object-cover" />
               <span v-else>{{ (profile.full_name || profile.username || 'U').charAt(0) }}</span>
             </div>
             <!-- Upload avatar button (own profile) -->
-            <label v-if="isOwnProfile" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center cursor-pointer shadow-md hover:bg-primary-dim transition-colors">
+            <label v-if="isOwnProfile" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center cursor-pointer shadow-md hover:bg-primary-dim transition-all z-20 ring-2 ring-surface-container-lowest" title="Upload profile picture">
               <span class="material-symbols-outlined text-base">photo_camera</span>
               <input type="file" accept="image/*" class="hidden" @change="uploadAvatar" :disabled="uploadingAvatar" />
             </label>
-            <div v-if="uploadingAvatar" class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+            <div v-if="uploadingAvatar" class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center z-30">
               <div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             </div>
           </div>
@@ -518,12 +516,16 @@ async function uploadAvatar(event) {
   form.append('file', file)
   try {
     const res = await fetch('/api/user/upload-avatar', { method: 'POST', credentials: 'include', body: form })
+    const data = await res.json()
     if (res.ok) {
-      const data = await res.json()
       profile.value.profile_picture = data.url + '?t=' + Date.now()
       if (me.value) me.value.profile_picture = profile.value.profile_picture
+    } else {
+      alert(data.error || 'Failed to upload profile picture.')
     }
-  } catch {} finally {
+  } catch (e) {
+    alert('Network error while uploading profile picture. Is the server running?')
+  } finally {
     uploadingAvatar.value = false
     event.target.value = ''
   }
@@ -537,15 +539,20 @@ async function uploadBanner(event) {
   form.append('file', file)
   try {
     const res = await fetch('/api/user/upload-banner', { method: 'POST', credentials: 'include', body: form })
+    const data = await res.json()
     if (res.ok) {
-      const data = await res.json()
       profile.value.banner_image = data.url + '?t=' + Date.now()
+    } else {
+      alert(data.error || 'Failed to upload banner image.')
     }
-  } catch {} finally {
+  } catch (e) {
+    alert('Network error while uploading banner. Is the server running?')
+  } finally {
     uploadingBanner.value = false
     event.target.value = ''
   }
 }
+
 
 async function sendConnect() {
   if (!profile.value || connStatus.value) return

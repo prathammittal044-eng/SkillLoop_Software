@@ -188,14 +188,15 @@ def upload_avatar():
     if 'file' not in request.files: return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
     if not f.filename or not _allowed_image(f.filename):
-        return jsonify({"error": "Invalid image file"}), 400
+        return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
     ext = f.filename.rsplit('.', 1)[1].lower()
     filename = f"avatar_{session['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
-    f.save(os.path.join(PROFILE_UPLOADS, filename))
-    url = f"/uploads/profiles/{filename}"
-    get_db().execute("UPDATE users SET profile_picture = ? WHERE id = ?", (url, session['user_id']))
-    get_db().execute("SELECT 1")  # keep connection alive
-    get_db().commit()
+    filepath = os.path.join(PROFILE_UPLOADS, filename)
+    f.save(filepath)
+    url = f"/api/uploads/profiles/{filename}"
+    db = get_db()
+    db.execute("UPDATE users SET profile_picture = ? WHERE id = ?", (url, session['user_id']))
+    db.commit()
     return jsonify({"url": url}), 200
 
 @app.route('/api/user/upload-banner', methods=['POST'])
@@ -204,15 +205,18 @@ def upload_banner():
     if 'file' not in request.files: return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
     if not f.filename or not _allowed_image(f.filename):
-        return jsonify({"error": "Invalid image file"}), 400
+        return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
     ext = f.filename.rsplit('.', 1)[1].lower()
     filename = f"banner_{session['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
-    f.save(os.path.join(PROFILE_UPLOADS, filename))
-    url = f"/uploads/profiles/{filename}"
-    get_db().execute("UPDATE users SET banner_image = ? WHERE id = ?", (url, session['user_id']))
-    get_db().commit()
+    filepath = os.path.join(PROFILE_UPLOADS, filename)
+    f.save(filepath)
+    url = f"/api/uploads/profiles/{filename}"
+    db = get_db()
+    db.execute("UPDATE users SET banner_image = ? WHERE id = ?", (url, session['user_id']))
+    db.commit()
     return jsonify({"url": url}), 200
 
+@app.route('/api/uploads/profiles/<path:filename>')
 @app.route('/uploads/profiles/<path:filename>')
 def serve_profile_upload(filename):
     return send_from_directory(PROFILE_UPLOADS, filename)
