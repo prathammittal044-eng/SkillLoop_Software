@@ -1269,67 +1269,67 @@
           <!-- FULLSCREEN TOP BAR (Shown in full screen mode) -->
           <div
             v-if="!isCallMinimized"
-            class="h-16 px-6 bg-black/60 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shrink-0 z-30"
+            class="h-14 sm:h-16 px-3 sm:px-6 bg-black/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between shrink-0 z-30 gap-1.5 sm:gap-4"
           >
             <!-- Left: Session & Teacher Indicator -->
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-[#543ce0] text-white flex items-center justify-center shadow-md">
-                <span class="material-symbols-outlined text-xl">all_inclusive</span>
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div class="w-8 sm:w-9 h-8 sm:h-9 rounded-xl bg-[#543ce0] text-white flex items-center justify-center shadow-md shrink-0">
+                <span class="material-symbols-outlined text-base sm:text-xl">all_inclusive</span>
               </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold text-white uppercase tracking-wider font-headline">SkillLoop Live</span>
-                  <span class="text-white/30">•</span>
-                  <span class="text-xs font-semibold text-[#c084fc] bg-[#543ce0]/20 px-2.5 py-0.5 rounded-full border border-[#543ce0]/40">
+              <div class="min-w-0 flex flex-col justify-center">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wider font-headline truncate">SkillLoop Live</span>
+                  <span class="hidden md:inline text-white/30">•</span>
+                  <span class="hidden md:inline text-xs font-semibold text-[#c084fc] bg-[#543ce0]/20 px-2 py-0.5 rounded-full border border-[#543ce0]/40 truncate">
                     🎓 {{ currentCallSkillName }}
                   </span>
                 </div>
-                <div class="flex items-center gap-2 text-xs text-white/70 mt-0.5">
-                  <span>Teacher: <strong class="text-white">{{ activeTeacherName }}</strong></span>
+                <div class="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/70">
+                  <span class="truncate">Teacher: <strong class="text-white">{{ activeTeacherName }}</strong></span>
                   <button
                     @click="toggleTeacherRole"
-                    class="text-[10px] font-semibold text-[#c084fc] hover:text-white bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded transition-all"
+                    class="text-[9px] sm:text-[10px] font-semibold text-[#c084fc] hover:text-white bg-white/10 hover:bg-white/20 px-1.5 py-0.5 rounded transition-all shrink-0 whitespace-nowrap"
                     title="Click to switch who is teaching this session"
                   >
-                    ⇄ Switch Role
+                    ⇄ Switch
                   </button>
                 </div>
               </div>
             </div>
 
             <!-- Center: LIVE TEACHING TIMER & RECORDING STATUS -->
-            <div class="flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-inner">
-              <span class="relative flex h-2.5 w-2.5">
+            <div class="flex items-center gap-1.5 sm:gap-2 bg-black/70 backdrop-blur-md px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full border border-white/15 shadow-inner shrink-0">
+              <span class="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-rose-500"></span>
               </span>
-              <span class="text-xs font-semibold text-rose-300 font-mono tracking-wider">REC</span>
+              <span class="text-[10px] sm:text-xs font-semibold text-rose-300 font-mono tracking-wider">REC</span>
               <span class="text-white/40">|</span>
-              <div class="flex items-center gap-1.5 font-mono font-bold text-sm text-white">
-                <span class="material-symbols-outlined text-base text-amber-400">timer</span>
+              <div class="flex items-center gap-1 font-mono font-bold text-xs sm:text-sm text-white">
+                <span class="material-symbols-outlined text-sm sm:text-base text-amber-400">timer</span>
                 <span>{{ formattedCallDuration }}</span>
               </div>
-              <span class="hidden md:inline text-[11px] text-white/50 pl-1">
+              <span class="hidden lg:inline text-[11px] text-white/50 pl-1">
                 (Recording to {{ activeTeacherName }}'s record)
               </span>
             </div>
 
             <!-- Right: Quality & Window Controls -->
-            <div class="flex items-center gap-2">
-              <div class="hidden sm:flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full text-[11px] text-white/80 border border-white/10">
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div class="hidden xl:flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full text-[11px] text-white/80 border border-white/10">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>{{ iceConnectionStatus || 'HD Connected' }}</span>
               </div>
               <button
                 @click="toggleCallMinimized"
-                class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                class="w-8 sm:w-9 h-8 sm:h-9 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
                 title="Minimize to Picture-in-Picture to view chat"
               >
-                <span class="material-symbols-outlined text-lg">close_fullscreen</span>
+                <span class="material-symbols-outlined text-base sm:text-lg">close_fullscreen</span>
               </button>
               <button
                 @click="toggleBrowserFullscreen"
-                class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
+                class="hidden sm:flex w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white items-center justify-center transition-all"
                 title="Toggle Fullscreen"
               >
                 <span class="material-symbols-outlined text-lg">{{ isBrowserFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
@@ -1446,8 +1446,8 @@
             <div
               class="absolute rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30 transition-all duration-300"
               :class="isCallMinimized 
-                ? 'bottom-2 right-2 w-24 h-18' 
-                : (callStatus === 'calling' ? 'bottom-6 right-6 w-36 h-28 sm:w-44 sm:h-32' : 'bottom-20 right-6 w-36 h-28 sm:w-48 sm:h-36')"
+                ? 'bottom-2 right-2 w-20 h-16' 
+                : (callStatus === 'calling' ? 'bottom-6 right-3 sm:right-6 w-28 h-22 sm:w-44 sm:h-32' : 'bottom-16 sm:bottom-20 right-3 sm:right-6 w-28 h-22 sm:w-48 sm:h-36')"
             >
               <video
                 ref="localVideoRef"
@@ -1468,15 +1468,15 @@
               </div>
             </div>
 
-            <!-- Debug Status Banner (if active) -->
-            <div v-if="callDebugStatus && !isCallMinimized" class="absolute top-4 left-6 bg-black/80 backdrop-blur-md text-amber-300 text-[10px] font-mono py-1 px-3 rounded-lg border border-amber-400/30 z-20 pointer-events-none">
+            <!-- Debug Status Banner (visible during connecting/reconnecting) -->
+            <div v-if="callDebugStatus && !isCallMinimized && callStatus !== 'connected'" class="absolute top-2 left-2 sm:top-4 sm:left-6 bg-black/80 backdrop-blur-md text-amber-300 text-[9px] sm:text-[10px] font-mono py-0.5 sm:py-1 px-2 sm:px-3 rounded-lg border border-amber-400/30 z-20 pointer-events-none max-w-[90vw] truncate">
               {{ callDebugStatus }}
             </div>
           </div>
 
           <!-- BOTTOM CONTROLS DOCK (Zoom / Google Meet Style) -->
           <div
-            class="py-3 px-6 bg-black/80 backdrop-blur-xl border-t border-white/10 flex items-center justify-center gap-3 shrink-0 z-30"
+            class="py-2.5 sm:py-3 px-3 sm:px-6 bg-black/85 backdrop-blur-xl border-t border-white/10 flex items-center justify-center gap-2 sm:gap-3 shrink-0 z-30"
             :class="{ 'py-2 px-3 gap-2': isCallMinimized }"
           >
             <!-- Microphone Mute/Unmute -->
@@ -1484,12 +1484,12 @@
               @click="toggleMic"
               class="rounded-full flex items-center justify-center transition-all active:scale-90"
               :class="[
-                isCallMinimized ? 'w-8 h-8' : 'w-11 h-11',
+                isCallMinimized ? 'w-8 h-8' : 'w-10 sm:w-11 h-10 sm:h-11',
                 isMicMuted ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' : 'bg-white/15 hover:bg-white/25 text-white'
               ]"
               :title="isMicMuted ? 'Unmute Mic' : 'Mute Mic'"
             >
-              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-xl'">
+              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-lg sm:text-xl'">
                 {{ isMicMuted ? 'mic_off' : 'mic' }}
               </span>
             </button>
@@ -1499,21 +1499,21 @@
               @click="toggleCamera"
               class="rounded-full flex items-center justify-center transition-all active:scale-90"
               :class="[
-                isCallMinimized ? 'w-8 h-8' : 'w-11 h-11',
+                isCallMinimized ? 'w-8 h-8' : 'w-10 sm:w-11 h-10 sm:h-11',
                 isCameraOff ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30' : 'bg-white/15 hover:bg-white/25 text-white'
               ]"
               :title="isCameraOff ? 'Turn Camera On' : 'Turn Camera Off'"
             >
-              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-xl'">
+              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-lg sm:text-xl'">
                 {{ isCameraOff ? 'videocam_off' : 'videocam' }}
               </span>
             </button>
 
-            <!-- Screen Share -->
+            <!-- Screen Share (Desktop only) -->
             <button
               v-if="!isCallMinimized"
               @click="toggleScreenShare"
-              class="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
+              class="hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-all active:scale-90"
               :class="isScreenSharing ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'bg-white/15 hover:bg-white/25 text-white'"
               :title="isScreenSharing ? 'Stop Screen Share' : 'Share Screen'"
             >
@@ -1524,22 +1524,22 @@
             <button
               v-if="!isCallMinimized"
               @click="toggleCallMinimized"
-              class="w-11 h-11 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-90"
+              class="w-10 sm:w-11 h-10 sm:h-11 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all active:scale-90"
               title="Minimize to view chat while staying on call"
             >
-              <span class="material-symbols-outlined text-xl">picture_in_picture_alt</span>
+              <span class="material-symbols-outlined text-lg sm:text-xl">picture_in_picture_alt</span>
             </button>
 
-            <div v-if="!isCallMinimized" class="h-6 w-px bg-white/20 mx-1"></div>
+            <div v-if="!isCallMinimized" class="h-6 w-px bg-white/20 mx-0.5 sm:mx-1"></div>
 
             <!-- End Call Button -->
             <button
               @click="endCall"
-              class="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-rose-600/40 transition-all active:scale-95"
-              :class="isCallMinimized ? 'h-8 px-3 text-[11px]' : 'h-11 px-6 text-sm'"
+              class="rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-rose-600/40 transition-all active:scale-95 shrink-0"
+              :class="isCallMinimized ? 'h-8 px-3 text-[11px]' : 'h-10 sm:h-11 px-4 sm:px-6 text-xs sm:text-sm'"
               title="End Call and save teaching time"
             >
-              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-xl'" style="font-variation-settings: 'FILL' 1;">call_end</span>
+              <span class="material-symbols-outlined" :class="isCallMinimized ? 'text-base' : 'text-lg sm:text-xl'" style="font-variation-settings: 'FILL' 1;">call_end</span>
               <span>End Call</span>
             </button>
           </div>
@@ -2514,7 +2514,7 @@ let pendingICECandidates = []  // Queue ICE candidates before remote desc is set
 let iceRetryCount = 0
 let iceWatchTimer = null
 let isMakingOffer = false
-let iceTransportPolicy = 'relay'
+let iceTransportPolicy = 'all'
 
 // Watch local video element and ensure camera stream is attached and playing
 watch(localVideoRef, (el) => {
@@ -2567,13 +2567,24 @@ const testMediaDevices = async () => {
 const fallbackIceServers = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:openrelay.metered.ca:80' },
+  {
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+      'turns:openrelay.metered.ca:443?transport=tcp'
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  },
   {
     urls: [
       'turn:staticauth.openrelay.metered.ca:80',
       'turn:staticauth.openrelay.metered.ca:443',
-      'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
-      'turns:staticauth.openrelay.metered.ca:443?transport=tcp'
+      'turn:staticauth.openrelay.metered.ca:443?transport=tcp'
     ],
     username: 'openrelayproject',
     credential: 'openrelayproject'
@@ -2595,12 +2606,17 @@ const getRtcConfig = () => ({
 
 const serializeCandidate = (candidate) => {
   if (!candidate) return null
-  if (typeof candidate.toJSON === 'function') return candidate.toJSON()
+  if (typeof candidate.toJSON === 'function') {
+    try {
+      const json = candidate.toJSON()
+      if (json && (json.candidate || json.candidate === '')) return json
+    } catch {}
+  }
   return {
-    candidate: candidate.candidate,
-    sdpMid: candidate.sdpMid,
-    sdpMLineIndex: candidate.sdpMLineIndex,
-    usernameFragment: candidate.usernameFragment
+    candidate: candidate.candidate != null ? candidate.candidate : '',
+    sdpMid: candidate.sdpMid != null ? String(candidate.sdpMid) : '0',
+    sdpMLineIndex: candidate.sdpMLineIndex != null ? Number(candidate.sdpMLineIndex) : 0,
+    usernameFragment: candidate.usernameFragment || ''
   }
 }
 
@@ -2626,8 +2642,12 @@ const drainQueuedIce = async () => {
   const queued = pendingICECandidates.splice(0)
   for (const candidate of queued) {
     try {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
-      console.log('[WebRTC] Drained queued ICE candidate')
+      let cand = candidate
+      if (typeof cand === 'string') cand = { candidate: cand, sdpMid: '0', sdpMLineIndex: 0 }
+      if (cand && typeof cand === 'object' && (cand.candidate || cand.candidate === '')) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(cand))
+        console.log('[WebRTC] Drained queued ICE candidate')
+      }
     } catch (e) {
       console.warn('[WebRTC] Error draining ICE candidate', e)
     }
@@ -3602,14 +3622,20 @@ const setupSocket = () => {
 
   socket.value.on('ice_candidate', async (data) => {
     if (!data.candidate) return
+    let cand = data.candidate
+    if (typeof cand === 'string') {
+      cand = { candidate: cand, sdpMid: '0', sdpMLineIndex: 0 }
+    }
+    if (!cand || typeof cand !== 'object' || (!cand.candidate && cand.candidate !== '')) return
+
     if (!peerConnection || !peerConnection.remoteDescription || !peerConnection.remoteDescription.type) {
       console.log('[WebRTC] Queuing ICE candidate (connection not ready)')
-      pendingICECandidates.push(data.candidate)
+      pendingICECandidates.push(cand)
       return
     }
     try {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
-      console.log('[WebRTC] Added ICE candidate')
+      await peerConnection.addIceCandidate(new RTCIceCandidate(cand))
+      console.log('[WebRTC] Added ICE candidate:', cand.candidate?.slice(0, 30))
     } catch (e) {
       console.error('[WebRTC] Error adding ICE candidate', e)
     }
@@ -4331,22 +4357,44 @@ const updateCallDebug = () => {
   callDebugStatus.value = `ICE: ${ice.toUpperCase()} | Conn: ${conn.toUpperCase()} | Remote: [${rTracks || 'none'}]`
 }
 
+const triggerIceRestart = async () => {
+  if (!peerConnection || isMakingOffer) return
+  const targetId = currentCallPeerId || activePeer.value?.id
+  if (!targetId) return
+
+  try {
+    isMakingOffer = true
+    console.log('[WebRTC] Triggering ICE restart offer to:', targetId)
+    const offer = await peerConnection.createOffer({ iceRestart: true })
+    await peerConnection.setLocalDescription(offer)
+    socket.value.emit('call_user', {
+      target_user_id: targetId,
+      offer: peerConnection.localDescription
+    })
+    isMakingOffer = false
+  } catch (err) {
+    isMakingOffer = false
+    console.error('[WebRTC] triggerIceRestart error:', err)
+  }
+}
+
 const createPeerConnection = () => {
   if (remoteStream) {
     remoteStream.getTracks().forEach(t => t.stop())
   }
   remoteStream = new MediaStream()
 
-  peerConnection = new RTCPeerConnection(rtcConfig)
+  peerConnection = new RTCPeerConnection(getRtcConfig())
   console.log('[WebRTC] PeerConnection created')
 
   peerConnection.onicecandidate = (event) => {
     const targetId = currentCallPeerId || activePeer.value?.id
     if (event.candidate && targetId) {
-      console.log('[WebRTC] Sending ICE candidate to:', targetId)
+      const serialized = serializeCandidate(event.candidate)
+      console.log('[WebRTC] Sending ICE candidate to:', targetId, serialized?.candidate?.slice(0, 30))
       socket.value.emit('ice_candidate', {
         target_user_id: targetId,
-        candidate: event.candidate
+        candidate: serialized
       })
     }
   }
@@ -4357,12 +4405,21 @@ const createPeerConnection = () => {
     iceConnectionStatus.value = `ICE: ${state}`
     updateCallDebug()
 
-    if (state === 'failed' && peerConnection?.restartIce) {
-      console.warn('[WebRTC] ICE failed, attempting automatic ICE restart...')
-      try {
-        peerConnection.restartIce()
-      } catch (err) {
-        console.error('[WebRTC] restartIce error:', err)
+    if (state === 'disconnected') {
+      if (iceWatchTimer) clearTimeout(iceWatchTimer)
+      iceWatchTimer = setTimeout(async () => {
+        if (peerConnection?.iceConnectionState === 'disconnected') {
+          console.warn('[WebRTC] ICE still disconnected, attempting restart...')
+          await triggerIceRestart()
+        }
+      }, 3000)
+    } else if (state === 'failed') {
+      console.warn('[WebRTC] ICE failed, triggering ICE restart...')
+      triggerIceRestart()
+    } else if (state === 'connected' || state === 'completed') {
+      if (iceWatchTimer) {
+        clearTimeout(iceWatchTimer)
+        iceWatchTimer = null
       }
     }
   }

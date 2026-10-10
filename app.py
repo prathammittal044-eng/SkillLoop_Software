@@ -1,4 +1,19 @@
 import os
+
+def _load_dotenv(path='.env'):
+    """Load key=value pairs from a .env file into os.environ (no external deps)."""
+    try:
+        with open(path, encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith('#') and '=' in _line:
+                    _k, _, _v = _line.partition('=')
+                    os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+    except FileNotFoundError:
+        pass
+
+_load_dotenv()
+
 import random
 import sqlite3
 import html as html_module

@@ -12,7 +12,27 @@ GOOGLE_STUN = [
     {'urls': 'stun:stun1.l.google.com:19302'},
     {'urls': 'stun:stun2.l.google.com:19302'},
     {'urls': 'stun:stun.cloudflare.com:3478'},
+    {'urls': 'stun:openrelay.metered.ca:80'},
 ]
+
+
+def _openrelay_public_servers():
+    """
+    Standard Open Relay Project public credentials provided by Metered.ca.
+    Works globally on ports 80 and 443 with UDP and TCP.
+    """
+    return [
+        {
+            'urls': [
+                'turn:openrelay.metered.ca:80',
+                'turn:openrelay.metered.ca:443',
+                'turn:openrelay.metered.ca:443?transport=tcp',
+                'turns:openrelay.metered.ca:443?transport=tcp'
+            ],
+            'username': 'openrelayproject',
+            'credential': 'openrelayproject'
+        }
+    ]
 
 
 def _hmac_turn_credential(secret, ttl_seconds=86400, user='skillloop'):
@@ -27,8 +47,6 @@ def _hmac_turn_credential(secret, ttl_seconds=86400, user='skillloop'):
 def _openrelay_static_auth_servers():
     """
     Metered Open Relay static-auth (same secret documented for Nextcloud Talk).
-    Gives a TURN relay when no Metered/Cloudflare API key is configured — required
-    for Indian CGNAT / same-WiFi hairpin failures where STUN-only ICE never connects.
     """
     secret = os.environ.get('OPENRELAY_STATIC_SECRET', 'openrelayprojectsecret').strip()
     username, credential = _hmac_turn_credential(secret)
@@ -139,8 +157,8 @@ def build_ice_servers():
         servers.extend(cloudflare)
         return servers
 
+    servers.extend(_openrelay_public_servers())
     servers.extend(_openrelay_static_auth_servers())
-    print('[TURN] Using OpenRelay static-auth HMAC fallback (set METERED_API_KEY for a dedicated free TURN app)', flush=True)
     return servers
 
 
