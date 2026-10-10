@@ -3,7 +3,7 @@
 
     <!-- Top Navigation (Pixel-Perfect with Dashboard & Chat) -->
     <header class="bg-surface-container-low shadow-sm sticky top-0 z-40">
-      <div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+      <div class="flex justify-between items-center w-full px-3.5 sm:px-6 py-2.5 sm:py-3 max-w-7xl mx-auto">
         <div class="flex items-center gap-8">
           <NuxtLink to="/" class="font-display text-xl font-bold text-primary tracking-tight flex items-center gap-2">
             <div class="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-sm">
@@ -29,17 +29,17 @@
             </span>
           </nav>
         </div>
-        <div class="flex items-center gap-3">
-          <div v-if="me" class="flex items-center gap-1.5 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-secondary-fixed shadow-sm text-sm font-label font-bold text-on-surface">
-            <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
-            <span>{{ me.time_credits || 0 }} Credits</span>
+        <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div v-if="me" class="flex items-center gap-1 bg-surface-container-lowest px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-secondary-fixed shadow-sm text-xs sm:text-sm font-label font-bold text-on-surface whitespace-nowrap shrink-0">
+            <span class="material-symbols-outlined text-primary text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
+            <span>{{ me.time_credits || 0 }} <span class="hidden sm:inline">Credits</span><span class="sm:hidden">cr</span></span>
           </div>
 
-          <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all" title="My Profile">
+          <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all shrink-0" title="My Profile">
             <img v-if="me?.profile_picture" :src="me.profile_picture" class="w-full h-full object-cover" />
             <span v-else>{{ (me?.full_name || me?.username || 'U').charAt(0) }}</span>
           </NuxtLink>
-          <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>
+          <button @click="logout" class="hidden sm:inline text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>
         </div>
       </div>
     </header>

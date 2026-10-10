@@ -40,25 +40,25 @@
             <span>Realtime Network Active</span>
           </div>
 
-          <div v-if="currentUser" class="flex items-center gap-1.5 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-secondary-fixed shadow-sm text-sm font-label font-bold text-on-surface whitespace-nowrap shrink-0">
-            <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
-            <span>{{ currentUser.time_credits || 0 }} Credits</span>
+          <div v-if="currentUser" class="flex items-center gap-1 bg-surface-container-lowest px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-secondary-fixed shadow-sm text-xs sm:text-sm font-label font-bold text-on-surface whitespace-nowrap shrink-0">
+            <span class="material-symbols-outlined text-primary text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
+            <span>{{ currentUser.time_credits || 0 }} <span class="hidden sm:inline">Credits</span><span class="sm:hidden">cr</span></span>
           </div>
 
           <NuxtLink
             to="/dashboard"
-            class="relative w-9 h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0"
+            class="hidden sm:flex relative w-9 h-9 rounded-full bg-surface-container-low border border-surface-container items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0"
             title="Dashboard"
           >
             <span class="material-symbols-outlined text-xl">space_dashboard</span>
           </NuxtLink>
 
-          <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all" title="My Profile">
+          <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all" title="My Profile">
             <img v-if="currentUser?.profile_picture" :src="currentUser.profile_picture" class="w-full h-full object-cover" />
             <span v-else>{{ (currentUser?.full_name || currentUser?.username || 'U').charAt(0) }}</span>
           </NuxtLink>
 
-          <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
+          <button @click="logout" class="hidden sm:inline text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
             Logout
           </button>
         </div>
@@ -286,8 +286,9 @@
       >
         <template v-if="activePeer">
           <!-- 1. CHAT HEADER -->
-          <header class="p-3 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex items-center justify-between gap-2 sm:gap-3 z-10 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+          <header class="p-2 sm:p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex items-center justify-between gap-1.5 sm:gap-3 z-10 shadow-sm flex-shrink-0">
+            <!-- Left: Back Button + Avatar + Name & Subtitle -->
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <!-- Mobile Back to List Button -->
               <button
                 @click="activePeer = null"
@@ -296,86 +297,86 @@
               >
                 <span class="material-symbols-outlined text-xl">arrow_back</span>
               </button>
+
               <NuxtLink :to="'/profile?u=' + activePeer.username" class="relative group shrink-0" title="View Profile">
-                <div class="w-10 sm:w-11 h-10 sm:h-11 rounded-xl bg-gradient-to-tr from-[#543ce0] to-[#99366c] text-white flex items-center justify-center font-bold font-headline text-base sm:text-lg shadow-sm overflow-hidden group-hover:ring-2 group-hover:ring-[#543ce0] transition-all">
+                <div class="w-9 sm:w-11 h-9 sm:h-11 rounded-xl bg-gradient-to-tr from-[#543ce0] to-[#99366c] text-white flex items-center justify-center font-bold font-headline text-sm sm:text-lg shadow-sm overflow-hidden group-hover:ring-2 group-hover:ring-[#543ce0] transition-all">
                   <img v-if="activePeer.profile_picture" :src="activePeer.profile_picture" class="w-full h-full object-cover" />
                   <span v-else>{{ (activePeer.full_name || activePeer.username).charAt(0).toUpperCase() }}</span>
                 </div>
-                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
               </NuxtLink>
-              <div>
-                <div class="flex items-center gap-2">
-                  <NuxtLink :to="'/profile?u=' + activePeer.username" class="font-headline font-bold text-base text-[#1e1a2b] hover:text-[#543ce0] hover:underline flex items-center gap-1.5">
-                    <span>{{ activePeer.full_name }}</span>
-                    <span class="material-symbols-outlined text-sm text-[#543ce0] opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <NuxtLink :to="'/profile?u=' + activePeer.username" class="font-headline font-bold text-sm sm:text-base text-[#1e1a2b] hover:text-[#543ce0] hover:underline truncate block">
+                    {{ activePeer.full_name }}
                   </NuxtLink>
-                  <span class="px-2 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[#543ce0] text-[10px] font-bold rounded-full">
+                  <span class="hidden sm:inline-block px-2 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[#543ce0] text-[10px] font-bold rounded-full shrink-0">
                     {{ activePeer.department }} • Sem {{ activePeer.semester }}
                   </span>
-                  <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                </div>
+                <!-- Subtitle: Online badge on mobile, full skill loop on desktop -->
+                <div class="flex items-center gap-1 text-[11px] text-[#6b6680] truncate">
+                  <span class="inline-flex sm:hidden items-center gap-1 text-emerald-600 font-medium">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
                   </span>
-                  <NuxtLink :to="'/profile?u=' + activePeer.username" class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-[#543ce0] bg-[#543ce0]/10 hover:bg-[#543ce0]/20 rounded-md transition-colors">
-                    <span class="material-symbols-outlined text-xs">person</span>
-                    Profile
-                  </NuxtLink>
-                </div>
-                <!-- Skill Loop Bar -->
-                <div class="flex items-center gap-2 mt-0.5 text-xs text-[#6b6680]">
-                  <span v-if="activePeer.learns && activePeer.learns.length" class="inline-flex items-center gap-1 font-semibold text-[#1e1a2b]">
-                    <span class="material-symbols-outlined text-xs text-[#543ce0]">school</span>
-                    <span>Wants: {{ activePeer.learns.slice(0, 2).join(', ') }}</span>
-                  </span>
-                  <span class="text-[#99366c] font-black">⇄</span>
-                  <span v-if="activePeer.teaches && activePeer.teaches.length" class="inline-flex items-center gap-1 font-semibold text-[#99366c]">
-                    <span class="material-symbols-outlined text-xs">psychology</span>
-                    <span>Offers: {{ activePeer.teaches.slice(0, 2).join(', ') }}</span>
+                  <span class="hidden sm:inline-flex items-center gap-2">
+                    <span v-if="activePeer.learns && activePeer.learns.length" class="inline-flex items-center gap-1 font-semibold text-[#1e1a2b]">
+                      <span class="material-symbols-outlined text-xs text-[#543ce0]">school</span>
+                      <span>Wants: {{ activePeer.learns.slice(0, 2).join(', ') }}</span>
+                    </span>
+                    <span class="text-[#99366c] font-black">⇄</span>
+                    <span v-if="activePeer.teaches && activePeer.teaches.length" class="inline-flex items-center gap-1 font-semibold text-[#99366c]">
+                      <span class="material-symbols-outlined text-xs">psychology</span>
+                      <span>Offers: {{ activePeer.teaches.slice(0, 2).join(', ') }}</span>
+                    </span>
                   </span>
                 </div>
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2">
+            <!-- Right: Action Buttons that never overlap -->
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
               <!-- Search In Chat Button -->
               <button
                 @click="showChatSearch = !showChatSearch"
-                class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all"
+                class="w-8 sm:w-9 h-8 sm:h-9 rounded-xl flex items-center justify-center border transition-all"
                 :class="showChatSearch ? 'bg-[#543ce0] text-white border-[#543ce0]' : 'bg-white border-[#eaddff] text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe]'"
                 title="Search messages in conversation"
               >
-                <span class="material-symbols-outlined text-lg">search</span>
+                <span class="material-symbols-outlined text-base sm:text-lg">search</span>
               </button>
 
-              <!-- Schedule Session Button -->
+              <!-- Schedule Session Button (Icon on mobile, text on desktop) -->
               <button
                 @click="openBookModal(activePeer)"
-                class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#543ce0]/10 to-[#99366c]/10 border border-[#543ce0]/30 hover:border-[#543ce0] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-xs transition-all transform hover:-translate-y-0.5 active:scale-95"
+                class="h-8 sm:h-9 px-2 sm:px-3 rounded-xl bg-gradient-to-r from-[#543ce0]/10 to-[#99366c]/10 border border-[#543ce0]/30 hover:border-[#543ce0] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
                 title="Schedule a dedicated skill exchange session"
               >
                 <span class="material-symbols-outlined text-base">calendar_add_on</span>
-                <span class="hidden sm:inline">Schedule Session</span>
+                <span class="hidden sm:inline">Schedule</span>
               </button>
 
-              <!-- Test Camera & Mic Button -->
+              <!-- Test Camera & Mic Button (Desktop only) -->
               <button
                 @click="testMediaDevices"
                 :disabled="isCallActive"
-                class="px-3 sm:px-4 py-2 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-2 shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+                class="hidden md:flex h-9 px-3 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline items-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50"
                 title="Test Camera and Microphone before calling"
               >
                 <span class="material-symbols-outlined text-base">settings_video_camera</span>
-                <span class="hidden sm:inline">Test Setup</span>
+                <span>Test Setup</span>
               </button>
 
               <!-- Start Video Call Button -->
               <button
                 @click="startCall"
                 :disabled="isCallActive"
-                class="px-3 sm:px-4 py-2 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white text-xs font-bold font-headline flex items-center gap-2 shadow-md shadow-[#543ce0]/25 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+                class="h-8 sm:h-9 px-2.5 sm:px-4 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white text-xs font-bold font-headline flex items-center gap-1.5 shadow-md shadow-[#543ce0]/25 transition-all active:scale-95 disabled:opacity-50"
+                title="Start Video Call"
               >
                 <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">videocam</span>
-                <span class="hidden sm:inline">Start Video Call</span>
+                <span class="hidden sm:inline">Call</span>
               </button>
             </div>
           </header>
@@ -506,19 +507,19 @@
             </div>
 
             <!-- Default info banner if no active session -->
-            <div v-else class="max-w-xl mx-auto p-3 bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#eaddff] rounded-2xl flex items-center justify-between gap-3 text-xs shadow-xs">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-white border border-[#eaddff] flex items-center justify-center text-[#543ce0] flex-shrink-0 shadow-xs">
-                  <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">lock_clock</span>
+            <div v-else class="max-w-xl mx-auto p-3 bg-gradient-to-r from-[#f6effe] to-[#fbf4ff] border border-[#eaddff] rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 text-xs shadow-xs">
+              <div class="flex items-center gap-2.5 sm:gap-3">
+                <div class="w-8 sm:w-9 h-8 sm:h-9 rounded-xl bg-white border border-[#eaddff] flex items-center justify-center text-[#543ce0] flex-shrink-0 shadow-xs">
+                  <span class="material-symbols-outlined text-lg sm:text-xl" style="font-variation-settings: 'FILL' 1;">lock_clock</span>
                 </div>
-                <div>
+                <div class="min-w-0">
                   <p class="font-bold text-[#1e1a2b]">SkillLoop Direct Exchange Channel</p>
-                  <p class="text-[#6b6680]">Live chat, direct escrow guarantee, and campus peer verification.</p>
+                  <p class="text-[#6b6680] text-[11px] leading-tight">Live chat, direct escrow guarantee, and campus peer verification.</p>
                 </div>
               </div>
               <button
                 @click="openBookModal(activePeer)"
-                class="px-2.5 py-1 rounded-xl bg-[#543ce0]/10 hover:bg-[#543ce0]/20 text-[#543ce0] font-headline font-bold text-xs shrink-0 active:scale-95 transition-all flex items-center gap-1"
+                class="self-end sm:self-auto px-2.5 py-1 rounded-xl bg-[#543ce0]/10 hover:bg-[#543ce0]/20 text-[#543ce0] font-headline font-bold text-xs shrink-0 active:scale-95 transition-all flex items-center gap-1"
               >
                 <span class="material-symbols-outlined text-sm">event</span>
                 <span>Schedule Session</span>
@@ -826,8 +827,8 @@
         <!-- ACTIVE GROUP CHAT WORKSPACE -->
         <template v-else-if="activeGroup">
           <!-- 1. GROUP CHAT HEADER -->
-          <header class="p-3 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex items-center justify-between gap-2 sm:gap-3 z-10 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0" @click="showGroupDrawer = true" title="View Group Details">
+          <header class="p-2 sm:p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex items-center justify-between gap-1.5 sm:gap-3 z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0 flex-1" @click="showGroupDrawer = true" title="View Group Details">
               <!-- Mobile Back to List Button -->
               <button
                 @click.stop="activeGroup = null"
@@ -838,50 +839,49 @@
               </button>
               <div class="relative shrink-0">
                 <div
-                  class="w-10 sm:w-11 h-10 sm:h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-base sm:text-lg shadow-sm group-hover:ring-2 group-hover:ring-[#543ce0] transition-all"
+                  class="w-9 sm:w-11 h-9 sm:h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-sm sm:text-lg shadow-sm group-hover:ring-2 group-hover:ring-[#543ce0] transition-all"
                   :style="{ background: activeGroup.avatar_color || '#543ce0' }"
                 >
                   {{ activeGroup.name.charAt(0).toUpperCase() }}
                 </div>
               </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h2 class="font-headline font-bold text-base text-[#1e1a2b] group-hover:text-[#543ce0] transition-colors flex items-center gap-1.5">
-                    <span>{{ activeGroup.name }}</span>
-                    <span class="material-symbols-outlined text-sm text-[#543ce0] opacity-0 group-hover:opacity-100 transition-opacity">info</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <h2 class="font-headline font-bold text-sm sm:text-base text-[#1e1a2b] group-hover:text-[#543ce0] transition-colors truncate">
+                    {{ activeGroup.name }}
                   </h2>
-                  <span class="px-2 py-0.5 bg-[#543ce0]/10 border border-[#543ce0]/20 text-[#543ce0] text-[10px] font-bold rounded-full">
-                    {{ activeGroup.member_count || groupMembers.length }} Members
+                  <span class="px-1.5 py-0.2 bg-[#543ce0]/10 border border-[#543ce0]/20 text-[#543ce0] text-[9px] sm:text-[10px] font-bold rounded-full shrink-0">
+                    {{ activeGroup.member_count || groupMembers.length }}
                   </span>
-                  <span v-if="activeGroupRole === 'admin'" class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-full">
+                  <span v-if="activeGroupRole === 'admin'" class="hidden sm:inline-block px-1.5 py-0.2 bg-amber-50 border border-amber-200 text-amber-700 text-[9px] sm:text-[10px] font-bold rounded-full shrink-0">
                     Admin
                   </span>
                 </div>
-                <p class="text-xs text-[#6b6680] truncate max-w-md">
-                  {{ activeGroup.description || 'WhatsApp-style Campus Group Discussion' }}
+                <p class="text-[11px] text-[#6b6680] truncate">
+                  {{ activeGroup.description || 'Campus Group Discussion' }}
                 </p>
               </div>
             </div>
 
             <!-- Group Header Actions -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
               <!-- Search In Group Button -->
               <button
                 @click="showChatSearch = !showChatSearch"
-                class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all"
+                class="w-8 sm:w-9 h-8 sm:h-9 rounded-xl flex items-center justify-center border transition-all"
                 :class="showChatSearch ? 'bg-[#543ce0] text-white border-[#543ce0]' : 'bg-white border-[#eaddff] text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe]'"
                 title="Search messages in group"
               >
-                <span class="material-symbols-outlined text-lg">search</span>
+                <span class="material-symbols-outlined text-base sm:text-lg">search</span>
               </button>
 
               <button
                 @click="showGroupDrawer = true"
-                class="px-3.5 py-1.5 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95"
+                class="h-8 sm:h-9 px-2 sm:px-3 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1 shadow-sm transition-all active:scale-95"
                 title="View group members and info"
               >
                 <span class="material-symbols-outlined text-base">group</span>
-                <span>Group Info</span>
+                <span class="hidden sm:inline">Group Info</span>
               </button>
             </div>
           </header>

@@ -2,7 +2,7 @@
   <div class="bg-background text-on-surface font-body min-h-screen flex flex-col selection:bg-secondary-container selection:text-on-secondary-container">
     <!-- ==================== 1. TOP NAVIGATION (Pixel-Perfect Match with dashboard.vue) ==================== -->
     <header class="bg-surface-container-low shadow-sm sticky top-0 z-40 print:hidden">
-      <div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+      <div class="flex justify-between items-center w-full px-3.5 sm:px-6 py-2.5 sm:py-3 max-w-7xl mx-auto">
         <div class="flex items-center gap-8">
           <NuxtLink to="/" class="font-display text-xl font-bold text-primary tracking-tight flex items-center gap-2 shrink-0">
             <div class="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-sm">
@@ -36,29 +36,29 @@
           </nav>
         </div>
 
-        <div class="flex items-center gap-3 shrink-0">
+        <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <!-- Time Credits Pill (Identical to Dashboard) -->
-          <div class="flex items-center gap-1.5 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-secondary-fixed shadow-sm text-sm font-label font-bold text-on-surface whitespace-nowrap shrink-0">
-            <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
-            <span>{{ user?.time_credits ?? 5 }} Credits</span>
+          <div class="flex items-center gap-1 bg-surface-container-lowest px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-secondary-fixed shadow-sm text-xs sm:text-sm font-label font-bold text-on-surface whitespace-nowrap shrink-0">
+            <span class="material-symbols-outlined text-primary text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
+            <span>{{ user?.time_credits ?? 5 }} <span class="hidden sm:inline">Credits</span><span class="sm:hidden">cr</span></span>
           </div>
 
           <!-- Notification Bell (Identical to Dashboard) -->
           <NuxtLink
             to="/dashboard"
-            class="relative w-9 h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0"
+            class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0"
             title="Notifications"
           >
-            <span class="material-symbols-outlined text-xl">notifications</span>
+            <span class="material-symbols-outlined text-lg sm:text-xl">notifications</span>
           </NuxtLink>
 
           <!-- Avatar → links to profile -->
-          <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all">
+          <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all">
             <img v-if="user?.profile_picture" :src="user.profile_picture" class="w-full h-full object-cover" />
             <span v-else>{{ (resume.profile.full_name || user?.full_name || user?.username || 'P').charAt(0) }}</span>
           </NuxtLink>
 
-          <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
+          <button @click="logout" class="hidden sm:inline text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
             Logout
           </button>
         </div>

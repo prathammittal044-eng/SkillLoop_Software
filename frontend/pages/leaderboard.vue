@@ -2,7 +2,7 @@
   <div class="bg-background text-on-surface font-body min-h-screen flex flex-col">
     <!-- Nav -->
     <header class="bg-surface-container-low shadow-sm sticky top-0 z-40">
-      <div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+      <div class="flex justify-between items-center w-full px-4 sm:px-6 py-2.5 sm:py-3 max-w-7xl mx-auto">
         <NuxtLink to="/dashboard" class="font-display text-xl font-bold text-primary tracking-tight flex items-center gap-2">
           <div class="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-sm">
             <span class="material-symbols-outlined text-2xl leading-none">all_inclusive</span>

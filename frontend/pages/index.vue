@@ -2,11 +2,11 @@
 <div class="bg-background text-on-surface font-body min-h-screen flex flex-col relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
 <!-- TopNavBar (Shared Component) -->
 <header class="sticky top-0 w-full z-50 bg-surface-bright border-b border-surface-container-high shadow-sm">
-<div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
 <!-- Brand Logo -->
-<NuxtLink class="flex items-center gap-2.5 font-display text-2xl font-bold tracking-tight text-primary transition-all duration-200 active:scale-95" to="/login">
-<span class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm">
-<span class="material-symbols-outlined text-2xl" data-icon="all_inclusive">all_inclusive</span>
+<NuxtLink class="flex items-center gap-2 sm:gap-2.5 font-display text-xl sm:text-2xl font-bold tracking-tight text-primary transition-all duration-200 active:scale-95 shrink-0" to="/login">
+<span class="w-8 sm:w-10 h-8 sm:h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm">
+<span class="material-symbols-outlined text-xl sm:text-2xl" data-icon="all_inclusive">all_inclusive</span>
 </span>
 <span>SkillLoop</span>
 </NuxtLink>
@@ -17,19 +17,19 @@
 <NuxtLink class="text-on-surface-variant hover:text-primary transition-colors duration-200" to="/">Features</NuxtLink>
 </nav>
 <!-- Trailing Action Buttons -->
-<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 sm:gap-3 shrink-0">
 <template v-if="currentUser">
-  <NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-bold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-2" to="/dashboard">
+  <NuxtLink class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-headline text-xs sm:text-sm font-bold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0" to="/dashboard">
     <span class="material-symbols-outlined text-base">space_dashboard</span>
-    <span>Go to Dashboard</span>
+    <span class="hidden sm:inline">Go to </span><span>Dashboard</span>
     <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
   </NuxtLink>
 </template>
 <template v-else>
-  <NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-semibold text-primary border border-outline-variant hover:bg-surface-container transition-all duration-200 active:scale-95" to="/login">
+  <NuxtLink class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-headline text-xs sm:text-sm font-semibold text-primary border border-outline-variant hover:bg-surface-container transition-all duration-200 active:scale-95 shrink-0" to="/login">
     Login
   </NuxtLink>
-  <NuxtLink class="px-5 py-2.5 rounded-xl font-headline text-sm font-semibold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1.5" to="/register">
+  <NuxtLink class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-headline text-xs sm:text-sm font-semibold bg-primary text-on-primary shadow-sm hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1 sm:gap-1.5 shrink-0" to="/register">
     <span>Get Started</span>
     <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
   </NuxtLink>
@@ -48,9 +48,9 @@
 <!-- Text Content -->
 <div class="lg:col-span-7 flex flex-col items-start space-y-6">
 <!-- Campus Badge -->
-<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container border border-surface-container-high text-primary font-label text-xs font-semibold tracking-wide">
+<div class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-surface-container border border-surface-container-high text-primary font-label text-[11px] sm:text-xs font-semibold tracking-wide max-w-full">
 <span>⚡</span>
-<span>Campus Peer-to-Peer Learning Network</span>
+<span class="truncate">Campus Peer-to-Peer Learning Network</span>
 </div>
 <!-- Headline -->
 <h1 class="font-headline text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-on-background leading-[1.12]">

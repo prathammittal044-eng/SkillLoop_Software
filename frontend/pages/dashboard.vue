@@ -21,7 +21,7 @@
     <template v-else-if="user">
       <!-- Top Navigation -->
       <header class="bg-surface-container-low shadow-sm sticky top-0 z-40">
-        <div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+        <div class="flex justify-between items-center w-full px-3.5 sm:px-6 py-2.5 sm:py-3 max-w-7xl mx-auto">
           <div class="flex items-center gap-8">
             <NuxtLink to="/" class="font-display text-xl font-bold text-primary tracking-tight flex items-center gap-2">
               <div class="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-sm">
@@ -47,23 +47,23 @@
               </NuxtLink>
             </nav>
           </div>
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-secondary-fixed shadow-sm text-sm font-label font-bold text-on-surface">
-              <span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
-              <span>{{ user.time_credits || 0 }} Credits</span>
+          <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <div class="flex items-center gap-1 bg-surface-container-lowest px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-secondary-fixed shadow-sm text-xs sm:text-sm font-label font-bold text-on-surface whitespace-nowrap shrink-0">
+              <span class="material-symbols-outlined text-primary text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
+              <span>{{ user.time_credits || 0 }} <span class="hidden sm:inline">Credits</span><span class="sm:hidden">cr</span></span>
             </div>
             <!-- Notification Bell -->
-            <button @click="showNotificationsPanel = !showNotificationsPanel" class="relative w-9 h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors">
-              <span class="material-symbols-outlined text-xl">notifications</span>
-              <span v-if="pendingConnections.length > 0 || liveNotifCount > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-error text-on-error text-[10px] font-extrabold flex items-center justify-center shadow-sm">
+            <button @click="showNotificationsPanel = !showNotificationsPanel" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0">
+              <span class="material-symbols-outlined text-lg sm:text-xl">notifications</span>
+              <span v-if="pendingConnections.length > 0 || liveNotifCount > 0" class="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-error text-on-error text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center shadow-sm">
                 {{ pendingConnections.length + liveNotifCount }}
               </span>
             </button>
-            <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all">
+            <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all shrink-0">
               <img v-if="user.profile_picture" :src="user.profile_picture" class="w-full h-full object-cover" />
               <span v-else>{{ (user.full_name || user.username || 'U').charAt(0) }}</span>
             </NuxtLink>
-            <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>
+            <button @click="logout" class="hidden sm:inline text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>
           </div>
 
         </div>
@@ -127,17 +127,17 @@
 
         <!-- ── INCOMING A.E.E. PROOF-OF-WORK REQUESTS ── -->
         <div v-if="incomingAee.length > 0" class="p-5 rounded-3xl bg-gradient-to-r from-primary/10 via-surface-container-low to-secondary-container/20 border-2 border-primary/30 shadow-md space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <span class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs shrink-0">
                 <span class="material-symbols-outlined text-lg">verified</span>
               </span>
-              <div>
+              <div class="min-w-0">
                 <h3 class="font-headline font-bold text-sm text-on-surface">A.E.E. Proof-of-Work Confirmation Required</h3>
                 <p class="text-xs text-on-surface-variant">A learning partner logged an Applied Exchange session. Confirm to verify their proof-of-work.</p>
               </div>
             </div>
-            <span class="px-2.5 py-0.5 rounded-full bg-primary text-on-primary text-xs font-bold font-label">{{ incomingAee.length }} Pending</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-primary text-on-primary text-xs font-bold font-label shrink-0">{{ incomingAee.length }} Pending</span>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -629,17 +629,17 @@
 
             <!-- Smart Cycle Matches -->
             <div class="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container shadow-sm space-y-5">
-              <div class="flex items-center justify-between pb-3 border-b border-surface-container/50">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-surface-container/50">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-primary-container/40 text-primary flex items-center justify-center">
+                  <div class="w-8 h-8 rounded-xl bg-primary-container/40 text-primary flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-lg">sync_alt</span>
                   </div>
                   <div>
-                    <h2 class="font-display text-xl font-bold text-on-surface tracking-tight">Loop Exchanges</h2>
+                    <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface tracking-tight">Loop Exchanges</h2>
                     <p class="text-xs text-on-surface-variant font-body">Multi-peer cycles detected by algorithm</p>
                   </div>
                 </div>
-                <span v-if="cycles.length > 0" class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold font-label">
+                <span v-if="cycles.length > 0" class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold font-label shrink-0">
                   {{ cycles.length }} Available
                 </span>
               </div>
@@ -664,11 +664,11 @@
                   class="p-4 rounded-2xl bg-surface-container-low border border-surface-container/80 space-y-3 hover:border-primary/40 transition-all duration-200"
                 >
                   <!-- Cycle Header Badge -->
-                  <div class="flex items-center justify-between">
-                    <span class="px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container text-[11px] font-bold uppercase tracking-wide font-label">
+                  <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+                    <span class="px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container text-[10px] sm:text-[11px] font-bold uppercase tracking-wide font-label shrink-0">
                       {{ cycle.length }}-Party Loop • {{ cycle.quality }}
                     </span>
-                    <span class="text-xs font-bold text-primary font-headline">{{ cycle.score }} Match Score</span>
+                    <span class="text-xs font-bold text-primary font-headline shrink-0">{{ cycle.score }} Match Score</span>
                   </div>
 
                   <!-- Chain Flow -->
@@ -690,14 +690,14 @@
                   </div>
 
                   <!-- Quick Connect Button -->
-                  <div class="pt-2 border-t border-surface-container/50 flex items-center justify-between">
+                  <div class="pt-2 border-t border-surface-container/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
                     <span class="text-[11px] text-on-surface-variant">Everyone learns & gives knowledge</span>
-                    <div v-if="getCyclePeer(cycle)" class="flex items-center gap-2">
+                    <div v-if="getCyclePeer(cycle)" class="flex items-center gap-2 flex-wrap">
                       <button
                         v-if="isPeerConnected(getCyclePeer(cycle).user_id)"
                         type="button"
                         @click="openBookModal(getCyclePeer(cycle), getCyclePeer(cycle)?.teaches_next)"
-                        class="px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                        class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1 shrink-0"
                         title="Schedule Skill Exchange"
                       >
                         <span class="material-symbols-outlined text-sm">event</span>
@@ -706,7 +706,7 @@
                       <NuxtLink
                         v-if="isPeerConnected(getCyclePeer(cycle).user_id)"
                         :to="'/chat?id=' + getCyclePeer(cycle).user_id"
-                        class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-headline text-xs font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                        class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-headline text-xs font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-xs flex items-center gap-1 shrink-0"
                       >
                         <span>Chat & Call</span>
                         <span class="material-symbols-outlined text-sm">chat</span>
@@ -715,7 +715,7 @@
                         v-else
                         type="button"
                         @click="sendConnectRequest(getCyclePeer(cycle).user_id)"
-                        class="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                        class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1 shrink-0"
                       >
                         <span>Connect Loop</span>
                         <span class="material-symbols-outlined text-sm">bolt</span>
@@ -866,10 +866,10 @@
 
         <!-- Pending Connection Requests -->
         <section class="space-y-4 pt-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <h2 class="font-display text-xl font-bold text-on-surface">Pending Requests</h2>
-              <span v-if="pendingConnections.length > 0" class="px-2.5 py-0.5 rounded-full bg-primary text-on-primary text-xs font-bold font-label shadow-xs">{{ pendingConnections.length }} New</span>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface">Pending Requests</h2>
+              <span v-if="pendingConnections.length > 0" class="px-2 sm:px-2.5 py-0.5 rounded-full bg-primary text-on-primary text-[10px] sm:text-xs font-bold font-label shadow-xs shrink-0">{{ pendingConnections.length }} New</span>
             </div>
           </div>
 
@@ -911,12 +911,12 @@
 
         <!-- Active Connected Peers (My Learning Network) -->
         <section class="space-y-4 pt-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <h2 class="font-display text-xl font-bold text-on-surface">My Learning Partners</h2>
-              <span v-if="activeConnections.length > 0" class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold font-label shadow-xs">{{ activeConnections.length }} Connected</span>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface">My Learning Partners</h2>
+              <span v-if="activeConnections.length > 0" class="px-2 sm:px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-bold font-label shadow-xs shrink-0">{{ activeConnections.length }} Connected</span>
             </div>
-            <NuxtLink to="/chat" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+            <NuxtLink to="/chat" class="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0">
               <span>Open Chat Hub</span>
               <span class="material-symbols-outlined text-sm">arrow_forward</span>
             </NuxtLink>
