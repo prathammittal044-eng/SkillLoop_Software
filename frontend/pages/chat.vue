@@ -159,8 +159,9 @@
             >
               <div class="flex items-start gap-3">
                 <div class="relative flex-shrink-0">
-                  <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0]/20 to-[#99366c]/20 text-[#543ce0] flex items-center justify-center font-bold font-headline text-base shadow-xs">
-                    {{ (peer.full_name || peer.username).charAt(0).toUpperCase() }}
+                  <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0]/20 to-[#99366c]/20 text-[#543ce0] flex items-center justify-center font-bold font-headline text-base shadow-xs overflow-hidden">
+                    <img v-if="peer.profile_picture" :src="peer.profile_picture" class="w-full h-full object-cover" />
+                    <span v-else>{{ (peer.full_name || peer.username).charAt(0).toUpperCase() }}</span>
                   </div>
                   <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
                 </div>
@@ -281,21 +282,29 @@
           <!-- 1. CHAT HEADER -->
           <header class="p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex flex-wrap items-center justify-between gap-3 z-10 shadow-sm flex-shrink-0">
             <div class="flex items-center gap-3">
-              <div class="relative">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0] to-[#99366c] text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm">
-                  {{ (activePeer.full_name || activePeer.username).charAt(0).toUpperCase() }}
+              <NuxtLink :to="'/profile?u=' + activePeer.username" class="relative group" title="View Profile">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0] to-[#99366c] text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm overflow-hidden group-hover:ring-2 group-hover:ring-[#543ce0] transition-all">
+                  <img v-if="activePeer.profile_picture" :src="activePeer.profile_picture" class="w-full h-full object-cover" />
+                  <span v-else>{{ (activePeer.full_name || activePeer.username).charAt(0).toUpperCase() }}</span>
                 </div>
                 <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
-              </div>
+              </NuxtLink>
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="font-headline font-bold text-base text-[#1e1a2b]">{{ activePeer.full_name }}</h2>
+                  <NuxtLink :to="'/profile?u=' + activePeer.username" class="font-headline font-bold text-base text-[#1e1a2b] hover:text-[#543ce0] hover:underline flex items-center gap-1.5">
+                    <span>{{ activePeer.full_name }}</span>
+                    <span class="material-symbols-outlined text-sm text-[#543ce0] opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                  </NuxtLink>
                   <span class="px-2 py-0.5 bg-[#f6effe] border border-[#eaddff] text-[#543ce0] text-[10px] font-bold rounded-full">
                     {{ activePeer.department }} • Sem {{ activePeer.semester }}
                   </span>
                   <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
                   </span>
+                  <NuxtLink :to="'/profile?u=' + activePeer.username" class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-[#543ce0] bg-[#543ce0]/10 hover:bg-[#543ce0]/20 rounded-md transition-colors">
+                    <span class="material-symbols-outlined text-xs">person</span>
+                    Profile
+                  </NuxtLink>
                 </div>
                 <!-- Skill Loop Bar -->
                 <div class="flex items-center gap-2 mt-0.5 text-xs text-[#6b6680]">
@@ -668,16 +677,21 @@
 
               <!-- Incoming message (Group Peer) -->
               <div v-else class="flex items-end gap-2.5 max-w-lg">
-                <div
-                  class="w-7 h-7 rounded-lg text-white flex items-center justify-center font-bold text-xs mb-1 ring-1 ring-[#eaddff] flex-shrink-0"
+                <NuxtLink
+                  :to="'/profile?u=' + msg.sender_username"
+                  class="w-7 h-7 rounded-lg text-white flex items-center justify-center font-bold text-xs mb-1 ring-1 ring-[#eaddff] flex-shrink-0 overflow-hidden hover:ring-2 hover:ring-[#543ce0] transition-all"
                   :style="{ background: msg.sender_avatar_color || '#543ce0' }"
+                  :title="'View ' + (msg.sender_name || msg.sender_username) + '\'s Profile'"
                 >
-                  {{ (msg.sender_name || msg.sender_username || 'U').charAt(0).toUpperCase() }}
-                </div>
+                  <img v-if="msg.sender_profile_picture" :src="msg.sender_profile_picture" class="w-full h-full object-cover" />
+                  <span v-else>{{ (msg.sender_name || msg.sender_username || 'U').charAt(0).toUpperCase() }}</span>
+                </NuxtLink>
                 <div class="space-y-1">
                   <!-- Sender name display above incoming bubble -->
                   <div class="flex items-center gap-1.5 px-1">
-                    <span class="text-[11px] font-bold text-[#543ce0]">{{ msg.sender_name || msg.sender_username }}</span>
+                    <NuxtLink :to="'/profile?u=' + msg.sender_username" class="text-[11px] font-bold text-[#543ce0] hover:underline">
+                      {{ msg.sender_name || msg.sender_username }}
+                    </NuxtLink>
                     <span class="text-[9px] text-[#6b6680]">@{{ msg.sender_username }}</span>
                   </div>
                   <!-- Text message -->
@@ -1248,17 +1262,17 @@
                 class="p-2.5 flex items-center justify-between gap-2.5 hover:bg-[#fdfaff]"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <div
-                    class="w-8 h-8 rounded-lg text-white flex items-center justify-center font-bold text-xs flex-shrink-0"
+                  <NuxtLink :to="'/profile?u=' + m.username" class="w-8 h-8 rounded-lg text-white flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden hover:ring-2 hover:ring-[#543ce0] transition-all"
                     :style="{ background: m.avatar_color || '#543ce0' }"
-                  >
-                    {{ (m.full_name || m.username || 'U').charAt(0).toUpperCase() }}
-                  </div>
+                    :title="'View ' + (m.full_name || m.username) + '\'s Profile'">
+                    <img v-if="m.profile_picture" :src="m.profile_picture" class="w-full h-full object-cover" />
+                    <span v-else>{{ (m.full_name || m.username || 'U').charAt(0).toUpperCase() }}</span>
+                  </NuxtLink>
                   <div class="min-w-0">
-                    <div class="text-xs font-bold text-[#1e1a2b] truncate flex items-center gap-1.5">
+                    <NuxtLink :to="'/profile?u=' + m.username" class="text-xs font-bold text-[#1e1a2b] hover:text-[#543ce0] hover:underline truncate flex items-center gap-1.5">
                       <span>{{ m.full_name || m.username }}</span>
                       <span v-if="m.id === currentUser?.id" class="text-[9px] text-[#6b6680] font-normal">(You)</span>
-                    </div>
+                    </NuxtLink>
                     <div class="text-[10px] text-[#6b6680]">@{{ m.username }}</div>
                   </div>
                 </div>

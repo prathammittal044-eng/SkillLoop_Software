@@ -40,20 +40,20 @@
       <div v-else-if="leaderboard.length > 0">
         <div v-if="leaderboard.length >= 3" class="grid grid-cols-3 gap-4 mb-8 items-end">
           <!-- Rank 2 (Silver) -->
-          <div class="bg-surface-container-lowest rounded-3xl p-5 border-2 border-slate-200 shadow-md text-center flex flex-col items-center order-1">
+          <NuxtLink :to="'/profile?u=' + leaderboard[1].username" class="bg-surface-container-lowest rounded-3xl p-5 border-2 border-slate-200 shadow-md text-center flex flex-col items-center order-1 hover:border-primary/50 transition-all">
             <div class="relative mb-3">
               <div class="w-16 h-16 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-display font-bold text-2xl">
                 {{ leaderboard[1].username.charAt(0).toUpperCase() }}
               </div>
               <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-600 text-white font-bold text-xs flex items-center justify-center">2</span>
             </div>
-            <h3 class="font-headline font-bold text-on-surface text-sm">{{ leaderboard[1].username }}</h3>
+            <h3 class="font-headline font-bold text-on-surface text-sm hover:text-primary">{{ leaderboard[1].username }}</h3>
             <p class="text-xs text-on-surface-variant mb-2">Level {{ leaderboard[1].level }}</p>
             <p class="font-bold text-primary text-sm">{{ leaderboard[1].xp }} XP</p>
-          </div>
+          </NuxtLink>
 
           <!-- Rank 1 (Gold — taller) -->
-          <div class="bg-gradient-to-b from-amber-50 to-surface-container-lowest rounded-3xl p-5 border-2 border-amber-300 shadow-xl text-center flex flex-col items-center transform -translate-y-4 order-2">
+          <NuxtLink :to="'/profile?u=' + leaderboard[0].username" class="bg-gradient-to-b from-amber-50 to-surface-container-lowest rounded-3xl p-5 border-2 border-amber-300 shadow-xl text-center flex flex-col items-center transform -translate-y-4 order-2 hover:border-amber-400 transition-all">
             <div class="text-amber-500 mb-1">
               <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
             </div>
@@ -63,23 +63,23 @@
               </div>
               <span class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-500 text-white font-bold text-sm flex items-center justify-center">1</span>
             </div>
-            <h3 class="font-headline font-extrabold text-on-surface text-base">{{ leaderboard[0].username }}</h3>
+            <h3 class="font-headline font-extrabold text-on-surface text-base hover:text-primary">{{ leaderboard[0].username }}</h3>
             <p class="text-xs text-amber-700 font-semibold mb-2">Campus Champion · Level {{ leaderboard[0].level }}</p>
             <p class="font-bold text-amber-700 text-base">{{ leaderboard[0].xp }} XP</p>
-          </div>
+          </NuxtLink>
 
           <!-- Rank 3 (Bronze) -->
-          <div class="bg-surface-container-lowest rounded-3xl p-5 border-2 border-orange-200 shadow-md text-center flex flex-col items-center order-3">
+          <NuxtLink :to="'/profile?u=' + leaderboard[2].username" class="bg-surface-container-lowest rounded-3xl p-5 border-2 border-orange-200 shadow-md text-center flex flex-col items-center order-3 hover:border-primary/50 transition-all">
             <div class="relative mb-3">
               <div class="w-16 h-16 rounded-full bg-orange-100 text-orange-800 flex items-center justify-center font-display font-bold text-2xl">
                 {{ leaderboard[2].username.charAt(0).toUpperCase() }}
               </div>
               <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-orange-600 text-white font-bold text-xs flex items-center justify-center">3</span>
             </div>
-            <h3 class="font-headline font-bold text-on-surface text-sm">{{ leaderboard[2].username }}</h3>
+            <h3 class="font-headline font-bold text-on-surface text-sm hover:text-primary">{{ leaderboard[2].username }}</h3>
             <p class="text-xs text-on-surface-variant mb-2">Level {{ leaderboard[2].level }}</p>
             <p class="font-bold text-primary text-sm">{{ leaderboard[2].xp }} XP</p>
-          </div>
+          </NuxtLink>
         </div>
 
         <!-- Full Leaderboard Table -->
@@ -122,15 +122,15 @@
                     <span v-else class="text-on-surface-variant font-semibold">#{{ index + 1 }}</span>
                   </td>
                   <td class="py-3.5 px-5">
-                    <div class="flex items-center gap-3">
+                    <NuxtLink :to="'/profile?u=' + user.username" class="flex items-center gap-3 hover:text-primary group">
                       <div class="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm uppercase">
                         {{ user.username.charAt(0) }}
                       </div>
                       <div>
-                        <p class="font-headline font-bold text-on-surface">{{ user.username }}</p>
+                        <p class="font-headline font-bold text-on-surface group-hover:text-primary group-hover:underline">{{ user.username }}</p>
                         <p v-if="user.full_name" class="text-xs text-on-surface-variant">{{ user.full_name }}</p>
                       </div>
-                    </div>
+                    </NuxtLink>
                   </td>
                   <td class="py-3.5 px-5 text-center">
                     <span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-xs font-semibold">Lv {{ user.level }}</span>

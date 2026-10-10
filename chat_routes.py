@@ -50,7 +50,7 @@ def get_chat_peers():
 
     # Query users who have a loop connection, exchanged messages, or explicitly requested
     query = '''
-        SELECT DISTINCT u.id, u.username, u.full_name, u.department, u.semester, u.avatar_color
+        SELECT DISTINCT u.id, u.username, u.full_name, u.department, u.semester, u.avatar_color, u.profile_picture
         FROM users u
         WHERE u.id != ? AND (
             u.id IN (
@@ -79,7 +79,7 @@ def get_chat_peers():
     # If user has no active chats or connections, show campus peers so chat is immediately usable
     if not users:
         users = db.execute('''
-            SELECT id, username, full_name, department, semester, avatar_color
+            SELECT id, username, full_name, department, semester, avatar_color, profile_picture
             FROM users
             WHERE id != ?
             ORDER BY id ASC
@@ -125,6 +125,7 @@ def get_chat_peers():
             "department": u['department'] or 'Campus Peer',
             "semester": u['semester'] or 1,
             "avatar_color": u['avatar_color'],
+            "profile_picture": u['profile_picture'] if 'profile_picture' in u.keys() else None,
             "teaches": teaches,
             "learns": learns,
             "connection_status": status_label,
@@ -190,7 +191,7 @@ def send_message_http():
 
         # Get sender info for display in the group feed
         sender = db.execute(
-            'SELECT full_name, username, avatar_color FROM users WHERE id = ?', (s_id,)
+            'SELECT full_name, username, avatar_color, profile_picture FROM users WHERE id = ?', (s_id,)
         ).fetchone()
 
         msg_payload = {
@@ -200,6 +201,7 @@ def send_message_http():
             'sender_name': (sender['full_name'] or sender['username']) if sender else 'Unknown',
             'sender_username': sender['username'] if sender else '',
             'sender_avatar_color': sender['avatar_color'] if sender else '#543ce0',
+            'sender_profile_picture': sender['profile_picture'] if sender and 'profile_picture' in sender.keys() else None,
             'content': content,
             'message_type': message_type,
             'file_url': file_url,
@@ -537,7 +539,7 @@ def get_group_detail(group_id):
         return jsonify({"error": "Group not found"}), 404
 
     members = db.execute('''
-        SELECT u.id, u.username, u.full_name, u.avatar_color, gm.role, gm.joined_at
+        SELECT u.id, u.username, u.full_name, u.avatar_color, u.profile_picture, gm.role, gm.joined_at
         FROM group_members gm
         JOIN users u ON u.id = gm.user_id
         WHERE gm.group_id = ?
@@ -690,7 +692,7 @@ def get_group_messages(group_id):
             SELECT gm.id, gm.group_id, gm.sender_id, gm.content, gm.message_type,
                    gm.file_url, gm.file_name, gm.file_size, gm.created_at,
                    u.username AS sender_username, u.full_name AS sender_name,
-                   u.avatar_color AS sender_avatar_color
+                   u.avatar_color AS sender_avatar_color, u.profile_picture AS sender_profile_picture
             FROM group_messages gm
             JOIN users u ON u.id = gm.sender_id
             WHERE gm.group_id = ? AND gm.id > ?
@@ -699,9 +701,9 @@ def get_group_messages(group_id):
     else:
         rows = db.execute('''
             SELECT gm.id, gm.group_id, gm.sender_id, gm.content, gm.message_type,
-                   gm.file_url, gm.file_name, gm.file_size, gm.created_at,
-                   u.username AS sender_username, u.full_name AS sender_name,
-                   u.avatar_color AS sender_avatar_color
+               gm.file_url, gm.file_name, gm.file_size, gm.created_at,
+               u.username AS sender_username, u.full_name AS sender_name,
+               u.avatar_color AS sender_avatar_color, u.profile_picture AS sender_profile_picture
             FROM group_messages gm
             JOIN users u ON u.id = gm.sender_id
             WHERE gm.group_id = ?
