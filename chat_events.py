@@ -85,6 +85,48 @@ def register_chat_events(socketio):
             else:
                 print(f"[SocketIO] User {uid} closed 1 socket, {len(sids)} active", flush=True)
 
+    @socketio.on('typing')
+    def handle_typing(data):
+        data = data or {}
+        uid = session.get('user_id') or socket_users.get(request.sid) or data.get('sender_id')
+        if not uid: return
+        uid = int(uid)
+        group_id = data.get('group_id')
+        receiver_id = data.get('receiver_id')
+        sender_name = data.get('sender_name', '')
+        
+        payload = {
+            'user_id': uid,
+            'sender_name': sender_name,
+            'group_id': group_id,
+            'receiver_id': receiver_id,
+            'is_typing': True
+        }
+        if group_id:
+            emit('user_typing', payload, room=f"group_{group_id}", include_self=False)
+        elif receiver_id:
+            emit('user_typing', payload, room=f"user_{int(receiver_id)}", include_self=False)
+
+    @socketio.on('stop_typing')
+    def handle_stop_typing(data):
+        data = data or {}
+        uid = session.get('user_id') or socket_users.get(request.sid) or data.get('sender_id')
+        if not uid: return
+        uid = int(uid)
+        group_id = data.get('group_id')
+        receiver_id = data.get('receiver_id')
+        
+        payload = {
+            'user_id': uid,
+            'group_id': group_id,
+            'receiver_id': receiver_id,
+            'is_typing': False
+        }
+        if group_id:
+            emit('user_typing', payload, room=f"group_{group_id}", include_self=False)
+        elif receiver_id:
+            emit('user_typing', payload, room=f"user_{int(receiver_id)}", include_self=False)
+
     @socketio.on('send_message')
     def handle_send_message(data):
         """Save message to SQLite and deliver in real-time. Supports both 1:1 and group messages."""

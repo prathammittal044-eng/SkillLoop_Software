@@ -11,11 +11,15 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads', 'chat')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'txt', 'zip', 'py', 'js', 'json'}
 
+import json
+import time
+import uuid
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def init_chat_db(db):
-    """Ensure chat messages table exists."""
+    """Ensure chat messages table exists and has reactions column."""
     db.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,13 +30,20 @@ def init_chat_db(db):
             file_url TEXT,
             file_name TEXT,
             file_size TEXT,
+            reactions TEXT DEFAULT '{}',
             is_read BOOLEAN DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (sender_id) REFERENCES users(id),
             FOREIGN KEY (receiver_id) REFERENCES users(id)
         )
     ''')
+    cursor = db.cursor()
+    cursor.execute("PRAGMA table_info(messages)")
+    cols = [r[1] for r in cursor.fetchall()]
+    if 'reactions' not in cols:
+        cursor.execute("ALTER TABLE messages ADD COLUMN reactions TEXT DEFAULT '{}'")
     db.commit()
+
 
 @chat_bp.route('/api/chat/peers', methods=['GET'])
 def get_chat_peers():
@@ -281,7 +292,7 @@ def get_messages(peer_id):
     after_id = request.args.get('after', type=int)
     if after_id is not None:
         rows = db.execute('''
-            SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read
+            SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read, reactions
             FROM messages
             WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
               AND id > ?
@@ -289,52 +300,131 @@ def get_messages(peer_id):
         ''', (current_user_id, peer_id, peer_id, current_user_id, after_id)).fetchall()
     else:
         rows = db.execute('''
-            SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read
+            SELECT id, sender_id, receiver_id, content, message_type, file_url, file_name, file_size, created_at, is_read, reactions
             FROM messages
             WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
             ORDER BY id ASC
         ''', (current_user_id, peer_id, peer_id, current_user_id)).fetchall()
 
-    messages = [dict(r) for r in rows]
+    messages = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d['reactions'] = json.loads(d.get('reactions') or '{}')
+        except Exception:
+            d['reactions'] = {}
+        messages.append(d)
     return jsonify({"messages": messages}), 200
 
 @chat_bp.route('/api/chat/upload', methods=['POST'])
 def upload_file():
-    """Upload media or documents for chat."""
+    """Upload single or multiple media/documents for chat."""
     if 'user_id' not in session:
         return jsonify({"error": "Not authenticated"}), 401
     
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+    files = request.files.getlist('files')
+    if not files and 'file' in request.files:
+        files = [request.files['file']]
         
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+    if not files:
+        return jsonify({"error": "No file provided"}), 400
 
-    if file and allowed_file(file.filename):
-        original_name = secure_filename(file.filename)
-        import time
-        unique_name = f"{int(time.time())}_{original_name}"
-        save_path = os.path.join(UPLOAD_FOLDER, unique_name)
-        file.save(save_path)
+    uploaded_files = []
+    for file in files:
+        if file and file.filename != '' and allowed_file(file.filename):
+            original_name = secure_filename(file.filename)
+            unique_name = f"{int(time.time())}_{uuid.uuid4().hex[:6]}_{original_name}"
+            save_path = os.path.join(UPLOAD_FOLDER, unique_name)
+            file.save(save_path)
 
-        file_size_bytes = os.path.getsize(save_path)
-        if file_size_bytes < 1024 * 1024:
-            file_size_str = f"{file_size_bytes / 1024:.1f} KB"
+            file_size_bytes = os.path.getsize(save_path)
+            if file_size_bytes < 1024 * 1024:
+                file_size_str = f"{file_size_bytes / 1024:.1f} KB"
+            else:
+                file_size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
+
+            ext = original_name.rsplit('.', 1)[1].lower()
+            msg_type = 'image' if ext in {'png', 'jpg', 'jpeg', 'gif'} else 'file'
+
+            uploaded_files.append({
+                "file_url": f"/api/chat/files/{unique_name}",
+                "file_name": original_name,
+                "file_size": file_size_str,
+                "message_type": msg_type
+            })
+
+    if not uploaded_files:
+        return jsonify({"error": "No valid files uploaded or file type not supported"}), 400
+
+    first = uploaded_files[0]
+    return jsonify({
+        "files": uploaded_files,
+        "file_url": first["file_url"],
+        "file_name": first["file_name"],
+        "file_size": first["file_size"],
+        "message_type": first["message_type"]
+    }), 200
+
+@chat_bp.route('/api/chat/messages/<int:msg_id>/react', methods=['POST'])
+def react_to_message(msg_id):
+    """Add or toggle an emoji reaction on a message (1:1 or group)."""
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    uid = session['user_id']
+    data = request.json or {}
+    emoji = data.get('emoji', '').strip()
+    is_group = bool(data.get('is_group'))
+
+    if not emoji:
+        return jsonify({"error": "Emoji is required"}), 400
+
+    db = get_db()
+    table = 'group_messages' if is_group else 'messages'
+
+    row = db.execute(f"SELECT reactions FROM {table} WHERE id = ?", (msg_id,)).fetchone()
+    if not row:
+        return jsonify({"error": "Message not found"}), 404
+
+    try:
+        reactions = json.loads(row['reactions'] or '{}')
+    except Exception:
+        reactions = {}
+
+    users_who_reacted = reactions.get(emoji, [])
+    if uid in users_who_reacted:
+        users_who_reacted.remove(uid)
+        if not users_who_reacted:
+            reactions.pop(emoji, None)
         else:
-            file_size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
+            reactions[emoji] = users_who_reacted
+    else:
+        users_who_reacted.append(uid)
+        reactions[emoji] = users_who_reacted
 
-        ext = original_name.rsplit('.', 1)[1].lower()
-        msg_type = 'image' if ext in {'png', 'jpg', 'jpeg', 'gif'} else 'file'
+    db.execute(f"UPDATE {table} SET reactions = ? WHERE id = ?", (json.dumps(reactions), msg_id))
+    db.commit()
 
-        return jsonify({
-            "file_url": f"/api/chat/files/{unique_name}",
-            "file_name": original_name,
-            "file_size": file_size_str,
-            "message_type": msg_type
-        }), 200
+    sio = current_app.extensions.get('socketio')
+    if sio:
+        payload = {
+            "message_id": msg_id,
+            "is_group": is_group,
+            "reactions": reactions,
+            "user_id": uid,
+            "emoji": emoji
+        }
+        if is_group:
+            g_row = db.execute("SELECT group_id FROM group_messages WHERE id = ?", (msg_id,)).fetchone()
+            if g_row:
+                sio.emit('message_reaction', payload, room=f"group_{g_row['group_id']}")
+        else:
+            m_row = db.execute("SELECT sender_id, receiver_id FROM messages WHERE id = ?", (msg_id,)).fetchone()
+            if m_row:
+                sio.emit('message_reaction', payload, room=f"user_{m_row['sender_id']}")
+                sio.emit('message_reaction', payload, room=f"user_{m_row['receiver_id']}")
 
-    return jsonify({"error": "File type not supported"}), 400
+    return jsonify({"status": "ok", "reactions": reactions}), 200
 
 @chat_bp.route('/api/chat/files/<filename>', methods=['GET'])
 def get_file(filename):
@@ -381,11 +471,17 @@ def init_group_db(db):
             file_url TEXT,
             file_name TEXT,
             file_size TEXT,
+            reactions TEXT DEFAULT '{}',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (group_id) REFERENCES groups(id),
             FOREIGN KEY (sender_id) REFERENCES users(id)
         )
     ''')
+    cursor = db.cursor()
+    cursor.execute("PRAGMA table_info(group_messages)")
+    cols = [r[1] for r in cursor.fetchall()]
+    if 'reactions' not in cols:
+        cursor.execute("ALTER TABLE group_messages ADD COLUMN reactions TEXT DEFAULT '{}'")
     db.commit()
 
 
@@ -692,7 +788,8 @@ def get_group_messages(group_id):
             SELECT gm.id, gm.group_id, gm.sender_id, gm.content, gm.message_type,
                    gm.file_url, gm.file_name, gm.file_size, gm.created_at,
                    u.username AS sender_username, u.full_name AS sender_name,
-                   u.avatar_color AS sender_avatar_color, u.profile_picture AS sender_profile_picture
+                   u.avatar_color AS sender_avatar_color, u.profile_picture AS sender_profile_picture,
+                   gm.reactions
             FROM group_messages gm
             JOIN users u ON u.id = gm.sender_id
             WHERE gm.group_id = ? AND gm.id > ?
@@ -703,13 +800,21 @@ def get_group_messages(group_id):
             SELECT gm.id, gm.group_id, gm.sender_id, gm.content, gm.message_type,
                gm.file_url, gm.file_name, gm.file_size, gm.created_at,
                u.username AS sender_username, u.full_name AS sender_name,
-               u.avatar_color AS sender_avatar_color, u.profile_picture AS sender_profile_picture
+               u.avatar_color AS sender_avatar_color, u.profile_picture AS sender_profile_picture,
+               gm.reactions
             FROM group_messages gm
             JOIN users u ON u.id = gm.sender_id
             WHERE gm.group_id = ?
             ORDER BY gm.id ASC
         ''', (group_id,)).fetchall()
 
-    messages = [dict(r) for r in rows]
+    messages = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d['reactions'] = json.loads(d.get('reactions') or '{}')
+        except Exception:
+            d['reactions'] = {}
+        messages.append(d)
     return jsonify({"messages": messages}), 200
 

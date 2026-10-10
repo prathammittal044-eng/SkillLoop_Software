@@ -322,15 +322,25 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2">
+              <!-- Search In Chat Button -->
+              <button
+                @click="showChatSearch = !showChatSearch"
+                class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all"
+                :class="showChatSearch ? 'bg-[#543ce0] text-white border-[#543ce0]' : 'bg-white border-[#eaddff] text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe]'"
+                title="Search messages in conversation"
+              >
+                <span class="material-symbols-outlined text-lg">search</span>
+              </button>
+
               <!-- Schedule Session Button -->
               <button
                 @click="openBookModal(activePeer)"
-                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#543ce0]/10 to-[#99366c]/10 border border-[#543ce0]/30 hover:border-[#543ce0] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-xs transition-all transform hover:-translate-y-0.5 active:scale-95"
+                class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#543ce0]/10 to-[#99366c]/10 border border-[#543ce0]/30 hover:border-[#543ce0] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-xs transition-all transform hover:-translate-y-0.5 active:scale-95"
                 title="Schedule a dedicated skill exchange session"
               >
-                <span class="material-symbols-outlined text-base">event</span>
-                <span>Schedule Session</span>
+                <span class="material-symbols-outlined text-base">calendar_add_on</span>
+                <span class="hidden sm:inline">Schedule Session</span>
               </button>
 
               <!-- Test Camera & Mic Button -->
@@ -355,6 +365,23 @@
               </button>
             </div>
           </header>
+
+          <!-- In-Chat Search Bar -->
+          <div v-if="showChatSearch" class="p-3 bg-white border-b border-[#eaddff] flex items-center gap-2 z-10">
+            <span class="material-symbols-outlined text-lg text-[#6b6680]">search</span>
+            <input
+              v-model="chatSearchQuery"
+              type="text"
+              placeholder="Search messages in this conversation..."
+              class="flex-1 text-xs text-[#1e1a2b] bg-transparent focus:outline-none placeholder-[#6b6680]/60 font-body"
+            />
+            <span v-if="chatSearchQuery.trim()" class="text-[10px] font-bold text-[#543ce0] bg-[#543ce0]/10 px-2 py-0.5 rounded-full">
+              {{ displayedMessages.length }} found
+            </span>
+            <button @click="chatSearchQuery = ''; showChatSearch = false" class="p-1 rounded-lg hover:bg-[#f6effe] text-[#6b6680] text-xs font-bold" title="Close search">
+              ✕
+            </button>
+          </div>
 
           <!-- 2. SCROLLABLE MESSAGES FEED -->
           <div ref="messageContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gradient-to-b from-[#fdfaff]/60 via-[#fbf4ff]/30 to-[#fdfaff]">
@@ -489,20 +516,66 @@
             </div>
 
             <!-- Messages List -->
-            <template v-for="msg in messages" :key="msg.id">
+            <template v-for="msg in displayedMessages" :key="msg.id">
               <!-- Outgoing message (Current User) -->
-              <div v-if="msg.sender_id === currentUser?.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto">
+              <div v-if="msg.sender_id === currentUser?.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto group relative">
+                <!-- Emoji Reaction Bar on Hover -->
+                <div class="absolute -top-7 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center bg-white border border-[#eaddff] rounded-full px-2 py-0.5 shadow-md gap-1.5 z-20">
+                  <button
+                    v-for="emoji in ['👍', '❤️', '😂', '🔥', '🎉', '🚀']"
+                    :key="emoji"
+                    @click.stop="toggleReaction(msg, emoji, false)"
+                    class="hover:scale-125 transition-transform text-xs"
+                    :title="'React ' + emoji"
+                  >{{ emoji }}</button>
+                </div>
+
                 <div class="space-y-1 text-right">
                   <!-- Text message -->
                   <div v-if="msg.message_type === 'text'" class="bg-[#543ce0] text-white p-3.5 rounded-2xl rounded-br-sm text-xs leading-relaxed shadow-md shadow-[#543ce0]/15 text-left">
                     {{ msg.content }}
                   </div>
-                  <!-- Image message -->
-                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#543ce0] rounded-2xl rounded-br-sm shadow-md shadow-[#543ce0]/15 overflow-hidden">
-                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl"/>
+
+                  <!-- PDF Document message -->
+                  <div v-else-if="msg.file_name && msg.file_name.toLowerCase().endsWith('.pdf')" class="p-3.5 bg-gradient-to-r from-red-500/15 to-red-500/5 border border-red-500/30 rounded-2xl rounded-br-sm shadow-md text-left flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-bold text-[#1e1a2b] truncate">{{ msg.file_name }}</p>
+                      <p class="text-[10px] text-[#6b6680]">{{ msg.file_size }} • PDF Document</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          @click="openPdfModal(msg.file_url, msg.file_name)"
+                          class="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                        >
+                          <span class="material-symbols-outlined text-sm">visibility</span>
+                          <span>Preview PDF</span>
+                        </button>
+                        <a
+                          :href="msg.file_url"
+                          target="_blank"
+                          download
+                          class="p-1 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                          title="Download PDF"
+                        >
+                          <span class="material-symbols-outlined text-base">download</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Image message (With Lightbox Click) -->
+                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#543ce0] rounded-2xl rounded-br-sm shadow-md shadow-[#543ce0]/15 overflow-hidden group/img relative cursor-pointer" @click="openImageModal(msg.file_url, msg.file_name)">
+                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl transition-transform group-hover/img:scale-[1.01]"/>
+                    <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                      <span class="p-2 rounded-full bg-black/60 text-white material-symbols-outlined text-lg">zoom_in</span>
+                    </div>
                     <p class="text-[11px] text-white/90 p-1 text-left truncate">{{ msg.file_name }} ({{ msg.file_size }})</p>
                   </div>
-                  <!-- File/Doc message -->
+
+                  <!-- Generic File/Doc message -->
                   <div v-else-if="msg.message_type === 'file'" class="p-3 bg-[#543ce0] text-white rounded-2xl rounded-br-sm shadow-md flex items-center gap-3 text-left">
                     <span class="material-symbols-outlined text-2xl">description</span>
                     <div class="flex-1 min-w-0">
@@ -510,6 +583,21 @@
                       <span class="text-[10px] text-white/80">{{ msg.file_size }}</span>
                     </div>
                   </div>
+
+                  <!-- Message Reactions Badges -->
+                  <div v-if="msg.reactions && Object.keys(msg.reactions).length" class="flex flex-wrap gap-1 mt-1 justify-end">
+                    <button
+                      v-for="(uids, emoji) in msg.reactions"
+                      :key="emoji"
+                      @click="toggleReaction(msg, emoji, false)"
+                      class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-white border border-[#eaddff] shadow-xs flex items-center gap-1 hover:scale-105 transition-all"
+                      :class="uids.includes(currentUser?.id) ? 'border-[#543ce0] text-[#543ce0]' : 'text-[#1e1a2b]'"
+                    >
+                      <span>{{ emoji }}</span>
+                      <span>{{ uids.length }}</span>
+                    </button>
+                  </div>
+
                   <div class="flex items-center justify-end gap-1 px-1 text-[10px] text-[#6b6680]">
                     <span>{{ msg.created_at }}</span>
                     <span class="material-symbols-outlined text-sm text-[#543ce0]" style="font-variation-settings: 'FILL' 1;">done_all</span>
@@ -518,21 +606,68 @@
               </div>
 
               <!-- Incoming message (Peer) -->
-              <div v-else class="flex items-end gap-2.5 max-w-lg">
-                <div class="w-7 h-7 rounded-lg bg-[#543ce0]/20 text-[#543ce0] flex items-center justify-center font-bold text-xs mb-1 ring-1 ring-[#eaddff]">
-                  {{ (activePeer.full_name || activePeer.username).charAt(0) }}
+              <div v-else class="flex items-end gap-2.5 max-w-lg group relative">
+                <!-- Emoji Reaction Bar on Hover -->
+                <div class="absolute -top-7 left-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center bg-white border border-[#eaddff] rounded-full px-2 py-0.5 shadow-md gap-1.5 z-20">
+                  <button
+                    v-for="emoji in ['👍', '❤️', '😂', '🔥', '🎉', '🚀']"
+                    :key="emoji"
+                    @click.stop="toggleReaction(msg, emoji, false)"
+                    class="hover:scale-125 transition-transform text-xs"
+                    :title="'React ' + emoji"
+                  >{{ emoji }}</button>
+                </div>
+
+                <div class="w-7 h-7 rounded-lg bg-[#543ce0]/20 text-[#543ce0] flex items-center justify-center font-bold text-xs mb-1 ring-1 ring-[#eaddff] overflow-hidden shrink-0">
+                  <img v-if="activePeer.profile_picture" :src="activePeer.profile_picture" class="w-full h-full object-cover" />
+                  <span v-else>{{ (activePeer.full_name || activePeer.username).charAt(0) }}</span>
                 </div>
                 <div class="space-y-1">
                   <!-- Text message -->
                   <div v-if="msg.message_type === 'text'" class="bg-[#f6effe] border border-[#eaddff]/80 text-[#1e1a2b] p-3.5 rounded-2xl rounded-bl-sm text-xs leading-relaxed shadow-xs">
                     {{ msg.content }}
                   </div>
-                  <!-- Image message -->
-                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#f6effe] border border-[#eaddff] rounded-2xl rounded-bl-sm shadow-xs overflow-hidden">
-                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl"/>
+
+                  <!-- PDF Document message -->
+                  <div v-else-if="msg.file_name && msg.file_name.toLowerCase().endsWith('.pdf')" class="p-3.5 bg-gradient-to-r from-red-500/10 to-white border border-red-500/30 rounded-2xl rounded-bl-sm shadow-xs text-left flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-bold text-[#1e1a2b] truncate">{{ msg.file_name }}</p>
+                      <p class="text-[10px] text-[#6b6680]">{{ msg.file_size }} • PDF Document</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          @click="openPdfModal(msg.file_url, msg.file_name)"
+                          class="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                        >
+                          <span class="material-symbols-outlined text-sm">visibility</span>
+                          <span>Preview PDF</span>
+                        </button>
+                        <a
+                          :href="msg.file_url"
+                          target="_blank"
+                          download
+                          class="p-1 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                          title="Download PDF"
+                        >
+                          <span class="material-symbols-outlined text-base">download</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Image message (With Lightbox Click) -->
+                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#f6effe] border border-[#eaddff] rounded-2xl rounded-bl-sm shadow-xs overflow-hidden group/img relative cursor-pointer" @click="openImageModal(msg.file_url, msg.file_name)">
+                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl transition-transform group-hover/img:scale-[1.01]"/>
+                    <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                      <span class="p-2 rounded-full bg-black/60 text-white material-symbols-outlined text-lg">zoom_in</span>
+                    </div>
                     <p class="text-[11px] text-[#1e1a2b] p-1 truncate">{{ msg.file_name }} ({{ msg.file_size }})</p>
                   </div>
-                  <!-- File message -->
+
+                  <!-- Generic File message -->
                   <div v-else-if="msg.message_type === 'file'" class="p-3 bg-[#f6effe] border border-[#eaddff] text-[#1e1a2b] rounded-2xl rounded-bl-sm shadow-xs flex items-center gap-3">
                     <span class="material-symbols-outlined text-2xl text-[#99366c]">description</span>
                     <div class="flex-1 min-w-0">
@@ -540,6 +675,21 @@
                       <span class="text-[10px] text-[#6b6680]">{{ msg.file_size }}</span>
                     </div>
                   </div>
+
+                  <!-- Message Reactions Badges -->
+                  <div v-if="msg.reactions && Object.keys(msg.reactions).length" class="flex flex-wrap gap-1 mt-1">
+                    <button
+                      v-for="(uids, emoji) in msg.reactions"
+                      :key="emoji"
+                      @click="toggleReaction(msg, emoji, false)"
+                      class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-white border border-[#eaddff] shadow-xs flex items-center gap-1 hover:scale-105 transition-all"
+                      :class="uids.includes(currentUser?.id) ? 'border-[#543ce0] text-[#543ce0]' : 'text-[#1e1a2b]'"
+                    >
+                      <span>{{ emoji }}</span>
+                      <span>{{ uids.length }}</span>
+                    </button>
+                  </div>
+
                   <div class="flex items-center gap-1.5 px-1 text-[10px] text-[#6b6680]">
                     <span>{{ activePeer.full_name }}</span>
                     <span>•</span>
@@ -548,39 +698,112 @@
                 </div>
               </div>
             </template>
+
+            <!-- Real-Time Typing Indicator Bubble -->
+            <div v-if="peerIsTyping" class="flex items-center gap-2.5 p-3 bg-white border border-[#eaddff] rounded-2xl w-fit shadow-xs animate-in fade-in duration-150">
+              <span class="text-xs font-semibold text-[#543ce0]">{{ activePeer.full_name }} is typing</span>
+              <span class="flex gap-1 items-center">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#543ce0] animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#543ce0] animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#543ce0] animate-bounce" style="animation-delay: 300ms"></span>
+              </span>
+            </div>
           </div>
 
-          <!-- 3. BOTTOM INPUT BAR -->
+          <!-- 3. BOTTOM INPUT BAR & ATTACHMENT TRAY -->
           <footer class="p-3 sm:p-4 bg-white border-t border-[#eaddff] relative z-10 flex-shrink-0">
-            <form @submit.prevent="sendMessage" class="flex items-center gap-2 bg-[#fdfaff] border border-[#eaddff] rounded-2xl p-1.5 sm:p-2 focus-within:border-[#543ce0] focus-within:ring-2 focus-within:ring-[#543ce0]/20 transition-all shadow-xs">
-              <!-- File Attachment Button -->
-              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Attach Document">
+            <!-- Multi-File Attachment Staging Tray -->
+            <div v-if="stagedFiles.length > 0" class="mb-3 p-3 bg-surface-container-low/70 border border-[#eaddff] rounded-2xl flex items-center gap-3 overflow-x-auto">
+              <div
+                v-for="(staged, idx) in stagedFiles"
+                :key="idx"
+                class="relative flex items-center gap-2.5 p-2 pr-3 rounded-xl bg-white border border-[#eaddff] shadow-xs shrink-0 max-w-[220px]"
+              >
+                <img v-if="staged.type === 'image'" :src="staged.previewUrl" class="w-9 h-9 rounded-lg object-cover shrink-0" />
+                <div v-else-if="staged.type === 'pdf'" class="w-9 h-9 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-xl">picture_as_pdf</span>
+                </div>
+                <div v-else class="w-9 h-9 rounded-lg bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-xl">description</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-bold text-[#1e1a2b] truncate">{{ staged.name }}</p>
+                  <p class="text-[10px] text-[#6b6680]">{{ staged.size }}</p>
+                </div>
+                <button
+                  type="button"
+                  @click="removeStagedFile(idx)"
+                  class="w-5 h-5 rounded-full bg-surface-container hover:bg-error hover:text-white text-[#6b6680] flex items-center justify-center text-xs transition-colors shrink-0"
+                  title="Remove file"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <button
+                type="button"
+                @click="clearStagedFiles"
+                class="text-xs text-error font-bold hover:underline shrink-0 px-2 py-1"
+              >
+                Clear All
+              </button>
+            </div>
+
+            <!-- Quick Emoji Bar -->
+            <div v-if="showEmojiBar" class="mb-2 p-2 bg-surface-container-low/80 border border-[#eaddff] rounded-xl flex items-center gap-2 overflow-x-auto">
+              <button
+                v-for="em in quickEmojis"
+                :key="em"
+                type="button"
+                @click="insertEmoji(em)"
+                class="p-1.5 hover:bg-white rounded-lg text-lg transition-transform hover:scale-125"
+              >
+                {{ em }}
+              </button>
+            </div>
+
+            <form @submit.prevent="sendStagedFilesAndMessage" class="flex items-center gap-2 bg-[#fdfaff] border border-[#eaddff] rounded-2xl p-1.5 sm:p-2 focus-within:border-[#543ce0] focus-within:ring-2 focus-within:ring-[#543ce0]/20 transition-all shadow-xs">
+              <!-- Multi-File Attachment Button -->
+              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Attach Multiple Documents or PDFs">
                 <span class="material-symbols-outlined text-xl">attach_file</span>
-                <input type="file" class="hidden" @change="handleFileUpload"/>
+                <input type="file" multiple class="hidden" @change="onFilesSelected"/>
               </label>
 
-              <!-- Image Upload Button -->
-              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Upload Image">
+              <!-- Image Multi-Upload Button -->
+              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Upload Multiple Photos">
                 <span class="material-symbols-outlined text-xl">image</span>
-                <input type="file" accept="image/*" class="hidden" @change="handleFileUpload"/>
+                <input type="file" multiple accept="image/*" class="hidden" @change="onFilesSelected"/>
               </label>
+
+              <!-- Quick Emoji Toggle -->
+              <button
+                type="button"
+                @click="showEmojiBar = !showEmojiBar"
+                class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                :class="showEmojiBar ? 'text-[#543ce0] bg-[#f6effe]' : 'text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe]'"
+                title="Quick Emojis"
+              >
+                <span class="material-symbols-outlined text-xl">mood</span>
+              </button>
 
               <!-- Text Input -->
               <input
                 v-model="inputMessage"
+                @input="handleTypingInput"
                 class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-[#1e1a2b] placeholder-[#6b6680]/60 focus:outline-none px-2"
-                :placeholder="`Type a message to ${activePeer.full_name}... (Press Enter)`"
+                :placeholder="stagedFiles.length ? 'Add a caption for your attachments...' : `Type a message to ${activePeer.full_name}... (Press Enter)`"
                 type="text"
               />
 
               <!-- Send Button -->
               <button
                 type="submit"
-                :disabled="!inputMessage.trim()"
+                :disabled="!inputMessage.trim() && !stagedFiles.length && !isUploadingFiles"
                 class="w-10 h-10 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white flex items-center justify-center shadow-md shadow-[#543ce0]/25 transition-all active:scale-95 flex-shrink-0 disabled:opacity-40"
-                title="Send message"
+                :title="stagedFiles.length ? `Send ${stagedFiles.length} file(s)` : 'Send message'"
               >
-                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">send</span>
+                <span v-if="isUploadingFiles" class="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                <span v-else class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">send</span>
               </button>
             </form>
           </footer>
@@ -590,10 +813,10 @@
         <template v-else-if="activeGroup">
           <!-- 1. GROUP CHAT HEADER -->
           <header class="p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex flex-wrap items-center justify-between gap-3 z-10 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 cursor-pointer group" @click="showGroupDrawer = true" title="View Group Details">
               <div class="relative">
                 <div
-                  class="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm"
+                  class="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm group-hover:ring-2 group-hover:ring-[#543ce0] transition-all"
                   :style="{ background: activeGroup.avatar_color || '#543ce0' }"
                 >
                   {{ activeGroup.name.charAt(0).toUpperCase() }}
@@ -601,7 +824,10 @@
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="font-headline font-bold text-base text-[#1e1a2b]">{{ activeGroup.name }}</h2>
+                  <h2 class="font-headline font-bold text-base text-[#1e1a2b] group-hover:text-[#543ce0] transition-colors flex items-center gap-1.5">
+                    <span>{{ activeGroup.name }}</span>
+                    <span class="material-symbols-outlined text-sm text-[#543ce0] opacity-0 group-hover:opacity-100 transition-opacity">info</span>
+                  </h2>
                   <span class="px-2 py-0.5 bg-[#543ce0]/10 border border-[#543ce0]/20 text-[#543ce0] text-[10px] font-bold rounded-full">
                     {{ activeGroup.member_count || groupMembers.length }} Members
                   </span>
@@ -617,8 +843,18 @@
 
             <!-- Group Header Actions -->
             <div class="flex items-center gap-2">
+              <!-- Search In Group Button -->
               <button
-                @click="openGroupInfoModal"
+                @click="showChatSearch = !showChatSearch"
+                class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all"
+                :class="showChatSearch ? 'bg-[#543ce0] text-white border-[#543ce0]' : 'bg-white border-[#eaddff] text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe]'"
+                title="Search messages in group"
+              >
+                <span class="material-symbols-outlined text-lg">search</span>
+              </button>
+
+              <button
+                @click="showGroupDrawer = true"
                 class="px-3.5 py-1.5 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#543ce0] text-xs font-bold font-headline flex items-center gap-1.5 shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95"
                 title="View group members and info"
               >
@@ -627,6 +863,23 @@
               </button>
             </div>
           </header>
+
+          <!-- In-Chat Search Bar -->
+          <div v-if="showChatSearch" class="p-3 bg-white border-b border-[#eaddff] flex items-center gap-2 z-10">
+            <span class="material-symbols-outlined text-lg text-[#6b6680]">search</span>
+            <input
+              v-model="chatSearchQuery"
+              type="text"
+              placeholder="Search in group discussion..."
+              class="flex-1 text-xs text-[#1e1a2b] bg-transparent focus:outline-none placeholder-[#6b6680]/60 font-body"
+            />
+            <span v-if="chatSearchQuery.trim()" class="text-[10px] font-bold text-[#543ce0] bg-[#543ce0]/10 px-2 py-0.5 rounded-full">
+              {{ displayedGroupMessages.length }} found
+            </span>
+            <button @click="chatSearchQuery = ''; showChatSearch = false" class="p-1 rounded-lg hover:bg-[#f6effe] text-[#6b6680] text-xs font-bold" title="Close search">
+              ✕
+            </button>
+          </div>
 
           <!-- 2. SCROLLABLE GROUP MESSAGES FEED -->
           <div ref="groupMessageContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gradient-to-b from-[#fdfaff]/60 via-[#fbf4ff]/30 to-[#fdfaff]">
@@ -647,20 +900,66 @@
             </div>
 
             <!-- Messages List -->
-            <template v-for="msg in groupMessages" :key="'gmsg_' + msg.id">
+            <template v-for="msg in displayedGroupMessages" :key="'gmsg_' + msg.id">
               <!-- Outgoing message (Current User) -->
-              <div v-if="msg.sender_id === currentUser?.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto">
+              <div v-if="msg.sender_id === currentUser?.id" class="flex items-end justify-end gap-2.5 max-w-lg ml-auto group relative">
+                <!-- Emoji Reaction Bar on Hover -->
+                <div class="absolute -top-7 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center bg-white border border-[#eaddff] rounded-full px-2 py-0.5 shadow-md gap-1.5 z-20">
+                  <button
+                    v-for="emoji in ['👍', '❤️', '😂', '🔥', '🎉', '🚀']"
+                    :key="emoji"
+                    @click.stop="toggleReaction(msg, emoji, true)"
+                    class="hover:scale-125 transition-transform text-xs"
+                    :title="'React ' + emoji"
+                  >{{ emoji }}</button>
+                </div>
+
                 <div class="space-y-1 text-right">
                   <!-- Text message -->
                   <div v-if="msg.message_type === 'text'" class="bg-[#543ce0] text-white p-3.5 rounded-2xl rounded-br-sm text-xs leading-relaxed shadow-md shadow-[#543ce0]/15 text-left">
                     {{ msg.content }}
                   </div>
-                  <!-- Image message -->
-                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#543ce0] rounded-2xl rounded-br-sm shadow-md shadow-[#543ce0]/15 overflow-hidden">
-                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl"/>
+
+                  <!-- PDF Document message -->
+                  <div v-else-if="msg.file_name && msg.file_name.toLowerCase().endsWith('.pdf')" class="p-3.5 bg-gradient-to-r from-red-500/15 to-red-500/5 border border-red-500/30 rounded-2xl rounded-br-sm shadow-md text-left flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-bold text-[#1e1a2b] truncate">{{ msg.file_name }}</p>
+                      <p class="text-[10px] text-[#6b6680]">{{ msg.file_size }} • PDF Document</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          @click="openPdfModal(msg.file_url, msg.file_name)"
+                          class="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                        >
+                          <span class="material-symbols-outlined text-sm">visibility</span>
+                          <span>Preview PDF</span>
+                        </button>
+                        <a
+                          :href="msg.file_url"
+                          target="_blank"
+                          download
+                          class="p-1 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                          title="Download PDF"
+                        >
+                          <span class="material-symbols-outlined text-base">download</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Image message (With Lightbox Click) -->
+                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#543ce0] rounded-2xl rounded-br-sm shadow-md shadow-[#543ce0]/15 overflow-hidden group/img relative cursor-pointer" @click="openImageModal(msg.file_url, msg.file_name)">
+                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl transition-transform group-hover/img:scale-[1.01]"/>
+                    <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                      <span class="p-2 rounded-full bg-black/60 text-white material-symbols-outlined text-lg">zoom_in</span>
+                    </div>
                     <p class="text-[11px] text-white/90 p-1 text-left truncate">{{ msg.file_name }} ({{ msg.file_size }})</p>
                   </div>
-                  <!-- File/Doc message -->
+
+                  <!-- Generic File/Doc message -->
                   <div v-else-if="msg.message_type === 'file'" class="p-3 bg-[#543ce0] text-white rounded-2xl rounded-br-sm shadow-md flex items-center gap-3 text-left">
                     <span class="material-symbols-outlined text-2xl">description</span>
                     <div class="flex-1 min-w-0">
@@ -668,6 +967,21 @@
                       <span class="text-[10px] text-white/80">{{ msg.file_size }}</span>
                     </div>
                   </div>
+
+                  <!-- Message Reactions Badges -->
+                  <div v-if="msg.reactions && Object.keys(msg.reactions).length" class="flex flex-wrap gap-1 mt-1 justify-end">
+                    <button
+                      v-for="(uids, emoji) in msg.reactions"
+                      :key="emoji"
+                      @click="toggleReaction(msg, emoji, true)"
+                      class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-white border border-[#eaddff] shadow-xs flex items-center gap-1 hover:scale-105 transition-all"
+                      :class="uids.includes(currentUser?.id) ? 'border-[#543ce0] text-[#543ce0]' : 'text-[#1e1a2b]'"
+                    >
+                      <span>{{ emoji }}</span>
+                      <span>{{ uids.length }}</span>
+                    </button>
+                  </div>
+
                   <div class="flex items-center justify-end gap-1 px-1 text-[10px] text-[#6b6680]">
                     <span>{{ msg.created_at }}</span>
                     <span class="material-symbols-outlined text-sm text-[#543ce0]" style="font-variation-settings: 'FILL' 1;">done_all</span>
@@ -676,7 +990,18 @@
               </div>
 
               <!-- Incoming message (Group Peer) -->
-              <div v-else class="flex items-end gap-2.5 max-w-lg">
+              <div v-else class="flex items-end gap-2.5 max-w-lg group relative">
+                <!-- Emoji Reaction Bar on Hover -->
+                <div class="absolute -top-7 left-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center bg-white border border-[#eaddff] rounded-full px-2 py-0.5 shadow-md gap-1.5 z-20">
+                  <button
+                    v-for="emoji in ['👍', '❤️', '😂', '🔥', '🎉', '🚀']"
+                    :key="emoji"
+                    @click.stop="toggleReaction(msg, emoji, true)"
+                    class="hover:scale-125 transition-transform text-xs"
+                    :title="'React ' + emoji"
+                  >{{ emoji }}</button>
+                </div>
+
                 <NuxtLink
                   :to="'/profile?u=' + msg.sender_username"
                   class="w-7 h-7 rounded-lg text-white flex items-center justify-center font-bold text-xs mb-1 ring-1 ring-[#eaddff] flex-shrink-0 overflow-hidden hover:ring-2 hover:ring-[#543ce0] transition-all"
@@ -694,16 +1019,52 @@
                     </NuxtLink>
                     <span class="text-[9px] text-[#6b6680]">@{{ msg.sender_username }}</span>
                   </div>
+
                   <!-- Text message -->
                   <div v-if="msg.message_type === 'text'" class="bg-[#f6effe] border border-[#eaddff]/80 text-[#1e1a2b] p-3.5 rounded-2xl rounded-bl-sm text-xs leading-relaxed shadow-xs">
                     {{ msg.content }}
                   </div>
-                  <!-- Image message -->
-                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#f6effe] border border-[#eaddff] rounded-2xl rounded-bl-sm shadow-xs overflow-hidden">
-                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl"/>
+
+                  <!-- PDF Document message -->
+                  <div v-else-if="msg.file_name && msg.file_name.toLowerCase().endsWith('.pdf')" class="p-3.5 bg-gradient-to-r from-red-500/10 to-white border border-red-500/30 rounded-2xl rounded-bl-sm shadow-xs text-left flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <span class="material-symbols-outlined text-2xl">picture_as_pdf</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-bold text-[#1e1a2b] truncate">{{ msg.file_name }}</p>
+                      <p class="text-[10px] text-[#6b6680]">{{ msg.file_size }} • PDF Document</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          @click="openPdfModal(msg.file_url, msg.file_name)"
+                          class="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                        >
+                          <span class="material-symbols-outlined text-sm">visibility</span>
+                          <span>Preview PDF</span>
+                        </button>
+                        <a
+                          :href="msg.file_url"
+                          target="_blank"
+                          download
+                          class="p-1 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                          title="Download PDF"
+                        >
+                          <span class="material-symbols-outlined text-base">download</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Image message (With Lightbox Click) -->
+                  <div v-else-if="msg.message_type === 'image'" class="p-1.5 bg-[#f6effe] border border-[#eaddff] rounded-2xl rounded-bl-sm shadow-xs overflow-hidden group/img relative cursor-pointer" @click="openImageModal(msg.file_url, msg.file_name)">
+                    <img :src="msg.file_url" :alt="msg.file_name" class="w-64 max-h-64 object-cover rounded-xl transition-transform group-hover/img:scale-[1.01]"/>
+                    <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover/img:opacity-100">
+                      <span class="p-2 rounded-full bg-black/60 text-white material-symbols-outlined text-lg">zoom_in</span>
+                    </div>
                     <p class="text-[11px] text-[#1e1a2b] p-1 truncate">{{ msg.file_name }} ({{ msg.file_size }})</p>
                   </div>
-                  <!-- File message -->
+
+                  <!-- Generic File message -->
                   <div v-else-if="msg.message_type === 'file'" class="p-3 bg-[#f6effe] border border-[#eaddff] text-[#1e1a2b] rounded-2xl rounded-bl-sm shadow-xs flex items-center gap-3">
                     <span class="material-symbols-outlined text-2xl text-[#99366c]">description</span>
                     <div class="flex-1 min-w-0">
@@ -711,45 +1072,133 @@
                       <span class="text-[10px] text-[#6b6680]">{{ msg.file_size }}</span>
                     </div>
                   </div>
+
+                  <!-- Message Reactions Badges -->
+                  <div v-if="msg.reactions && Object.keys(msg.reactions).length" class="flex flex-wrap gap-1 mt-1">
+                    <button
+                      v-for="(uids, emoji) in msg.reactions"
+                      :key="emoji"
+                      @click="toggleReaction(msg, emoji, true)"
+                      class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-white border border-[#eaddff] shadow-xs flex items-center gap-1 hover:scale-105 transition-all"
+                      :class="uids.includes(currentUser?.id) ? 'border-[#543ce0] text-[#543ce0]' : 'text-[#1e1a2b]'"
+                    >
+                      <span>{{ emoji }}</span>
+                      <span>{{ uids.length }}</span>
+                    </button>
+                  </div>
+
                   <div class="flex items-center gap-1.5 px-1 text-[10px] text-[#6b6680]">
                     <span>{{ msg.created_at }}</span>
                   </div>
                 </div>
               </div>
             </template>
+
+            <!-- Real-Time Group Typing Indicator Bubble -->
+            <div v-if="groupTypingText" class="flex items-center gap-2.5 p-3 bg-white border border-[#eaddff] rounded-2xl w-fit shadow-xs animate-in fade-in duration-150">
+              <span class="text-xs font-semibold text-[#543ce0]">{{ groupTypingText }}</span>
+              <span class="flex gap-1 items-center">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#543ce0] animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#543ce0] animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#543ce0] animate-bounce" style="animation-delay: 300ms"></span>
+              </span>
+            </div>
           </div>
 
-          <!-- 3. GROUP BOTTOM INPUT BAR -->
+          <!-- 3. GROUP BOTTOM INPUT BAR & ATTACHMENT TRAY -->
           <footer class="p-3 sm:p-4 bg-white border-t border-[#eaddff] relative z-10 flex-shrink-0">
-            <form @submit.prevent="sendMessage" class="flex items-center gap-2 bg-[#fdfaff] border border-[#eaddff] rounded-2xl p-1.5 sm:p-2 focus-within:border-[#543ce0] focus-within:ring-2 focus-within:ring-[#543ce0]/20 transition-all shadow-xs">
-              <!-- File Attachment Button -->
-              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Attach Document">
+            <!-- Multi-File Attachment Staging Tray -->
+            <div v-if="stagedFiles.length > 0" class="mb-3 p-3 bg-surface-container-low/70 border border-[#eaddff] rounded-2xl flex items-center gap-3 overflow-x-auto">
+              <div
+                v-for="(staged, idx) in stagedFiles"
+                :key="idx"
+                class="relative flex items-center gap-2.5 p-2 pr-3 rounded-xl bg-white border border-[#eaddff] shadow-xs shrink-0 max-w-[220px]"
+              >
+                <img v-if="staged.type === 'image'" :src="staged.previewUrl" class="w-9 h-9 rounded-lg object-cover shrink-0" />
+                <div v-else-if="staged.type === 'pdf'" class="w-9 h-9 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-xl">picture_as_pdf</span>
+                </div>
+                <div v-else class="w-9 h-9 rounded-lg bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-xl">description</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-bold text-[#1e1a2b] truncate">{{ staged.name }}</p>
+                  <p class="text-[10px] text-[#6b6680]">{{ staged.size }}</p>
+                </div>
+                <button
+                  type="button"
+                  @click="removeStagedFile(idx)"
+                  class="w-5 h-5 rounded-full bg-surface-container hover:bg-error hover:text-white text-[#6b6680] flex items-center justify-center text-xs transition-colors shrink-0"
+                  title="Remove file"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <button
+                type="button"
+                @click="clearStagedFiles"
+                class="text-xs text-error font-bold hover:underline shrink-0 px-2 py-1"
+              >
+                Clear All
+              </button>
+            </div>
+
+            <!-- Quick Emoji Bar -->
+            <div v-if="showEmojiBar" class="mb-2 p-2 bg-surface-container-low/80 border border-[#eaddff] rounded-xl flex items-center gap-2 overflow-x-auto">
+              <button
+                v-for="em in quickEmojis"
+                :key="em"
+                type="button"
+                @click="insertEmoji(em)"
+                class="p-1.5 hover:bg-white rounded-lg text-lg transition-transform hover:scale-125"
+              >
+                {{ em }}
+              </button>
+            </div>
+
+            <form @submit.prevent="sendStagedFilesAndMessage" class="flex items-center gap-2 bg-[#fdfaff] border border-[#eaddff] rounded-2xl p-1.5 sm:p-2 focus-within:border-[#543ce0] focus-within:ring-2 focus-within:ring-[#543ce0]/20 transition-all shadow-xs">
+              <!-- Multi-File Attachment Button -->
+              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Attach Multiple Documents or PDFs">
                 <span class="material-symbols-outlined text-xl">attach_file</span>
-                <input type="file" class="hidden" @change="handleFileUpload"/>
+                <input type="file" multiple class="hidden" @change="onFilesSelected"/>
               </label>
 
-              <!-- Image Upload Button -->
-              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Upload Image">
+              <!-- Image Multi-Upload Button -->
+              <label class="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe] transition-colors cursor-pointer" title="Upload Multiple Photos">
                 <span class="material-symbols-outlined text-xl">image</span>
-                <input type="file" accept="image/*" class="hidden" @change="handleFileUpload"/>
+                <input type="file" multiple accept="image/*" class="hidden" @change="onFilesSelected"/>
               </label>
+
+              <!-- Quick Emoji Toggle -->
+              <button
+                type="button"
+                @click="showEmojiBar = !showEmojiBar"
+                class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                :class="showEmojiBar ? 'text-[#543ce0] bg-[#f6effe]' : 'text-[#6b6680] hover:text-[#543ce0] hover:bg-[#f6effe]'"
+                title="Quick Emojis"
+              >
+                <span class="material-symbols-outlined text-xl">mood</span>
+              </button>
 
               <!-- Text Input -->
               <input
                 v-model="inputMessage"
+                @input="handleTypingInput"
                 class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-[#1e1a2b] placeholder-[#6b6680]/60 focus:outline-none px-2"
-                :placeholder="`Message in ${activeGroup.name}... (Press Enter)`"
+                :placeholder="stagedFiles.length ? 'Add a caption for your attachments...' : `Message in ${activeGroup.name}... (Press Enter)`"
                 type="text"
               />
 
               <!-- Send Button -->
               <button
                 type="submit"
-                :disabled="!inputMessage.trim()"
+                :disabled="!inputMessage.trim() && !stagedFiles.length && !isUploadingFiles"
                 class="w-10 h-10 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white flex items-center justify-center shadow-md shadow-[#543ce0]/25 transition-all active:scale-95 flex-shrink-0 disabled:opacity-40"
-                title="Send message"
+                :title="stagedFiles.length ? `Send ${stagedFiles.length} file(s)` : 'Send message'"
               >
-                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">send</span>
+                <span v-if="isUploadingFiles" class="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                <span v-else class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">send</span>
               </button>
             </form>
           </footer>
@@ -1183,9 +1632,9 @@
 
     <!-- 7. GROUP INFO / MEMBERS MODAL -->
     <div
-      v-if="showGroupInfoModal && activeGroup"
+      v-if="(showGroupInfoModal || showGroupDrawer) && activeGroup"
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      @click.self="showGroupInfoModal = false"
+      @click.self="showGroupInfoModal = false; showGroupDrawer = false"
     >
       <div class="bg-white rounded-2xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[85vh]">
         <!-- Header -->
@@ -1203,7 +1652,7 @@
             </div>
           </div>
           <button
-            @click="showGroupInfoModal = false"
+            @click="showGroupInfoModal = false; showGroupDrawer = false"
             class="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b6680] hover:bg-[#f6effe] hover:text-[#1e1a2b] transition-all"
           >
             <span class="material-symbols-outlined text-lg">close</span>
@@ -1310,7 +1759,7 @@
             <span>Leave Group</span>
           </button>
           <button
-            @click="showGroupInfoModal = false"
+            @click="showGroupInfoModal = false; showGroupDrawer = false"
             class="px-4 py-2 rounded-xl bg-[#543ce0] text-white text-xs font-bold hover:bg-[#432ec4] transition-all"
           >
             Done
@@ -1608,6 +2057,94 @@
         </div>
       </div>
     </div>
+
+    <!-- 11. IN-APP NATIVE PDF VIEWER MODAL -->
+    <div
+      v-if="showPdfModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+      @click.self="closePdfModal"
+    >
+      <div class="bg-white rounded-3xl border border-[#eaddff] shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+        <!-- PDF Header Bar -->
+        <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-white truncate max-w-md">{{ activePdfTitle || 'Document.pdf' }}</h3>
+              <p class="text-[10px] text-slate-400">In-App Native PDF Document Viewer</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <a
+              :href="activePdfUrl"
+              target="_blank"
+              class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              title="Open in new browser tab"
+            >
+              <span class="material-symbols-outlined text-sm">open_in_new</span>
+              <span class="hidden sm:inline">New Tab</span>
+            </a>
+            <a
+              :href="activePdfUrl"
+              download
+              class="px-3 py-1.5 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              title="Download PDF"
+            >
+              <span class="material-symbols-outlined text-sm">download</span>
+              <span class="hidden sm:inline">Download</span>
+            </a>
+            <button
+              @click="closePdfModal"
+              class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors ml-1"
+              title="Close viewer"
+            >
+              <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PDF Iframe Frame -->
+        <div class="flex-1 bg-slate-100 relative">
+          <iframe
+            v-if="activePdfUrl"
+            :src="activePdfUrl"
+            class="w-full h-full border-0"
+            title="PDF Preview"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- 12. IMAGE LIGHTBOX MODAL -->
+    <div
+      v-if="showImageModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      @click.self="closeImageModal"
+    >
+      <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+        <button
+          @click="closeImageModal"
+          class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors"
+          title="Close image preview"
+        >
+          <span class="material-symbols-outlined text-xl">close</span>
+        </button>
+        <img
+          :src="activeImageUrl"
+          :alt="activeImageTitle"
+          class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+        />
+        <div class="mt-3 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full text-white/90 text-xs flex items-center gap-3">
+          <span class="font-medium truncate max-w-xs">{{ activeImageTitle }}</span>
+          <a :href="activeImageUrl" target="_blank" download class="text-[#8e7aff] hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">download</span>
+            <span>Download</span>
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1696,8 +2233,36 @@ const isSubmittingGroup = ref(false)
 
 // Group Info Modal state
 const showGroupInfoModal = ref(false)
+const showGroupDrawer = ref(false)
 const showAddMemberRow = ref(false)
 const memberToAddId = ref('')
+
+// Modals: PDF Native Viewer & Lightbox Image Viewer
+const showPdfModal = ref(false)
+const activePdfUrl = ref('')
+const activePdfTitle = ref('')
+
+const showImageModal = ref(false)
+const activeImageUrl = ref('')
+const activeImageTitle = ref('')
+
+// In-Chat Search State
+const showChatSearch = ref(false)
+const chatSearchQuery = ref('')
+
+// Multi-File Staging Tray State
+const stagedFiles = ref([])
+const isUploadingFiles = ref(false)
+
+// Quick Emojis Bar State
+const showEmojiBar = ref(false)
+const quickEmojis = ref(['👍', '❤️', '😂', '🔥', '🎉', '🚀', '👏', '💡', '✨', '💯', '🙌', '👀'])
+
+// Real-Time Typing Indicator State
+const peerIsTyping = ref(false)
+const groupTypingUsers = ref([])
+let peerTypingTimeout = null
+let typingDebounceTimeout = null
 
 // WebRTC & Call State
 const socket = ref(null)
@@ -2051,6 +2616,35 @@ const availablePeersToAdd = computed(() => {
   return peers.value.filter(p => !memberIds.has(p.id))
 })
 
+const displayedMessages = computed(() => {
+  if (!chatSearchQuery.value.trim()) return messages.value
+  const q = chatSearchQuery.value.toLowerCase()
+  return messages.value.filter(m =>
+    (m.content && m.content.toLowerCase().includes(q)) ||
+    (m.file_name && m.file_name.toLowerCase().includes(q))
+  )
+})
+
+const displayedGroupMessages = computed(() => {
+  if (!chatSearchQuery.value.trim()) return groupMessages.value
+  const q = chatSearchQuery.value.toLowerCase()
+  return groupMessages.value.filter(m =>
+    (m.content && m.content.toLowerCase().includes(q)) ||
+    (m.file_name && m.file_name.toLowerCase().includes(q)) ||
+    (m.sender_name && m.sender_name.toLowerCase().includes(q)) ||
+    (m.sender_username && m.sender_username.toLowerCase().includes(q))
+  )
+})
+
+const groupTypingText = computed(() => {
+  if (!groupTypingUsers.value || groupTypingUsers.value.length === 0) return ''
+  const names = groupTypingUsers.value.slice(0, 3).join(', ')
+  if (groupTypingUsers.value.length === 1) {
+    return `${names} is typing...`
+  }
+  return `${names} are typing...`
+})
+
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchPeers()
@@ -2332,6 +2926,11 @@ const selectPeer = async (peer) => {
   activeGroup.value = null
   activePeer.value = peer
   peer.unread_count = 0
+  showChatSearch.value = false
+  chatSearchQuery.value = ''
+  peerIsTyping.value = false
+  groupTypingUsers.value = []
+  clearStagedFiles()
   await Promise.all([
     fetchMessages(peer.id),
     fetchSessions()
@@ -2395,6 +2994,11 @@ const selectGroup = async (group) => {
   activePeer.value = null
   activeGroup.value = group
   groupMessages.value = []
+  showChatSearch.value = false
+  chatSearchQuery.value = ''
+  peerIsTyping.value = false
+  groupTypingUsers.value = []
+  clearStagedFiles()
   await fetchGroupMessages(group.id)
   fetchGroupDetails(group.id)
   fetchGroupDeltaMessages(group.id)
@@ -2821,6 +3425,43 @@ const setupSocket = () => {
     }
   })
 
+  // ─── Real-Time Typing Indicator Socket Listeners ───
+  socket.value.on('user_typing', (data) => {
+    if (!data) return
+    // Direct chat
+    if (data.is_direct && activePeer.value && data.user_id === activePeer.value.id) {
+      peerIsTyping.value = !!data.typing
+      if (peerTypingTimeout) clearTimeout(peerTypingTimeout)
+      if (data.typing) {
+        peerTypingTimeout = setTimeout(() => {
+          peerIsTyping.value = false
+        }, 3500)
+      }
+    }
+    // Group chat
+    if (!data.is_direct && activeGroup.value && data.group_id === activeGroup.value.id) {
+      if (data.user_id === currentUser.value?.id) return
+      const uName = data.username || 'Member'
+      if (data.typing) {
+        if (!groupTypingUsers.value.includes(uName)) {
+          groupTypingUsers.value.push(uName)
+        }
+      } else {
+        groupTypingUsers.value = groupTypingUsers.value.filter(n => n !== uName)
+      }
+    }
+  })
+
+  // ─── Real-Time Emoji Reaction Socket Listeners ───
+  socket.value.on('message_reaction', (data) => {
+    if (!data || !data.message_id) return
+    const msgList = data.is_group ? groupMessages.value : messages.value
+    const targetMsg = msgList.find(m => m.id === data.message_id)
+    if (targetMsg) {
+      targetMsg.reactions = data.reactions || {}
+    }
+  })
+
   // ─── Real-time Exchange Session Listeners (Pillar 1) ───
   socket.value.on('session_requested', (data) => {
     fetchSessions()
@@ -3143,6 +3784,255 @@ const handleFileUpload = async (event) => {
   } catch (e) {
     console.error(e)
     alert("Error uploading file.")
+  }
+}
+
+// ─── Multi-File Upload & Attachment Tray Handlers ───
+const formatBytes = (bytes, decimals = 1) => {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+}
+
+const onFilesSelected = (event) => {
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  for (const file of files) {
+    let type = 'file'
+    let previewUrl = null
+    if (file.type.startsWith('image/')) {
+      type = 'image'
+      previewUrl = URL.createObjectURL(file)
+    } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      type = 'pdf'
+    }
+    stagedFiles.value.push({
+      file,
+      name: file.name,
+      size: formatBytes(file.size),
+      type,
+      previewUrl
+    })
+  }
+  event.target.value = ''
+}
+
+const removeStagedFile = (index) => {
+  const item = stagedFiles.value[index]
+  if (item && item.previewUrl) {
+    try { URL.revokeObjectURL(item.previewUrl) } catch (e) {}
+  }
+  stagedFiles.value.splice(index, 1)
+}
+
+const clearStagedFiles = () => {
+  stagedFiles.value.forEach(item => {
+    if (item.previewUrl) {
+      try { URL.revokeObjectURL(item.previewUrl) } catch (e) {}
+    }
+  })
+  stagedFiles.value = []
+}
+
+const sendStagedFilesAndMessage = async () => {
+  if (isUploadingFiles.value) return
+  const text = inputMessage.value.trim()
+  const filesToSend = [...stagedFiles.value]
+
+  // If files are staged, upload them first
+  if (filesToSend.length > 0) {
+    isUploadingFiles.value = true
+    try {
+      const formData = new FormData()
+      for (const item of filesToSend) {
+        formData.append('files', item.file)
+      }
+
+      const uploadRes = await fetch('/api/chat/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      if (uploadRes.ok) {
+        const data = await uploadRes.json()
+        const uploadedList = data.files || []
+
+        if (uploadedList.length === 0 && data.file_url) {
+          uploadedList.push({
+            file_url: data.file_url,
+            file_name: data.file_name,
+            file_size: data.file_size,
+            message_type: data.message_type
+          })
+        }
+
+        for (const f of uploadedList) {
+          const payload = {
+            content: f.file_name,
+            message_type: f.message_type || 'file',
+            file_url: f.file_url,
+            file_name: f.file_name,
+            file_size: f.file_size,
+            sender_id: currentUser.value?.id
+          }
+
+          if (activeGroup.value) {
+            payload.group_id = activeGroup.value.id
+          } else if (activePeer.value) {
+            payload.receiver_id = activePeer.value.id
+          } else {
+            continue
+          }
+
+          const sendRes = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+          })
+
+          if (sendRes.ok) {
+            const sendData = await sendRes.json()
+            if (sendData.message) {
+              if (activeGroup.value) {
+                groupMessages.value.push(sendData.message)
+                scrollGroupToBottom()
+                activeGroup.value.last_message = f.file_name
+              } else {
+                messages.value.push(sendData.message)
+                scrollToBottom()
+                if (activePeer.value) {
+                  activePeer.value.last_message = f.file_name
+                }
+              }
+            }
+          } else if (socket.value && socket.value.connected) {
+            socket.value.emit('send_message', payload)
+          }
+        }
+
+        clearStagedFiles()
+      } else {
+        alert('Failed to upload files. Please try again.')
+      }
+    } catch (err) {
+      console.error('File upload error:', err)
+      alert('Error uploading files.')
+    } finally {
+      isUploadingFiles.value = false
+    }
+  }
+
+  // If text was typed alongside or by itself
+  if (text) {
+    await sendMessage()
+  }
+}
+
+// ─── Modal Openers (PDF Native Preview & Lightbox) ───
+const openPdfModal = (url, title) => {
+  activePdfUrl.value = url
+  activePdfTitle.value = title || 'Document.pdf'
+  showPdfModal.value = true
+}
+
+const closePdfModal = () => {
+  showPdfModal.value = false
+  activePdfUrl.value = ''
+  activePdfTitle.value = ''
+}
+
+const openImageModal = (url, title) => {
+  activeImageUrl.value = url
+  activeImageTitle.value = title || 'Image'
+  showImageModal.value = true
+}
+
+const closeImageModal = () => {
+  showImageModal.value = false
+  activeImageUrl.value = ''
+  activeImageTitle.value = ''
+}
+
+// ─── Emoji Helpers ───
+const insertEmoji = (emoji) => {
+  inputMessage.value += emoji
+}
+
+// ─── Typing Indicators ───
+const handleTypingInput = () => {
+  if (!socket.value || !socket.value.connected) return
+
+  if (activeGroup.value) {
+    socket.value.emit('typing', {
+      group_id: activeGroup.value.id,
+      user_id: currentUser.value?.id,
+      username: currentUser.value?.full_name || currentUser.value?.username || 'User'
+    })
+  } else if (activePeer.value) {
+    socket.value.emit('typing', {
+      target_user_id: activePeer.value.id,
+      user_id: currentUser.value?.id,
+      username: currentUser.value?.full_name || currentUser.value?.username || 'User'
+    })
+  }
+
+  if (typingDebounceTimeout) clearTimeout(typingDebounceTimeout)
+  typingDebounceTimeout = setTimeout(() => {
+    if (activeGroup.value) {
+      socket.value.emit('stop_typing', {
+        group_id: activeGroup.value.id,
+        user_id: currentUser.value?.id
+      })
+    } else if (activePeer.value) {
+      socket.value.emit('stop_typing', {
+        target_user_id: activePeer.value.id,
+        user_id: currentUser.value?.id
+      })
+    }
+  }, 2500)
+}
+
+// ─── Emoji Reactions ───
+const toggleReaction = async (msg, emoji, isGroup = false) => {
+  if (!currentUser.value?.id || !msg?.id) return
+
+  // Optimistic UI update for immediate response
+  if (!msg.reactions) msg.reactions = {}
+  const uid = currentUser.value.id
+  const existingUids = Array.isArray(msg.reactions[emoji]) ? [...msg.reactions[emoji]] : []
+  if (existingUids.includes(uid)) {
+    const updated = existingUids.filter(id => id !== uid)
+    if (updated.length === 0) {
+      delete msg.reactions[emoji]
+    } else {
+      msg.reactions[emoji] = updated
+    }
+  } else {
+    msg.reactions[emoji] = [...existingUids, uid]
+  }
+
+  try {
+    const res = await fetch(`/api/chat/messages/${msg.id}/react`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ emoji, is_group: isGroup })
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      if (data.reactions) {
+        msg.reactions = data.reactions
+      }
+    }
+  } catch (e) {
+    console.error('Failed to toggle reaction:', e)
   }
 }
 
