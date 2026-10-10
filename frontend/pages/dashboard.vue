@@ -52,13 +52,186 @@
               <span class="material-symbols-outlined text-primary text-base sm:text-lg" style="font-variation-settings: 'FILL' 1;">bolt</span>
               <span>{{ user.time_credits || 0 }} <span class="hidden sm:inline">Credits</span><span class="sm:hidden">cr</span></span>
             </div>
-            <!-- Notification Bell -->
-            <button @click="showNotificationsPanel = !showNotificationsPanel" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0">
-              <span class="material-symbols-outlined text-lg sm:text-xl">notifications</span>
-              <span v-if="pendingConnections.length > 0 || liveNotifCount > 0" class="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-error text-on-error text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center shadow-sm">
-                {{ pendingConnections.length + liveNotifCount }}
-              </span>
-            </button>
+            <!-- Notification Bell & Flyout Container -->
+            <div class="relative shrink-0">
+              <button 
+                @click="showNotificationsPanel = !showNotificationsPanel" 
+                class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-surface-container-low border border-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors shrink-0"
+                :class="{ 'ring-2 ring-primary/40 text-primary bg-surface-container': showNotificationsPanel }"
+                title="Notifications"
+                aria-label="Toggle notifications"
+              >
+                <span class="material-symbols-outlined text-lg sm:text-xl">notifications</span>
+                <span 
+                  v-if="totalBadgeCount > 0" 
+                  class="absolute -top-1 -right-1 min-w-[1.1rem] h-4 sm:h-5 px-1 rounded-full bg-error text-on-error text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center shadow-sm animate-pulse"
+                >
+                  {{ totalBadgeCount > 99 ? '99+' : totalBadgeCount }}
+                </span>
+              </button>
+
+              <!-- Backdrop overlay for mobile & click outside -->
+              <div 
+                v-if="showNotificationsPanel" 
+                @click="showNotificationsPanel = false" 
+                class="fixed inset-0 z-40 bg-black/20 sm:bg-transparent"
+              ></div>
+
+              <!-- Notifications Flyout Dropdown -->
+              <div 
+                v-if="showNotificationsPanel" 
+                class="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container-high z-50 overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[34rem] origin-top-right transition-all"
+              >
+                <!-- Flyout Header -->
+                <div class="px-4 py-3 bg-surface-container-low/80 border-b border-surface-container flex items-center justify-between shrink-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-headline font-bold text-sm sm:text-base text-on-surface">Notifications</span>
+                    <span 
+                      v-if="totalBadgeCount > 0" 
+                      class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold"
+                    >
+                      {{ totalBadgeCount }} new
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button 
+                      v-if="unreadNotifsCount > 0" 
+                      @click="markAllNotificationsRead" 
+                      class="text-[11px] font-semibold text-primary hover:text-primary-dim hover:underline px-1.5 py-0.5 rounded transition-colors"
+                      title="Mark all as read"
+                    >
+                      Mark all read
+                    </button>
+                    <button 
+                      @click="showNotificationsPanel = false" 
+                      class="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container flex items-center justify-center transition-colors"
+                    >
+                      <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Scrollable Body -->
+                <div class="overflow-y-auto divide-y divide-surface-container/60 flex-1">
+                  <!-- Section 1: Pending Connection Requests (Actionable) -->
+                  <div v-if="pendingConnections.length > 0" class="p-3 bg-primary/5 border-b border-primary/10">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[11px] font-bold uppercase tracking-wider text-primary flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">person_add</span> Connection Requests ({{ pendingConnections.length }})
+                      </span>
+                    </div>
+                    <div class="space-y-2">
+                      <div 
+                        v-for="pc in pendingConnections" 
+                        :key="'pconn-' + pc.id"
+                        class="p-2.5 rounded-xl bg-surface-container-lowest border border-primary/20 shadow-xs space-y-2"
+                      >
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                            <img v-if="pc.profile_picture" :src="pc.profile_picture" class="w-full h-full object-cover" />
+                            <span v-else>{{ (pc.full_name || pc.username || 'U').charAt(0) }}</span>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-on-surface truncate">{{ pc.full_name || pc.username }}</p>
+                            <p class="text-[11px] text-on-surface-variant truncate">
+                              <span class="font-medium text-primary">Offers:</span> {{ pc.skill_offered || 'Skills' }}
+                            </p>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-1">
+                          <button 
+                            @click="respondConnection(pc.id, 'accepted')" 
+                            class="flex-1 py-1.5 px-2 rounded-lg bg-primary text-on-primary text-xs font-bold shadow-xs hover:bg-primary-dim transition-all flex items-center justify-center gap-1"
+                          >
+                            <span class="material-symbols-outlined text-sm">check</span> Accept
+                          </button>
+                          <button 
+                            @click="respondConnection(pc.id, 'rejected')" 
+                            class="py-1.5 px-2.5 rounded-lg bg-surface-container-low text-on-surface-variant hover:text-error text-xs font-semibold transition-all"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Section 2: General & Realtime Notifications -->
+                  <div v-if="notificationsList.length > 0" class="divide-y divide-surface-container/40">
+                    <div 
+                      v-for="item in notificationsList" 
+                      :key="'notif-' + item.id"
+                      @click="handleNotificationClick(item)"
+                      class="p-3 hover:bg-surface-container-low/60 transition-colors cursor-pointer flex items-start gap-3 relative group"
+                      :class="{ 'bg-primary/5 font-medium': !item.is_read }"
+                    >
+                      <!-- Type Icon -->
+                      <div 
+                        class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-xs"
+                        :class="getNotifColorClass(item.type)"
+                      >
+                        <span class="material-symbols-outlined text-base">{{ getNotifIcon(item.type) }}</span>
+                      </div>
+
+                      <!-- Details -->
+                      <div class="flex-1 min-w-0 pr-4">
+                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                          <p class="text-xs font-bold text-on-surface truncate">{{ item.title }}</p>
+                          <span class="text-[10px] text-on-surface-variant/70 shrink-0">{{ formatNotifTime(item.created_at) }}</span>
+                        </div>
+                        <p class="text-[11px] text-on-surface-variant leading-relaxed line-clamp-2">{{ item.message }}</p>
+                      </div>
+
+                      <!-- Unread Indicator Dot & Delete Button -->
+                      <div class="shrink-0 flex items-center gap-1">
+                        <span v-if="!item.is_read" class="w-2 h-2 rounded-full bg-primary shrink-0"></span>
+                        <button 
+                          @click.stop="deleteNotificationItem(item.id)" 
+                          class="opacity-0 group-hover:opacity-100 p-1 text-on-surface-variant/60 hover:text-error rounded transition-opacity"
+                          title="Dismiss"
+                        >
+                          <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div 
+                    v-if="notificationsList.length === 0 && pendingConnections.length === 0" 
+                    class="py-12 px-6 text-center space-y-3"
+                  >
+                    <div class="w-12 h-12 rounded-full bg-surface-container mx-auto flex items-center justify-center text-on-surface-variant">
+                      <span class="material-symbols-outlined text-2xl">notifications_off</span>
+                    </div>
+                    <div>
+                      <p class="text-xs sm:text-sm font-bold text-on-surface">All caught up!</p>
+                      <p class="text-[11px] text-on-surface-variant mt-0.5">No notifications or pending requests right now.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Flyout Footer -->
+                <div 
+                  v-if="notificationsList.length > 0" 
+                  class="px-4 py-2.5 bg-surface-container-low/50 border-t border-surface-container flex items-center justify-between shrink-0"
+                >
+                  <button 
+                    @click="clearAllNotifications" 
+                    class="text-[11px] font-semibold text-on-surface-variant hover:text-error transition-colors flex items-center gap-1"
+                  >
+                    <span class="material-symbols-outlined text-sm">delete_sweep</span> Clear all
+                  </button>
+                  <NuxtLink 
+                    to="/chat" 
+                    @click="showNotificationsPanel = false" 
+                    class="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                  >
+                    Open Messages <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                  </NuxtLink>
+                </div>
+              </div>
+            </div>
             <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all shrink-0">
               <img v-if="user.profile_picture" :src="user.profile_picture" class="w-full h-full object-cover" />
               <span v-else>{{ (user.full_name || user.username || 'U').charAt(0) }}</span>
@@ -1577,6 +1750,153 @@ const liveRequest = ref(null)         // incoming connection request popup
 const acceptedToast = ref(null)       // "someone accepted your request" toast
 const liveNotifCount = ref(0)         // extra badge count beyond pendingConnections
 const showNotificationsPanel = ref(false)
+const notificationsList = ref([])
+const unreadNotifsCount = ref(0)
+const isLoadingNotifs = ref(false)
+
+const totalBadgeCount = computed(() => {
+  return (pendingConnections.value?.length || 0) + (unreadNotifsCount.value || 0)
+})
+
+const formatNotifTime = (dateStr) => {
+  if (!dateStr) return 'Just now'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return 'Recently'
+    const diffSec = Math.floor((Date.now() - d.getTime()) / 1000)
+    if (diffSec < 60) return 'Just now'
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`
+    if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  } catch {
+    return 'Recently'
+  }
+}
+
+const getNotifIcon = (type) => {
+  switch (type) {
+    case 'connection_request': return 'person_add'
+    case 'connection_accepted': return 'how_to_reg'
+    case 'session_requested': return 'event'
+    case 'session_accepted': return 'event_available'
+    case 'teaching_time': return 'school'
+    case 'learning_time': return 'menu_book'
+    case 'aee_request':
+    case 'aee_confirmed': return 'verified'
+    default: return 'notifications'
+  }
+}
+
+const getNotifColorClass = (type) => {
+  switch (type) {
+    case 'connection_request': return 'bg-purple-500/10 text-purple-600'
+    case 'connection_accepted': return 'bg-emerald-500/10 text-emerald-600'
+    case 'session_requested': return 'bg-amber-500/10 text-amber-600'
+    case 'session_accepted': return 'bg-teal-500/10 text-teal-600'
+    case 'teaching_time': return 'bg-primary/10 text-primary'
+    case 'learning_time': return 'bg-cyan-500/10 text-cyan-600'
+    case 'aee_request':
+    case 'aee_confirmed': return 'bg-indigo-500/10 text-indigo-600'
+    default: return 'bg-surface-container text-on-surface-variant'
+  }
+}
+
+const fetchNotifications = async () => {
+  isLoadingNotifs.value = true
+  try {
+    const res = await fetch('/api/notifications', { credentials: 'include' })
+    if (res.ok) {
+      const data = await res.json()
+      notificationsList.value = data.notifications || []
+      unreadNotifsCount.value = data.unread_count || 0
+    }
+  } catch (e) {
+    console.error('Failed to fetch notifications:', e)
+  } finally {
+    isLoadingNotifs.value = false
+  }
+}
+
+const markAllNotificationsRead = async () => {
+  try {
+    const res = await fetch('/api/notifications/mark-read', {
+      method: 'POST',
+      credentials: 'include'
+    })
+    if (res.ok) {
+      notificationsList.value.forEach(n => { n.is_read = true })
+      unreadNotifsCount.value = 0
+    }
+  } catch (e) {
+    console.error('Failed to mark notifications read:', e)
+  }
+}
+
+const markSingleNotificationRead = async (notifId) => {
+  if (typeof notifId === 'string' && notifId.startsWith('conn_')) return
+  try {
+    const res = await fetch('/api/notifications/mark-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ notification_id: notifId })
+    })
+    if (res.ok) {
+      const target = notificationsList.value.find(n => n.id === notifId)
+      if (target && !target.is_read) {
+        target.is_read = true
+        unreadNotifsCount.value = Math.max(0, unreadNotifsCount.value - 1)
+      }
+    }
+  } catch (e) {
+    console.error('Failed to mark notification read:', e)
+  }
+}
+
+const deleteNotificationItem = async (notifId) => {
+  try {
+    if (typeof notifId === 'number') {
+      await fetch(`/api/notifications/${notifId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+    }
+    const idx = notificationsList.value.findIndex(n => n.id === notifId)
+    if (idx !== -1) {
+      if (!notificationsList.value[idx].is_read) {
+        unreadNotifsCount.value = Math.max(0, unreadNotifsCount.value - 1)
+      }
+      notificationsList.value.splice(idx, 1)
+    }
+  } catch (e) {
+    console.error('Failed to delete notification:', e)
+  }
+}
+
+const clearAllNotifications = async () => {
+  try {
+    await fetch('/api/notifications/clear-all', {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    notificationsList.value = []
+    unreadNotifsCount.value = 0
+  } catch (e) {
+    console.error('Failed to clear notifications:', e)
+  }
+}
+
+const handleNotificationClick = async (item) => {
+  if (!item.is_read) {
+    await markSingleNotificationRead(item.id)
+  }
+  if (item.link) {
+    showNotificationsPanel.value = false
+    navigateTo(item.link)
+  }
+}
+
 let dashSocket = null
 
 const setupDashSocket = () => {
@@ -1593,9 +1913,17 @@ const setupDashSocket = () => {
     }
   })
 
+  dashSocket.on('new_notification', (data) => {
+    if (data) {
+      notificationsList.value.unshift(data)
+      unreadNotifsCount.value++
+    }
+  })
+
   dashSocket.on('connection_request', (data) => {
     liveRequest.value = data
     liveNotifCount.value++
+    fetchNotifications()
     // Also add to pendingConnections list immediately
     pendingConnections.value.unshift({
       id: data.connection_id,
@@ -1617,50 +1945,59 @@ const setupDashSocket = () => {
     // Refresh connections list
     fetchConnections()
     fetchCycles()
+    fetchNotifications()
   })
 
   // ─── Real-time A.E.E. Session Handshake Listeners ───
   dashSocket.on('aee_request_received', (data) => {
     fetchAeePending()
+    fetchNotifications()
     liveNotifCount.value++
   })
 
   dashSocket.on('aee_request_confirmed', (data) => {
     fetchVerifications()
     fetchAeePending()
+    fetchNotifications()
     alert(`🎉 Peer Confirmed! Your "${data.skill_name}" verification heartbeat has been renewed for 180 days!`)
   })
 
   dashSocket.on('aee_request_declined', (data) => {
     fetchAeePending()
+    fetchNotifications()
   })
 
   // ─── Real-time Exchange Session Listeners (Pillar 1) ───
   dashSocket.on('session_requested', (data) => {
     fetchSessions()
+    fetchNotifications()
     liveNotifCount.value++
   })
 
   dashSocket.on('session_accepted', (data) => {
     fetchSessions()
+    fetchNotifications()
     alert(`🎉 Session Accepted! ${data.teacher_name || 'Your mentor'} accepted your exchange for ${data.skill_name}.`)
   })
 
   dashSocket.on('session_rejected', (data) => {
     fetchSessions()
     fetchUserData()
+    fetchNotifications()
     alert(`ℹ️ Session for ${data.skill_name} was declined. Your escrow credits have been refunded.`)
   })
 
   dashSocket.on('session_cancelled', (data) => {
     fetchSessions()
     fetchUserData()
+    fetchNotifications()
   })
 
   dashSocket.on('session_completed', (data) => {
     fetchSessions()
     fetchUserData()
     fetchVerifications()
+    fetchNotifications()
   })
 
   dashSocket.on('teaching_time_recorded', (data) => {
@@ -1669,6 +2006,7 @@ const setupDashSocket = () => {
     }
     fetchUserData()
     fetchVerifications()
+    fetchNotifications()
   })
 }
 
@@ -1734,7 +2072,7 @@ const sendConnectRequest = async (receiverId) => {
     if (!res.ok) {
       alert(data.error || "Could not send connection request.")
     }
-    await Promise.all([fetchConnections(), fetchCycles()])
+    await Promise.all([fetchConnections(), fetchCycles(), fetchNotifications()])
   } catch (e) {
     console.error(e)
   }
@@ -1749,7 +2087,7 @@ const respondConnection = async (connId, status) => {
       body: JSON.stringify({ status })
     })
     if (res.ok) {
-      await Promise.all([fetchConnections(), fetchCycles()])
+      await Promise.all([fetchConnections(), fetchCycles(), fetchNotifications()])
     }
   } catch(e) { console.error(e) }
 }
@@ -1771,7 +2109,7 @@ onMounted(async () => {
         github: user.value.github || '',
         linkedin: user.value.linkedin || ''
       }
-      await Promise.all([fetchSkills(), fetchCycles(), fetchConnections(), fetchVerifications(), fetchAeePending(), fetchSessions()])
+      await Promise.all([fetchSkills(), fetchCycles(), fetchConnections(), fetchVerifications(), fetchAeePending(), fetchSessions(), fetchNotifications()])
       setupDashSocket()
     } else {
       error.value = 'Not authenticated'

@@ -258,6 +258,22 @@ def init_db():
     if 'actual_duration_seconds' not in sess_cols:
         cursor.execute("ALTER TABLE exchange_sessions ADD COLUMN actual_duration_seconds INTEGER DEFAULT 0")
 
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            actor_id INTEGER,
+            type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            link TEXT DEFAULT '',
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (actor_id) REFERENCES users(id)
+        )
+    ''')
+
     db.commit()
     db.close()
 

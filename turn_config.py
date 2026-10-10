@@ -35,11 +35,7 @@ def _openrelay_static_auth_servers():
     urls = [
         'turn:staticauth.openrelay.metered.ca:80',
         'turn:staticauth.openrelay.metered.ca:443',
-        'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
-        'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
-        'turn:openrelay.metered.ca:443?transport=tcp',
+        'turn:staticauth.openrelay.metered.ca:443?transport=tcp'
     ]
     return [{
         'urls': urls,

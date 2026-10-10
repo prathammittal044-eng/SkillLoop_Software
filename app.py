@@ -54,6 +54,190 @@ GRADIENTS = [
 def status():
     return jsonify({"status": "online", "message": "SkillLoop API is running"})
 
+
+def create_notification(user_id, actor_id, notif_type, title, message, link=''):
+    """Helper to persist a notification and emit via socketio to user_{uid}."""
+    try:
+        db = get_db()
+        cursor = db.execute('''
+            INSERT INTO notifications (user_id, actor_id, type, title, message, link)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (user_id, actor_id, notif_type, title, message, link))
+        db.commit()
+        notif_id = cursor.lastrowid
+
+        actor = None
+        if actor_id:
+            row = db.execute('SELECT id, username, full_name, profile_picture, avatar_color FROM users WHERE id = ?', (actor_id,)).fetchone()
+            if row:
+                actor = dict(row)
+
+        payload = {
+            'id': notif_id,
+            'user_id': user_id,
+            'actor_id': actor_id,
+            'type': notif_type,
+            'title': title,
+            'message': message,
+            'link': link,
+            'is_read': False,
+            'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+            'actor': actor
+        }
+        try:
+            socketio.emit('new_notification', payload, room=f"user_{user_id}")
+        except Exception:
+            pass
+        return payload
+    except Exception as e:
+        app.logger.warning(f"Error creating notification: {e}")
+        return None
+
+
+@app.route('/api/notifications', methods=['GET'])
+def get_notifications():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    user_id = session['user_id']
+    db = get_db()
+
+    rows = db.execute('''
+        SELECT n.id, n.user_id, n.actor_id, n.type, n.title, n.message, n.link, n.is_read, n.created_at,
+               u.username as actor_username, u.full_name as actor_name, 
+               u.profile_picture as actor_pic, u.avatar_color as actor_color
+        FROM notifications n
+        LEFT JOIN users u ON n.actor_id = u.id
+        WHERE n.user_id = ?
+        ORDER BY n.id DESC
+        LIMIT 50
+    ''', (user_id,)).fetchall()
+
+    notifications = []
+    unread_count = 0
+    for r in rows:
+        if not r['is_read']:
+            unread_count += 1
+        notifications.append({
+            'id': r['id'],
+            'user_id': r['user_id'],
+            'actor_id': r['actor_id'],
+            'type': r['type'],
+            'title': r['title'],
+            'message': r['message'],
+            'link': r['link'],
+            'is_read': bool(r['is_read']),
+            'created_at': r['created_at'],
+            'actor': {
+                'id': r['actor_id'],
+                'username': r['actor_username'],
+                'full_name': r['actor_name'],
+                'profile_picture': r['actor_pic'],
+                'avatar_color': r['actor_color'] or '#543ce0'
+            } if r['actor_id'] else None
+        })
+
+    # If user has no notifications yet, synthesize from pending connections & sessions
+    if not notifications:
+        pending_conns = db.execute('''
+            SELECT c.id, c.requester_id, u.username, u.full_name, u.avatar_color, u.profile_picture, c.created_at
+            FROM connections c
+            JOIN users u ON c.requester_id = u.id
+            WHERE c.receiver_id = ? AND c.status = 'pending'
+        ''', (user_id,)).fetchall()
+        for pc in pending_conns:
+            p_name = pc['full_name'] or pc['username']
+            notifications.append({
+                'id': f"conn_{pc['id']}",
+                'user_id': user_id,
+                'actor_id': pc['requester_id'],
+                'type': 'connection_request',
+                'title': 'New Connection Request',
+                'message': f"{p_name} sent you a connection request to swap skills.",
+                'link': '/dashboard',
+                'is_read': False,
+                'created_at': pc['created_at'],
+                'actor': {
+                    'id': pc['requester_id'],
+                    'username': pc['username'],
+                    'full_name': pc['full_name'],
+                    'profile_picture': pc['profile_picture'],
+                    'avatar_color': pc['avatar_color'] or '#543ce0'
+                }
+            })
+            unread_count += 1
+
+        pending_sess = db.execute('''
+            SELECT s.id, s.learner_id, s.skill_name, u.username, u.full_name, u.avatar_color, u.profile_picture, s.created_at
+            FROM exchange_sessions s
+            JOIN users u ON s.learner_id = u.id
+            WHERE s.teacher_id = ? AND s.status = 'pending'
+        ''', (user_id,)).fetchall()
+        for ps in pending_sess:
+            l_name = ps['full_name'] or ps['username']
+            notifications.append({
+                'id': f"sess_{ps['id']}",
+                'user_id': user_id,
+                'actor_id': ps['learner_id'],
+                'type': 'session_requested',
+                'title': 'Exchange Session Request',
+                'message': f"{l_name} booked a session to learn {ps['skill_name']} from you.",
+                'link': '/dashboard',
+                'is_read': False,
+                'created_at': ps['created_at'],
+                'actor': {
+                    'id': ps['learner_id'],
+                    'username': ps['username'],
+                    'full_name': ps['full_name'],
+                    'profile_picture': ps['profile_picture'],
+                    'avatar_color': ps['avatar_color'] or '#543ce0'
+                }
+            })
+            unread_count += 1
+
+    return jsonify({
+        'notifications': notifications,
+        'unread_count': unread_count
+    }), 200
+
+
+@app.route('/api/notifications/mark-read', methods=['POST'])
+def mark_notifications_read():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    user_id = session['user_id']
+    data = request.json or {}
+    db = get_db()
+
+    notif_id = data.get('id')
+    if notif_id and not str(notif_id).startswith(('conn_', 'sess_')):
+        db.execute('UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?', (notif_id, user_id))
+    else:
+        db.execute('UPDATE notifications SET is_read = 1 WHERE user_id = ?', (user_id,))
+    db.commit()
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route('/api/notifications/<int:notif_id>', methods=['DELETE'])
+def delete_notification(notif_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    user_id = session['user_id']
+    db = get_db()
+    db.execute('DELETE FROM notifications WHERE id = ? AND user_id = ?', (notif_id, user_id))
+    db.commit()
+    return jsonify({"status": "deleted"}), 200
+
+
+@app.route('/api/notifications/clear-all', methods=['DELETE'])
+def clear_all_notifications():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    user_id = session['user_id']
+    db = get_db()
+    db.execute('DELETE FROM notifications WHERE user_id = ?', (user_id,))
+    db.commit()
+    return jsonify({"status": "cleared"}), 200
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -558,6 +742,12 @@ def send_connection():
     conn_id = cursor.lastrowid
 
     # Emit real-time notification to the receiver
+    create_notification(
+        receiver_id, session['user_id'], 'connection_request',
+        'New Connection Request',
+        f"{sender['full_name'] or sender['username']} sent you a connection request to swap skills.",
+        '/dashboard'
+    )
     socketio.emit('connection_request', {
         'connection_id': conn_id,
         'requester_id': session['user_id'],
@@ -584,11 +774,18 @@ def update_connection(conn_id):
     # Notify the requester in real-time
     if conn and status == 'accepted':
         accepter = db.execute('SELECT username, full_name FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        a_name = (accepter['full_name'] or accepter['username']) if accepter else 'Peer'
+        create_notification(
+            conn['requester_id'], session['user_id'], 'connection_accepted',
+            'Connection Accepted!',
+            f"{a_name} accepted your connection request! You can now chat and video call.",
+            f'/chat?id={session["user_id"]}'
+        )
         socketio.emit('connection_accepted', {
             'connection_id': conn_id,
             'accepted_by_id': session['user_id'],
-            'accepted_by_name': accepter['full_name'] or accepter['username'],
-            'accepted_by_username': accepter['username'],
+            'accepted_by_name': a_name,
+            'accepted_by_username': accepter['username'] if accepter else '',
         }, room=f"user_{conn['requester_id']}")
 
     return jsonify({"message": f"Connection {status}"}), 200
@@ -1902,6 +2099,32 @@ def record_teaching_time():
     db = get_db()
     init_sessions_db(db)
 
+    # Deduplicate: Check if a matching log was already recorded in the last 20 seconds (e.g. by peer hanging up first)
+    recent = db.execute('''
+        SELECT id, duration_seconds FROM teaching_call_logs
+        WHERE teacher_id = ? AND learner_id = ? AND skill_name = ?
+        AND created_at >= datetime('now', '-20 seconds')
+        ORDER BY id DESC LIMIT 1
+    ''', (teacher_id, learner_id, skill_name)).fetchone()
+
+    if recent:
+        updated_teacher = db.execute('SELECT total_teaching_seconds, full_name, username FROM users WHERE id = ?', (teacher_id,)).fetchone()
+        tot_teach = (updated_teacher['total_teaching_seconds'] or 0) if updated_teacher else duration_seconds
+        tot_hours = tot_teach // 3600
+        tot_mins = (tot_teach % 3600) // 60
+        formatted_total_teaching = f"{tot_hours}h {tot_mins}m" if tot_hours > 0 else f"{tot_mins}m"
+        minutes = duration_seconds // 60
+        secs = duration_seconds % 60
+        formatted_duration = f"{minutes}m {secs}s" if minutes > 0 else f"{secs}s"
+        return jsonify({
+            "status": "success",
+            "message": "Call duration already recorded.",
+            "recorded_duration_seconds": duration_seconds,
+            "recorded_duration_formatted": formatted_duration,
+            "total_teaching_seconds": tot_teach,
+            "total_teaching_formatted": formatted_total_teaching
+        }), 200
+
     # 1. Update teacher total_teaching_seconds
     db.execute('''
         UPDATE users 
@@ -1958,9 +2181,26 @@ def record_teaching_time():
     tot_mins = (tot_teach % 3600) // 60
     formatted_total_teaching = f"{tot_hours}h {tot_mins}m" if tot_hours > 0 else f"{tot_mins}m"
 
+    t_name = (updated_teacher['full_name'] or updated_teacher['username']) if updated_teacher else 'Teacher'
+    l_name = (updated_learner['full_name'] or updated_learner['username']) if updated_learner else 'Learner'
+
+    # Send notifications to both users
+    create_notification(
+        teacher_id, learner_id, 'teaching_recorded',
+        'Teaching Time Recorded!',
+        f"You taught {skill_name} to {l_name} for {formatted_duration}. Recorded to your campus profile!",
+        '/profile'
+    )
+    create_notification(
+        learner_id, teacher_id, 'learning_completed',
+        'Learning Session Completed!',
+        f"You completed {formatted_duration} learning {skill_name} with {t_name}.",
+        f'/chat?id={teacher_id}'
+    )
+
     event_payload = {
         "teacher_id": teacher_id,
-        "teacher_name": (updated_teacher['full_name'] or updated_teacher['username']) if updated_teacher else 'Teacher',
+        "teacher_name": t_name,
         "learner_id": learner_id,
         "duration_seconds": duration_seconds,
         "duration_formatted": formatted_duration,

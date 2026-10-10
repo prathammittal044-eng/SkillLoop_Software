@@ -1397,14 +1397,6 @@
                   <span>Cancel Call</span>
                 </button>
               </div>
-
-              <!-- Floating local preview while calling -->
-              <div class="absolute bottom-6 right-6 w-32 h-24 sm:w-40 sm:h-28 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30">
-                <video ref="localVideoRef" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                <div class="absolute bottom-1.5 left-2 text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded">
-                  You
-                </div>
-              </div>
             </div>
 
             <!-- STATE B: CONNECTED ACTIVE CALL -->
@@ -1448,25 +1440,33 @@
                 <p class="font-bold text-base text-white font-headline">Click anywhere to enable live audio &amp; video</p>
                 <p class="text-xs text-white/70 mt-1">Browser security requires one user interaction to allow remote audio playback.</p>
               </div>
-
-              <!-- Floating Self Preview (Local Video PiP) -->
-              <div
-                class="absolute rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30 transition-all duration-300"
-                :class="isCallMinimized 
-                  ? 'bottom-2 right-2 w-24 h-18' 
-                  : 'bottom-20 right-6 w-36 h-28 sm:w-48 sm:h-36'"
-              >
-                <video ref="localVideoRef" autoplay playsinline muted class="w-full h-full object-cover" :class="{ 'hidden': isCameraOff }"></video>
-                <div v-if="isCameraOff" class="w-full h-full bg-slate-800 flex flex-col items-center justify-center text-white/70">
-                  <span class="material-symbols-outlined text-2xl">videocam_off</span>
-                  <span class="text-[9px] mt-1 font-semibold">Camera Off</span>
-                </div>
-                <div class="absolute bottom-1.5 left-2 text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded flex items-center gap-1">
-                  <span>You</span>
-                  <span v-if="isMicMuted" class="text-rose-400 font-extrabold">• Muted</span>
-                </div>
-              </div>
             </template>
+
+            <!-- Floating Self Preview (Local Video PiP) - Persistent Across All Call States -->
+            <div
+              class="absolute rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30 transition-all duration-300"
+              :class="isCallMinimized 
+                ? 'bottom-2 right-2 w-24 h-18' 
+                : (callStatus === 'calling' ? 'bottom-6 right-6 w-36 h-28 sm:w-44 sm:h-32' : 'bottom-20 right-6 w-36 h-28 sm:w-48 sm:h-36')"
+            >
+              <video
+                ref="localVideoRef"
+                autoplay
+                playsinline
+                muted
+                class="w-full h-full object-cover"
+                :class="{ 'hidden': isCameraOff }"
+                style="transform: scaleX(-1);"
+              ></video>
+              <div v-if="isCameraOff" class="w-full h-full bg-slate-800 flex flex-col items-center justify-center text-white/70">
+                <span class="material-symbols-outlined text-2xl">videocam_off</span>
+                <span class="text-[9px] mt-1 font-semibold">Camera Off</span>
+              </div>
+              <div class="absolute bottom-1.5 left-2 text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded flex items-center gap-1">
+                <span>You</span>
+                <span v-if="isMicMuted" class="text-rose-400 font-extrabold">• Muted</span>
+              </div>
+            </div>
 
             <!-- Debug Status Banner (if active) -->
             <div v-if="callDebugStatus && !isCallMinimized" class="absolute top-4 left-6 bg-black/80 backdrop-blur-md text-amber-300 text-[10px] font-mono py-1 px-3 rounded-lg border border-amber-400/30 z-20 pointer-events-none">
@@ -2027,56 +2027,109 @@
       </div>
     </div>
 
-    <!-- 10. POST-CALL TEACHING TIME SUMMARY MODAL -->
+    <!-- 10. POST-CALL TEACHING & LEARNING SUMMARY MODAL -->
     <div
       v-if="showCallSummaryModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200"
       @click.self="showCallSummaryModal = false"
     >
       <div class="bg-white rounded-3xl border border-[#eaddff] shadow-2xl max-w-md w-full overflow-hidden p-6 space-y-5">
-        <div class="text-center space-y-2">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
-            <span class="material-symbols-outlined text-3xl">verified</span>
+        
+        <!-- TEACHER VIEW (User taught the session) -->
+        <template v-if="lastSummaryData.isCurrentUserTeacher">
+          <div class="text-center space-y-2">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
+              <span class="material-symbols-outlined text-3xl">verified</span>
+            </div>
+            <h3 class="font-headline font-bold text-xl text-[#1e1a2b]">Teaching Time Recorded!</h3>
+            <p class="text-xs text-[#6b6680]">Live teaching duration has been verified and added to your official campus teaching record.</p>
           </div>
-          <h3 class="font-headline font-bold text-xl text-[#1e1a2b]">Skill Exchange Completed!</h3>
-          <p class="text-xs text-[#6b6680]">Live teaching duration has been verified and recorded to the official campus ledger.</p>
-        </div>
 
-        <div class="bg-[#f6effe]/60 rounded-2xl p-4 border border-[#eaddff] space-y-3">
-          <div class="flex items-center justify-between text-xs">
-            <span class="text-[#6b6680] font-medium">Session Topic</span>
-            <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.skillName || currentCallSkillName }}</span>
+          <div class="bg-[#f6effe]/60 rounded-2xl p-4 border border-[#eaddff] space-y-2.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[#6b6680] font-medium">Skill Taught</span>
+              <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.skillName || currentCallSkillName }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[#6b6680] font-medium">Time Taught This Call</span>
+              <span class="font-bold text-emerald-600 font-mono text-sm">⏱️ {{ lastSummaryData.durationFormatted }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[#6b6680] font-medium">Student / Learner</span>
+              <span class="font-bold text-[#543ce0]">{{ lastSummaryData.learnerName || activePeer?.full_name || 'Learner' }}</span>
+            </div>
+            <div v-if="lastSummaryData.totalTeachingFormatted" class="flex items-center justify-between text-xs pt-2 border-t border-[#eaddff]">
+              <span class="text-[#6b6680] font-medium">Your Total Teaching Time</span>
+              <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.totalTeachingFormatted }}</span>
+            </div>
           </div>
-          <div class="flex items-center justify-between text-xs">
-            <span class="text-[#6b6680] font-medium">Time Taught This Call</span>
-            <span class="font-bold text-emerald-600 font-mono text-sm">⏱️ {{ lastSummaryData.durationFormatted }}</span>
-          </div>
-          <div class="flex items-center justify-between text-xs">
-            <span class="text-[#6b6680] font-medium">Credited Teacher</span>
-            <span class="font-bold text-[#543ce0]">🎓 {{ lastSummaryData.teacherName }}</span>
-          </div>
-          <div v-if="lastSummaryData.totalTeachingFormatted" class="flex items-center justify-between text-xs pt-2 border-t border-[#eaddff]">
-            <span class="text-[#6b6680] font-medium">Teacher's Cumulative Record</span>
-            <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.totalTeachingFormatted }}</span>
-          </div>
-        </div>
 
-        <div class="space-y-2 pt-2">
-          <button
-            v-if="activePeerSession && activePeerSession.status === 'accepted'"
-            @click="showCallSummaryModal = false; completeSessionAction(activePeerSession)"
-            class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-          >
-            <span class="material-symbols-outlined text-lg">workspace_premium</span>
-            <span>Mark Exchange Complete &amp; Review</span>
-          </button>
-          <button
-            @click="showCallSummaryModal = false"
-            class="w-full py-3 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
-          >
-            <span>Done</span>
-          </button>
-        </div>
+          <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 text-[11px] flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-emerald-600">verified_user</span>
+            <span>Skill Decay Timer Reset • Peer Verification Active</span>
+          </div>
+
+          <div class="pt-1">
+            <button
+              @click="showCallSummaryModal = false"
+              class="w-full py-3 rounded-xl bg-[#543ce0] hover:bg-[#432dbb] text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <span>Done</span>
+            </button>
+          </div>
+        </template>
+
+        <!-- LEARNER VIEW (User learned from peer teacher) -->
+        <template v-else>
+          <div class="text-center space-y-2">
+            <div class="w-16 h-16 rounded-2xl bg-[#543ce0]/10 text-[#543ce0] flex items-center justify-center mx-auto shadow-md">
+              <span class="material-symbols-outlined text-3xl">school</span>
+            </div>
+            <h3 class="font-headline font-bold text-xl text-[#1e1a2b]">Learning Session Completed!</h3>
+            <p class="text-xs text-[#6b6680]">You just wrapped up a 1-on-1 skill exchange session with {{ lastSummaryData.teacherName || activePeer?.full_name }}.</p>
+          </div>
+
+          <div class="bg-[#f6effe]/60 rounded-2xl p-4 border border-[#eaddff] space-y-2.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[#6b6680] font-medium">Skill Learned</span>
+              <span class="font-bold text-[#1e1a2b]">{{ lastSummaryData.skillName || currentCallSkillName }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[#6b6680] font-medium">Session Duration</span>
+              <span class="font-bold text-[#543ce0] font-mono text-sm">⏱️ {{ lastSummaryData.durationFormatted }}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-[#6b6680] font-medium">Teacher / Mentor</span>
+              <span class="font-bold text-[#543ce0]">🎓 {{ lastSummaryData.teacherName || activePeer?.full_name }}</span>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <button
+              v-if="activePeerSession && activePeerSession.status === 'accepted'"
+              @click="showCallSummaryModal = false; completeSessionAction(activePeerSession)"
+              class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <span class="material-symbols-outlined text-lg">workspace_premium</span>
+              <span>Rate {{ lastSummaryData.teacherName }} &amp; Release Escrow</span>
+            </button>
+            <button
+              v-else-if="activePeerSession"
+              @click="showCallSummaryModal = false; openReviewModal(activePeerSession)"
+              class="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-headline text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <span class="material-symbols-outlined text-lg">star</span>
+              <span>Leave a Review for {{ lastSummaryData.teacherName }}</span>
+            </button>
+            <button
+              @click="showCallSummaryModal = false"
+              class="w-full py-3 rounded-xl bg-white border border-[#eaddff] hover:bg-[#f6effe] text-[#1e1a2b] font-headline text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              <span>Done</span>
+            </button>
+          </div>
+        </template>
+
       </div>
     </div>
 
@@ -2300,6 +2353,26 @@ const callDebugStatus = ref('')
 const localVideoRef = ref(null)
 const remoteVideoRef = ref(null)
 
+// Watch local video element and ensure camera stream is attached and playing
+watch(localVideoRef, (el) => {
+  if (el && localStream) {
+    if (el.srcObject !== localStream) el.srcObject = localStream
+    el.muted = true
+    el.play().catch(() => {})
+  }
+})
+
+watch(callStatus, async (newStatus) => {
+  if (newStatus === 'connected' || newStatus === 'calling') {
+    await nextTick()
+    if (localVideoRef.value && localStream) {
+      if (localVideoRef.value.srcObject !== localStream) localVideoRef.value.srcObject = localStream
+      localVideoRef.value.muted = true
+      localVideoRef.value.play().catch(() => {})
+    }
+  }
+})
+
 // ─── Enhanced Fullscreen Video Call & Live Teaching Recording State ─────────
 const callStatus = ref('idle') // 'idle' | 'calling' | 'connected' | 'ended'
 const isCallMinimized = ref(false)
@@ -2316,8 +2389,10 @@ const showCallSummaryModal = ref(false)
 const lastSummaryData = reactive({
   durationFormatted: '',
   teacherName: '',
+  learnerName: '',
   totalTeachingFormatted: '',
-  skillName: ''
+  skillName: '',
+  isCurrentUserTeacher: true
 })
 
 const determineInitialCallRole = () => {
@@ -2437,8 +2512,10 @@ const recordTeachingSession = async (durationSec) => {
 
     lastSummaryData.durationFormatted = res.recorded_duration_formatted || `${durationSec}s`
     lastSummaryData.teacherName = activeTeacherName.value
+    lastSummaryData.learnerName = activeLearnerName.value
     lastSummaryData.totalTeachingFormatted = res.total_teaching_formatted || ''
     lastSummaryData.skillName = skillName
+    lastSummaryData.isCurrentUserTeacher = isUserTeacher
     showCallSummaryModal.value = true
 
     await fetchCurrentUser()
@@ -3545,7 +3622,6 @@ const setupSocket = () => {
       await drainQueuedIce()
       const answer = await peerConnection.createAnswer()
       await peerConnection.setLocalDescription(answer)
-      await waitForIceGathering(peerConnection)
       socket.value.emit('renegotiate_answer', {
         target_user_id: data.from_user_id,
         answer: peerConnection.localDescription
@@ -3570,15 +3646,18 @@ const setupSocket = () => {
   })
 
   socket.value.on('teaching_time_recorded', (data) => {
-    if (currentUser.value?.id === data.teacher_id) {
+    const isTeacher = currentUser.value?.id === data.teacher_id
+    if (isTeacher) {
       currentUser.value.total_teaching_seconds = data.total_teaching_seconds
     } else if (currentUser.value?.id === data.learner_id) {
       currentUser.value.total_learning_seconds = data.total_learning_seconds
     }
     lastSummaryData.durationFormatted = data.duration_formatted
     lastSummaryData.teacherName = data.teacher_name
+    lastSummaryData.learnerName = activeLearnerName.value
     lastSummaryData.totalTeachingFormatted = data.total_teaching_formatted
     lastSummaryData.skillName = data.skill_name
+    lastSummaryData.isCurrentUserTeacher = isTeacher
     showCallSummaryModal.value = true
   })
 }
@@ -4146,8 +4225,7 @@ const startCall = async () => {
     isMakingOffer = true
     const offer = await peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
     await peerConnection.setLocalDescription(offer)
-    await waitForIceGathering(peerConnection)
-    console.log('[WebRTC] Offer ready (gathering=', peerConnection.iceGatheringState, '), emitting call_user to:', currentCallPeerId)
+    console.log('[WebRTC] Offer created, emitting call_user immediately to:', currentCallPeerId)
 
     socket.value.emit('call_user', {
       target_user_id: currentCallPeerId,
@@ -4216,8 +4294,7 @@ const acceptCall = async () => {
 
     const answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(answer)
-    await waitForIceGathering(peerConnection)
-    console.log('[WebRTC] Answer ready, emitting answer_call to:', currentCallPeerId)
+    console.log('[WebRTC] Answer created, emitting answer_call immediately to:', currentCallPeerId)
 
     socket.value.emit('answer_call', {
       target_user_id: currentCallPeerId,
@@ -4375,7 +4452,7 @@ const endCall = async (fromRemote = false) => {
   const finalDuration = callDurationSeconds.value
   stopCallTimer()
 
-  if (!hasRecordedCall && finalDuration >= 5) {
+  if (!fromRemote && !hasRecordedCall && finalDuration >= 5) {
     hasRecordedCall = true
     await recordTeachingSession(finalDuration)
   }
