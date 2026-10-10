@@ -1,13 +1,103 @@
 <template>
-  <div class="app-wrapper dark w-full min-h-screen bg-surface text-on-surface">
+  <div class="app-wrapper w-full min-h-screen bg-surface text-on-surface flex flex-col" :class="{ 'pb-16 md:pb-0': showMobileNav }">
     <NuxtPage />
+
+    <!-- MOBILE BOTTOM NAVIGATION DOCK (Native App Experience) -->
+    <nav
+      v-if="showMobileNav"
+      class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-[#eaddff]/80 px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+    >
+      <div class="flex items-center justify-around max-w-md mx-auto">
+        <!-- 1. Dashboard -->
+        <NuxtLink
+          to="/dashboard"
+          class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all"
+          :class="route.path === '/dashboard' ? 'text-[#543ce0] font-bold scale-105' : 'text-[#6b6680] hover:text-[#1e1a2b] font-medium'"
+        >
+          <span
+            class="material-symbols-outlined text-[22px] transition-transform"
+            :style="route.path === '/dashboard' ? 'font-variation-settings: \'FILL\' 1;' : ''"
+          >space_dashboard</span>
+          <span class="text-[10px] mt-0.5 tracking-tight">Home</span>
+        </NuxtLink>
+
+        <!-- 2. Chat -->
+        <NuxtLink
+          to="/chat"
+          class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all"
+          :class="route.path === '/chat' ? 'text-[#543ce0] font-bold scale-105' : 'text-[#6b6680] hover:text-[#1e1a2b] font-medium'"
+        >
+          <span
+            class="material-symbols-outlined text-[22px] transition-transform"
+            :style="route.path === '/chat' ? 'font-variation-settings: \'FILL\' 1;' : ''"
+          >chat</span>
+          <span class="text-[10px] mt-0.5 tracking-tight">Chat</span>
+        </NuxtLink>
+
+        <!-- 3. Quiz -->
+        <NuxtLink
+          to="/quiz"
+          class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all"
+          :class="route.path === '/quiz' ? 'text-[#543ce0] font-bold scale-105' : 'text-[#6b6680] hover:text-[#1e1a2b] font-medium'"
+        >
+          <span
+            class="material-symbols-outlined text-[22px] transition-transform"
+            :style="route.path === '/quiz' ? 'font-variation-settings: \'FILL\' 1;' : ''"
+          >quiz</span>
+          <span class="text-[10px] mt-0.5 tracking-tight">Quiz</span>
+        </NuxtLink>
+
+        <!-- 4. Leaderboard -->
+        <NuxtLink
+          to="/leaderboard"
+          class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all"
+          :class="route.path === '/leaderboard' ? 'text-[#543ce0] font-bold scale-105' : 'text-[#6b6680] hover:text-[#1e1a2b] font-medium'"
+        >
+          <span
+            class="material-symbols-outlined text-[22px] transition-transform"
+            :style="route.path === '/leaderboard' ? 'font-variation-settings: \'FILL\' 1;' : ''"
+          >leaderboard</span>
+          <span class="text-[10px] mt-0.5 tracking-tight">Ranks</span>
+        </NuxtLink>
+
+        <!-- 5. Profile -->
+        <NuxtLink
+          to="/profile"
+          class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all"
+          :class="route.path === '/profile' ? 'text-[#543ce0] font-bold scale-105' : 'text-[#6b6680] hover:text-[#1e1a2b] font-medium'"
+        >
+          <span
+            class="material-symbols-outlined text-[22px] transition-transform"
+            :style="route.path === '/profile' ? 'font-variation-settings: \'FILL\' 1;' : ''"
+          >person</span>
+          <span class="text-[10px] mt-0.5 tracking-tight">Profile</span>
+        </NuxtLink>
+      </div>
+    </nav>
   </div>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+const showMobileNav = computed(() => {
+  const p = route.path
+  // Hide on public landing and auth pages
+  if (p === '/' || p === '/login' || p === '/register') return false
+  // On chat page, let chat take 100% full screen for typing
+  if (p === '/chat') return false
+  return true
+})
+</script>
 
 <style>
 body {
   margin: 0;
-  background-color: #0a0a12;
-  color: #e4e1ed;
+  background-color: #fbf4ff;
+  color: #1e1a2b;
+  -webkit-tap-highlight-color: transparent;
 }
 </style>

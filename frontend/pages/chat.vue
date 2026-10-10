@@ -66,9 +66,12 @@
     </header>
 
     <!-- MAIN TWO-COLUMN WORKSPACE -->
-    <main class="flex-1 max-w-[1720px] w-full mx-auto p-3 sm:p-5 flex gap-4 min-h-0 overflow-hidden">
+    <main class="flex-1 max-w-[1720px] w-full mx-auto p-2 sm:p-5 flex gap-4 min-h-0 overflow-hidden">
       <!-- LEFT SIDEBAR: PEER CONVERSATIONS -->
-      <aside class="w-full md:w-[360px] lg:w-[380px] bg-white rounded-2xl border border-[#eaddff] flex flex-col h-full overflow-hidden shadow-sm flex-shrink-0">
+      <aside
+        class="w-full md:w-[360px] lg:w-[380px] bg-white rounded-2xl border border-[#eaddff] flex-col h-full overflow-hidden shadow-sm flex-shrink-0"
+        :class="activePeer || activeGroup ? 'hidden md:flex' : 'flex'"
+      >
         <!-- Header & Tabs -->
         <div class="p-3.5 border-b border-[#eaddff]/70 space-y-2.5 bg-gradient-to-b from-[#fdfaff] to-white">
           <div class="flex items-center justify-between">
@@ -277,17 +280,28 @@
       </aside>
 
       <!-- RIGHT: ACTIVE CHAT & VIDEO WORKSPACE -->
-      <section class="flex-1 bg-white rounded-2xl border border-[#eaddff] flex flex-col h-full overflow-hidden shadow-sm relative">
+      <section
+        class="flex-1 bg-white rounded-2xl border border-[#eaddff] flex-col h-full overflow-hidden shadow-sm relative"
+        :class="activePeer || activeGroup ? 'flex' : 'hidden md:flex'"
+      >
         <template v-if="activePeer">
           <!-- 1. CHAT HEADER -->
-          <header class="p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex flex-wrap items-center justify-between gap-3 z-10 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-3">
-              <NuxtLink :to="'/profile?u=' + activePeer.username" class="relative group" title="View Profile">
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#543ce0] to-[#99366c] text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm overflow-hidden group-hover:ring-2 group-hover:ring-[#543ce0] transition-all">
+          <header class="p-3 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex items-center justify-between gap-2 sm:gap-3 z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+              <!-- Mobile Back to List Button -->
+              <button
+                @click="activePeer = null"
+                class="md:hidden w-8 h-8 rounded-xl hover:bg-[#f6effe] text-[#543ce0] flex items-center justify-center transition-colors shrink-0"
+                title="Back to conversations"
+              >
+                <span class="material-symbols-outlined text-xl">arrow_back</span>
+              </button>
+              <NuxtLink :to="'/profile?u=' + activePeer.username" class="relative group shrink-0" title="View Profile">
+                <div class="w-10 sm:w-11 h-10 sm:h-11 rounded-xl bg-gradient-to-tr from-[#543ce0] to-[#99366c] text-white flex items-center justify-center font-bold font-headline text-base sm:text-lg shadow-sm overflow-hidden group-hover:ring-2 group-hover:ring-[#543ce0] transition-all">
                   <img v-if="activePeer.profile_picture" :src="activePeer.profile_picture" class="w-full h-full object-cover" />
                   <span v-else>{{ (activePeer.full_name || activePeer.username).charAt(0).toUpperCase() }}</span>
                 </div>
-                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
               </NuxtLink>
               <div>
                 <div class="flex items-center gap-2">
@@ -812,11 +826,19 @@
         <!-- ACTIVE GROUP CHAT WORKSPACE -->
         <template v-else-if="activeGroup">
           <!-- 1. GROUP CHAT HEADER -->
-          <header class="p-3.5 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex flex-wrap items-center justify-between gap-3 z-10 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-3 cursor-pointer group" @click="showGroupDrawer = true" title="View Group Details">
-              <div class="relative">
+          <header class="p-3 sm:px-6 border-b border-[#eaddff] bg-gradient-to-r from-white via-[#fdfaff] to-[#f6effe]/40 flex items-center justify-between gap-2 sm:gap-3 z-10 shadow-sm flex-shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0" @click="showGroupDrawer = true" title="View Group Details">
+              <!-- Mobile Back to List Button -->
+              <button
+                @click.stop="activeGroup = null"
+                class="md:hidden w-8 h-8 rounded-xl hover:bg-[#f6effe] text-[#543ce0] flex items-center justify-center transition-colors shrink-0"
+                title="Back to conversations"
+              >
+                <span class="material-symbols-outlined text-xl">arrow_back</span>
+              </button>
+              <div class="relative shrink-0">
                 <div
-                  class="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-lg shadow-sm group-hover:ring-2 group-hover:ring-[#543ce0] transition-all"
+                  class="w-10 sm:w-11 h-10 sm:h-11 rounded-xl text-white flex items-center justify-center font-bold font-headline text-base sm:text-lg shadow-sm group-hover:ring-2 group-hover:ring-[#543ce0] transition-all"
                   :style="{ background: activeGroup.avatar_color || '#543ce0' }"
                 >
                   {{ activeGroup.name.charAt(0).toUpperCase() }}
@@ -2886,7 +2908,7 @@ const fetchPeers = async () => {
 
       if (matchedPeer) {
         selectPeer(matchedPeer)
-      } else if (peers.value.length > 0 && !activePeer.value) {
+      } else if (peers.value.length > 0 && !activePeer.value && (typeof window !== 'undefined' && window.innerWidth >= 768)) {
         selectPeer(peers.value[0])
       }
     }
