@@ -2353,26 +2353,6 @@ const callDebugStatus = ref('')
 const localVideoRef = ref(null)
 const remoteVideoRef = ref(null)
 
-// Watch local video element and ensure camera stream is attached and playing
-watch(localVideoRef, (el) => {
-  if (el && localStream) {
-    if (el.srcObject !== localStream) el.srcObject = localStream
-    el.muted = true
-    el.play().catch(() => {})
-  }
-})
-
-watch(callStatus, async (newStatus) => {
-  if (newStatus === 'connected' || newStatus === 'calling') {
-    await nextTick()
-    if (localVideoRef.value && localStream) {
-      if (localVideoRef.value.srcObject !== localStream) localVideoRef.value.srcObject = localStream
-      localVideoRef.value.muted = true
-      localVideoRef.value.play().catch(() => {})
-    }
-  }
-})
-
 // ─── Enhanced Fullscreen Video Call & Live Teaching Recording State ─────────
 const callStatus = ref('idle') // 'idle' | 'calling' | 'connected' | 'ended'
 const isCallMinimized = ref(false)
@@ -2535,6 +2515,26 @@ let iceRetryCount = 0
 let iceWatchTimer = null
 let isMakingOffer = false
 let iceTransportPolicy = 'relay'
+
+// Watch local video element and ensure camera stream is attached and playing
+watch(localVideoRef, (el) => {
+  if (el && localStream) {
+    if (el.srcObject !== localStream) el.srcObject = localStream
+    el.muted = true
+    el.play().catch(() => {})
+  }
+})
+
+watch(callStatus, async (newStatus) => {
+  if (newStatus === 'connected' || newStatus === 'calling') {
+    await nextTick()
+    if (localVideoRef.value && localStream) {
+      if (localVideoRef.value.srcObject !== localStream) localVideoRef.value.srcObject = localStream
+      localVideoRef.value.muted = true
+      localVideoRef.value.play().catch(() => {})
+    }
+  }
+})
 
 const resumeRemoteVideo = async () => {
   if (remoteVideoRef.value) {
