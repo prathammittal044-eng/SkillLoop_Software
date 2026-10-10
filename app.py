@@ -2458,12 +2458,14 @@ def search_institutions_api():
     return jsonify({"results": results, "query": query}), 200
 
 
+@app.route('/', methods=['GET'])
 @app.route('/api/test', methods=['GET'])
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({
         "status": "healthy",
         "service": "SkillLoop API",
+        "message": "SkillLoop Backend is running successfully!",
         "timestamp": datetime.now().isoformat()
     }), 200
 
