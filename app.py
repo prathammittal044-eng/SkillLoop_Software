@@ -144,7 +144,16 @@ def get_current_user():
         return jsonify({"error": "Not authenticated"}), 401
         
     db = get_db()
-    user = db.execute('SELECT id, username, email, full_name, department, semester, bio, education, qualifications, experience, github, linkedin, xp, level, streak_count, time_credits, avatar_color, created_at, rating_avg, rating_count, total_sessions, skills_taught, skills_learned, total_teaching_seconds, total_learning_seconds FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    user = db.execute('''
+        SELECT id, username, email, full_name, department, semester, bio,
+               education, qualifications, experience, github, linkedin,
+               xp, level, streak_count, time_credits, avatar_color, created_at,
+               rating_avg, rating_count, total_sessions, skills_taught, skills_learned,
+               total_teaching_seconds, total_learning_seconds,
+               headline, github_url, linkedin_url, portfolio_url,
+               graduation_year, profile_picture, banner_image
+        FROM users WHERE id = ?
+    ''', (session['user_id'],)).fetchone()
     
     if user is None:
         session.clear()
@@ -160,6 +169,54 @@ def logout():
     cookie_name = app.config.get('SESSION_COOKIE_NAME', 'skillloop_session')
     resp.delete_cookie(cookie_name)
     return resp, 200
+
+# ─── Profile Picture & Banner Upload ─────────────────────────────────────────
+import uuid
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
+
+PROFILE_UPLOADS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'profiles')
+os.makedirs(PROFILE_UPLOADS, exist_ok=True)
+ALLOWED_IMAGE_EXTS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def _allowed_image(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTS
+
+@app.route('/api/user/upload-avatar', methods=['POST'])
+def upload_avatar():
+    if 'user_id' not in session: return jsonify({"error": "Not authenticated"}), 401
+    if 'file' not in request.files: return jsonify({"error": "No file provided"}), 400
+    f = request.files['file']
+    if not f.filename or not _allowed_image(f.filename):
+        return jsonify({"error": "Invalid image file"}), 400
+    ext = f.filename.rsplit('.', 1)[1].lower()
+    filename = f"avatar_{session['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
+    f.save(os.path.join(PROFILE_UPLOADS, filename))
+    url = f"/uploads/profiles/{filename}"
+    get_db().execute("UPDATE users SET profile_picture = ? WHERE id = ?", (url, session['user_id']))
+    get_db().execute("SELECT 1")  # keep connection alive
+    get_db().commit()
+    return jsonify({"url": url}), 200
+
+@app.route('/api/user/upload-banner', methods=['POST'])
+def upload_banner():
+    if 'user_id' not in session: return jsonify({"error": "Not authenticated"}), 401
+    if 'file' not in request.files: return jsonify({"error": "No file provided"}), 400
+    f = request.files['file']
+    if not f.filename or not _allowed_image(f.filename):
+        return jsonify({"error": "Invalid image file"}), 400
+    ext = f.filename.rsplit('.', 1)[1].lower()
+    filename = f"banner_{session['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
+    f.save(os.path.join(PROFILE_UPLOADS, filename))
+    url = f"/uploads/profiles/{filename}"
+    get_db().execute("UPDATE users SET banner_image = ? WHERE id = ?", (url, session['user_id']))
+    get_db().commit()
+    return jsonify({"url": url}), 200
+
+@app.route('/uploads/profiles/<path:filename>')
+def serve_profile_upload(filename):
+    return send_from_directory(PROFILE_UPLOADS, filename)
+
 
 @app.route('/api/user/xp', methods=['POST'])
 def add_xp():
@@ -673,12 +730,20 @@ def update_profile():
             qualifications = ?,
             experience = ?,
             github = ?,
-            linkedin = ?
+            linkedin = ?,
+            headline = ?,
+            github_url = ?,
+            linkedin_url = ?,
+            portfolio_url = ?,
+            graduation_year = ?
         WHERE id = ?
     ''', (
         data.get('full_name'), data.get('department'), data.get('semester'),
         data.get('bio'), data.get('education'), data.get('qualifications'),
         data.get('experience'), data.get('github'), data.get('linkedin'),
+        data.get('headline', ''), data.get('github_url', ''),
+        data.get('linkedin_url', ''), data.get('portfolio_url', ''),
+        data.get('graduation_year'),
         session['user_id']
     ))
     db.commit()
@@ -687,17 +752,61 @@ def update_profile():
 @app.route('/api/user/<username>', methods=['GET'])
 def get_public_profile(username):
     db = get_db()
-    user = db.execute('SELECT id, username, full_name, department, semester, xp, level, avatar_color, rating_avg, rating_count, total_sessions, total_teaching_seconds, total_learning_seconds FROM users WHERE username = ?', (username,)).fetchone()
+    user = db.execute('''
+        SELECT id, username, full_name, department, semester, bio,
+               xp, level, avatar_color, rating_avg, rating_count,
+               total_sessions, total_teaching_seconds, total_learning_seconds,
+               headline, github_url, linkedin_url, portfolio_url,
+               graduation_year, profile_picture, banner_image, created_at
+        FROM users WHERE username = ?
+    ''', (username,)).fetchone()
     if not user: return jsonify({"error": "User not found"}), 404
-    
-    skills = db.execute('SELECT skill_name, skill_type FROM user_skills WHERE user_id = ?', (user['id'],)).fetchall()
+
+    user_id = user['id']
+
+    # Skills
+    skills = db.execute('SELECT skill_name, skill_type FROM user_skills WHERE user_id = ?', (user_id,)).fetchall()
     teaches = [s['skill_name'] for s in skills if s['skill_type'] == 'teaches']
     learns = [s['skill_name'] for s in skills if s['skill_type'] == 'learns']
-    
+
+    # Verified skills
+    verified = db.execute(
+        'SELECT skill_name, verified_level, verified_at, sessions_taught FROM skill_verifications WHERE user_id = ? ORDER BY verified_at DESC',
+        (user_id,)
+    ).fetchall()
+    verified_list = [dict(v) for v in verified]
+
+    # Reviews received (last 10)
+    reviews = db.execute('''
+        SELECT sr.rating, sr.comment, sr.role, sr.created_at,
+               u.full_name AS reviewer_name, u.username AS reviewer_username, u.avatar_color AS reviewer_color
+        FROM session_reviews sr
+        JOIN users u ON u.id = sr.reviewer_id
+        WHERE sr.reviewee_id = ?
+        ORDER BY sr.created_at DESC
+        LIMIT 10
+    ''', (user_id,)).fetchall()
+    reviews_list = [dict(r) for r in reviews]
+
+    # Connection status with currently logged-in user
+    conn_status = None
+    if 'user_id' in session and session['user_id'] != user_id:
+        me = session['user_id']
+        conn = db.execute('''
+            SELECT status, requester_id FROM connections
+            WHERE (requester_id = ? AND receiver_id = ?) OR (requester_id = ? AND receiver_id = ?)
+        ''', (me, user_id, user_id, me)).fetchone()
+        if conn:
+            conn_status = {'status': conn['status'], 'i_sent': conn['requester_id'] == me}
+
     profile = dict(user)
     profile['teaches'] = teaches
     profile['learns'] = learns
+    profile['verified_skills'] = verified_list
+    profile['reviews'] = reviews_list
+    profile['connection_status'] = conn_status
     return jsonify({"profile": profile}), 200
+
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SKILL VERIFICATION QUIZ ENGINE v3.0  â€” AI-Powered (Gemini)

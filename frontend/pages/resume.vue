@@ -29,6 +29,10 @@
               <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">description</span>
               Resume
             </span>
+            <NuxtLink to="/profile" class="text-on-surface-variant hover:text-primary transition-colors pb-1 flex items-center gap-1 whitespace-nowrap">
+              <span class="material-symbols-outlined text-lg">person</span>
+              Profile
+            </NuxtLink>
           </nav>
         </div>
 
@@ -48,10 +52,11 @@
             <span class="material-symbols-outlined text-xl">notifications</span>
           </NuxtLink>
 
-          <!-- Avatar (Identical to Dashboard) -->
-          <div class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm shrink-0">
-            {{ (resume.profile.full_name || user?.full_name || user?.username || 'P').charAt(0) }}
-          </div>
+          <!-- Avatar → links to profile -->
+          <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all">
+            <img v-if="user?.profile_picture" :src="user.profile_picture" class="w-full h-full object-cover" />
+            <span v-else>{{ (resume.profile.full_name || user?.full_name || user?.username || 'P').charAt(0) }}</span>
+          </NuxtLink>
 
           <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
             Logout

@@ -41,6 +41,10 @@
               <NuxtLink to="/quiz" class="text-on-surface-variant hover:text-primary transition-colors pb-1 flex items-center gap-1">Quiz</NuxtLink>
               <NuxtLink to="/leaderboard" class="text-on-surface-variant hover:text-primary transition-colors pb-1 flex items-center gap-1">Leaderboard</NuxtLink>
               <NuxtLink to="/resume" class="text-on-surface-variant hover:text-primary transition-colors pb-1 flex items-center gap-1">Resume</NuxtLink>
+              <NuxtLink to="/profile" class="text-on-surface-variant hover:text-primary transition-colors pb-1 flex items-center gap-1">
+                <span class="material-symbols-outlined text-lg">person</span>
+                Profile
+              </NuxtLink>
             </nav>
           </div>
           <div class="flex items-center gap-3">
@@ -55,11 +59,13 @@
                 {{ pendingConnections.length + liveNotifCount }}
               </span>
             </button>
-            <div class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm">
-              {{ (user.full_name || user.username || 'U').charAt(0) }}
-            </div>
+            <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all">
+              <img v-if="user.profile_picture" :src="user.profile_picture" class="w-full h-full object-cover" />
+              <span v-else>{{ (user.full_name || user.username || 'U').charAt(0) }}</span>
+            </NuxtLink>
             <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>
           </div>
+
         </div>
       </header>
 

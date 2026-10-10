@@ -53,9 +53,10 @@
             <span class="material-symbols-outlined text-xl">space_dashboard</span>
           </NuxtLink>
 
-          <div v-if="currentUser" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm shrink-0">
-            {{ (currentUser.full_name || currentUser.username || 'U').charAt(0) }}
-          </div>
+          <NuxtLink to="/profile" class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all" title="My Profile">
+            <img v-if="currentUser?.profile_picture" :src="currentUser.profile_picture" class="w-full h-full object-cover" />
+            <span v-else>{{ (currentUser?.full_name || currentUser?.username || 'U').charAt(0) }}</span>
+          </NuxtLink>
 
           <button @click="logout" class="text-xs text-on-surface-variant hover:text-error transition-colors font-semibold whitespace-nowrap">
             Logout

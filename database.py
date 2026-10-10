@@ -237,6 +237,21 @@ def init_db():
         cursor.execute("ALTER TABLE users ADD COLUMN total_teaching_seconds INTEGER DEFAULT 0")
     if 'total_learning_seconds' not in user_cols:
         cursor.execute("ALTER TABLE users ADD COLUMN total_learning_seconds INTEGER DEFAULT 0")
+    # Rich profile fields
+    if 'headline' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN headline TEXT DEFAULT ''")
+    if 'github_url' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN github_url TEXT DEFAULT ''")
+    if 'linkedin_url' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN linkedin_url TEXT DEFAULT ''")
+    if 'portfolio_url' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN portfolio_url TEXT DEFAULT ''")
+    if 'graduation_year' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN graduation_year INTEGER DEFAULT NULL")
+    if 'profile_picture' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN profile_picture TEXT DEFAULT ''")
+    if 'banner_image' not in user_cols:
+        cursor.execute("ALTER TABLE users ADD COLUMN banner_image TEXT DEFAULT ''")
 
     cursor.execute("PRAGMA table_info(exchange_sessions)")
     sess_cols = [row[1] for row in cursor.fetchall()]

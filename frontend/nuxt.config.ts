@@ -34,6 +34,7 @@ export default defineNuxtConfig({
   },
   routeRules: {
     '/api/**': { proxy: 'http://127.0.0.1:5000/api/**' },
-    '/socket.io/**': { proxy: 'http://127.0.0.1:5000/socket.io/**' }
+    '/socket.io/**': { proxy: 'http://127.0.0.1:5000/socket.io/**' },
+    '/uploads/**': { proxy: 'http://127.0.0.1:5000/uploads/**' }
   }
 })
