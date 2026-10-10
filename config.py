@@ -10,6 +10,6 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     SESSION_COOKIE_NAME = 'skillloop_session'
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    # Allow cookies over HTTP on localhost / LAN and HTTPS tunnels
-    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    # Allow cookies over HTTP on localhost / LAN and HTTPS tunnels; enable in production
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1')

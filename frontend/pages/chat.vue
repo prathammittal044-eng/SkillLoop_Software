@@ -3437,6 +3437,8 @@ const scrollToBottom = () => {
 
 // ─── WebSocket Setup ────────────────────────────────────────────────────────
 const getSocketUrl = () => {
+  const config = useRuntimeConfig()
+  if (config.public?.apiBase) return config.public.apiBase
   if (typeof window === 'undefined') return 'http://localhost:5000'
   const { protocol, hostname, port, origin } = window.location
   // When running locally on Nuxt dev server (port 3000), Flask Socket.IO is on port 5000

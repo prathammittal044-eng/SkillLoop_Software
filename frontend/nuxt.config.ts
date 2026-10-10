@@ -1,13 +1,20 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const apiBase = process.env.API_BASE_URL || 'http://127.0.0.1:5000'
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   srcDir: '.',
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.API_BASE_URL || ''
+    }
+  },
   vite: {
     server: {
       allowedHosts: true,
       proxy: {
         '/socket.io': {
-          target: 'http://127.0.0.1:5000',
+          target: apiBase,
           ws: true,
           changeOrigin: true
         }
@@ -37,8 +44,8 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/api/**': { proxy: 'http://127.0.0.1:5000/api/**' },
-    '/socket.io/**': { proxy: 'http://127.0.0.1:5000/socket.io/**' },
-    '/uploads/**': { proxy: 'http://127.0.0.1:5000/uploads/**' }
+    '/api/**': { proxy: `${apiBase}/api/**` },
+    '/socket.io/**': { proxy: `${apiBase}/socket.io/**` },
+    '/uploads/**': { proxy: `${apiBase}/uploads/**` }
   }
 })

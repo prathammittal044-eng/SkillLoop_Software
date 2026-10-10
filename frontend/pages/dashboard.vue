@@ -1900,11 +1900,12 @@ const handleNotificationClick = async (item) => {
 let dashSocket = null
 
 const setupDashSocket = () => {
-  const backendUrl = typeof window !== 'undefined'
+  const config = useRuntimeConfig()
+  const backendUrl = config.public?.apiBase || (typeof window !== 'undefined'
     ? ((window.location.protocol === 'https:' || !window.location.port)
         ? window.location.origin
         : `${window.location.protocol}//${window.location.hostname}:5000`)
-    : 'http://localhost:5000'
+    : 'http://localhost:5000')
   dashSocket = io(backendUrl, { withCredentials: true, transports: ['polling', 'websocket'] })
 
   dashSocket.on('connect', () => {
