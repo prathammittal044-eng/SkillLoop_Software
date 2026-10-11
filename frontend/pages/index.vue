@@ -87,30 +87,28 @@
   <!-- ========================================================================= -->
   <!-- 2. HERO SECTION WITH AMBIENT VIDEO BACKGROUND                             -->
   <!-- ========================================================================= -->
-  <section class="relative pt-20 pb-16 md:pt-28 md:pb-24 overflow-hidden min-h-[820px] flex items-center justify-center">
+  <section class="relative pt-14 pb-16 md:pt-20 md:pb-20 overflow-hidden flex flex-col items-center justify-center">
     
-    <!-- Ambient Video Canvas Container -->
-    <div class="absolute inset-0 w-full h-full overflow-hidden -z-20 bg-gradient-to-br from-surface-container via-surface-bright to-surface-container-high">
+    <!-- Ambient Video Canvas Container (Strictly Isolated to Hero Section Only) -->
+    <div class="absolute inset-0 w-full h-full overflow-hidden -z-20 pointer-events-none bg-[#fbf4ff]">
       <video
         ref="heroVideoRef"
         autoplay
         loop
         muted
         playsinline
-        class="absolute inset-0 w-full h-full object-cover opacity-50 scale-105 filter saturate-110 pointer-events-none transition-opacity duration-700"
+        class="w-full h-full object-cover object-center opacity-80 filter saturate-105 transition-opacity duration-700 pointer-events-none"
         @error="handleVideoError"
       >
         <source src="/hero-loop.mp4" type="video/mp4" />
-        <source src="https://assets.mixkit.co/videos/preview/mixkit-students-studying-in-a-library-43093-large.mp4" type="video/mp4" />
       </video>
     </div>
 
-    <!-- Soft Glassmorphic Gradient Overlay Layer (Ensures High Contrast Over Any Video) -->
-    <div class="absolute inset-0 -z-10 backdrop-blur-md bg-white/70 bg-gradient-to-b from-[#fbf4ff]/60 via-[#fbf4ff]/80 to-[#fbf4ff]"></div>
-
-    <!-- Decorative Glow Spheres -->
-    <div class="absolute top-1/4 left-1/10 w-96 h-96 bg-primary-fixed/30 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"></div>
-    <div class="absolute bottom-10 right-1/10 w-96 h-96 bg-tertiary-fixed/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
+    <!-- Soft Central Readability Gradient & Seamless Bottom Feather into Page -->
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-white/30 via-transparent to-white/70 pointer-events-none"></div>
+    <div class="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-b from-transparent via-background/80 to-background pointer-events-none -z-10"></div>
+    <div class="absolute top-1/4 left-1/10 w-96 h-96 bg-primary-fixed/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
+    <div class="absolute bottom-10 right-1/10 w-96 h-96 bg-tertiary-fixed/15 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center relative z-10 flex flex-col items-center">
       
