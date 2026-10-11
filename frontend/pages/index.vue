@@ -135,13 +135,13 @@
       <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-headline font-extrabold text-on-surface tracking-tight leading-[1.1] max-w-4xl mb-6">
         Trade What You Know. <br class="hidden sm:inline"/>
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#543ce0] via-[#7c3aed] to-[#a855f7]">
-          Learn What You Don't.
+          Learn What You Want.
         </span>
       </h1>
 
       <!-- Subheadline -->
       <p class="text-base sm:text-lg md:text-xl text-on-surface-variant max-w-2xl font-body leading-relaxed mb-10">
-        The decentralized campus skill marketplace. Swap Python for UI/UX design, Guitar for Calculus, or Resume Polishing for Data Science with verified peers at your university.
+        The decentralized campus skill marketplace. Connect with verified university peers to learn any skill, share your passions, and grow together—zero money exchanged.
       </p>
 
       <!-- Action Buttons -->
