@@ -5,85 +5,135 @@
   <!-- 1. STICKY TOP NAVIGATION BAR                                              -->
   <!-- ========================================================================= -->
   <header class="sticky top-0 w-full z-50 bg-surface/85 backdrop-blur-md border-b border-outline-variant/30 shadow-xs transition-all duration-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-16 sm:h-20 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 h-14 sm:h-20 flex items-center justify-between">
       
-      <!-- Logo + Campus Edition Badge -->
-      <NuxtLink to="/" class="flex items-center gap-2.5 sm:gap-3 group active:scale-95 transition-transform shrink-0">
-        <div class="w-9 sm:w-10 h-9 sm:h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-md shadow-primary/25 group-hover:scale-105 transition-transform duration-200">
-          <span class="material-symbols-outlined text-xl sm:text-2xl" data-icon="all_inclusive">all_inclusive</span>
+      <!-- Logo -->
+      <NuxtLink to="/" class="flex items-center gap-2 sm:gap-3 group active:scale-95 transition-transform shrink-0">
+        <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-md shadow-primary/25 group-hover:scale-105 transition-transform duration-200">
+          <span class="material-symbols-outlined text-lg sm:text-2xl">all_inclusive</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="font-display font-extrabold text-xl sm:text-2xl text-primary tracking-tight">SkillLoop</span>
-          <span class="text-[11px] font-label font-semibold tracking-wide bg-surface-container-high text-primary px-2.5 py-0.5 rounded-full border border-outline-variant/30 hidden xs:inline-block">
+          <span class="font-display font-extrabold text-lg sm:text-2xl text-primary tracking-tight">SkillLoop</span>
+          <span class="text-[10px] font-label font-semibold tracking-wide bg-surface-container-high text-primary px-2 py-0.5 rounded-full border border-outline-variant/30 hidden sm:inline-block">
             Campus Edition
           </span>
         </div>
       </NuxtLink>
 
-      <!-- Center Navigation Anchor Links with Smooth Scroll -->
+      <!-- Center Navigation (Desktop only) -->
       <nav class="hidden md:flex items-center gap-7 lg:gap-8 font-headline text-sm lg:text-base font-semibold">
         <button
           @click="scrollToSection('how-it-works')"
           :class="activeSection === 'how-it-works' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary pb-1'"
-          class="transition-colors duration-200 cursor-pointer flex items-center gap-1.5"
-        >
-          <span>How It Works</span>
-        </button>
+          class="transition-colors duration-200 cursor-pointer"
+        >How It Works</button>
         <button
           @click="scrollToSection('features')"
           :class="activeSection === 'features' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary pb-1'"
-          class="transition-colors duration-200 cursor-pointer flex items-center gap-1.5"
-        >
-          <span>Features</span>
-        </button>
+          class="transition-colors duration-200 cursor-pointer"
+        >Features</button>
         <button
           @click="scrollToSection('leaderboard')"
           :class="activeSection === 'leaderboard' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-on-surface-variant hover:text-primary pb-1'"
-          class="transition-colors duration-200 cursor-pointer flex items-center gap-1.5"
-        >
-          <span>Leaderboard</span>
-        </button>
+          class="transition-colors duration-200 cursor-pointer"
+        >Leaderboard</button>
       </nav>
 
-      <!-- Trailing Action Buttons -->
-      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
+      <!-- Right Action Buttons -->
+      <div class="flex items-center gap-2 shrink-0">
         <template v-if="currentUser">
           <NuxtLink
             to="/dashboard"
-            class="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-headline text-xs sm:text-sm font-bold bg-primary text-on-primary shadow-md shadow-primary/20 hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
+            class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-headline text-xs sm:text-sm font-bold bg-primary text-on-primary shadow-md shadow-primary/20 hover:bg-primary-dim transition-all duration-200 active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
           >
             <span class="material-symbols-outlined text-base">space_dashboard</span>
-            <span class="hidden sm:inline">Welcome, {{ currentUser.username }} &bull;</span>
             <span>Dashboard</span>
-            <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
           </NuxtLink>
         </template>
         <template v-else>
           <NuxtLink
             to="/login"
-            class="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-headline font-semibold text-primary hover:text-primary-dim hover:bg-surface-container/60 rounded-xl transition-all active:scale-95 duration-150"
-          >
-            Login
-          </NuxtLink>
+            class="hidden sm:block px-4 py-2 text-xs sm:text-sm font-headline font-semibold text-primary hover:bg-surface-container/60 rounded-xl transition-all active:scale-95 duration-150"
+          >Login</NuxtLink>
           <NuxtLink
             to="/register"
-            class="px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-headline font-semibold text-on-primary bg-primary hover:bg-primary-dim shadow-md shadow-primary/20 rounded-xl transition-all active:scale-95 duration-150 flex items-center gap-1.5"
+            class="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-headline font-semibold text-on-primary bg-primary hover:bg-primary-dim shadow-md shadow-primary/20 rounded-xl transition-all active:scale-95 duration-150 flex items-center gap-1"
           >
-            <span>Get Started Free</span>
-            <span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
+            <span class="hidden sm:inline">Get Started Free</span>
+            <span class="sm:hidden">Get Started</span>
+            <span class="material-symbols-outlined text-base">arrow_forward</span>
           </NuxtLink>
         </template>
+
+        <!-- Mobile Hamburger -->
+        <button
+          @click="mobileMenuOpen = !mobileMenuOpen"
+          class="md:hidden p-2 rounded-xl text-on-surface-variant hover:bg-surface-container transition-colors ml-1"
+          :aria-expanded="mobileMenuOpen"
+          aria-label="Toggle navigation"
+        >
+          <span class="material-symbols-outlined text-2xl">{{ mobileMenuOpen ? 'close' : 'menu' }}</span>
+        </button>
       </div>
     </div>
+
+    <!-- Mobile Drawer -->
+    <Transition name="slide-down">
+      <div
+        v-if="mobileMenuOpen"
+        class="md:hidden bg-surface/98 backdrop-blur-xl border-t border-outline-variant/20 shadow-xl"
+      >
+        <div class="px-4 py-3 space-y-1">
+          <button
+            @click="scrollToSection('how-it-works'); mobileMenuOpen = false"
+            class="w-full text-left px-4 py-3.5 rounded-2xl font-headline text-base font-semibold text-on-surface hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-3"
+          >
+            <span class="material-symbols-outlined text-xl text-primary">info</span>
+            How It Works
+          </button>
+          <button
+            @click="scrollToSection('features'); mobileMenuOpen = false"
+            class="w-full text-left px-4 py-3.5 rounded-2xl font-headline text-base font-semibold text-on-surface hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-3"
+          >
+            <span class="material-symbols-outlined text-xl text-primary">auto_awesome</span>
+            Platform Features
+          </button>
+          <button
+            @click="scrollToSection('leaderboard'); mobileMenuOpen = false"
+            class="w-full text-left px-4 py-3.5 rounded-2xl font-headline text-base font-semibold text-on-surface hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-3"
+          >
+            <span class="material-symbols-outlined text-xl text-primary">leaderboard</span>
+            Leaderboard
+          </button>
+          <div class="pt-3 border-t border-outline-variant/20 space-y-2 pb-2">
+            <NuxtLink to="/login" @click="mobileMenuOpen = false" class="w-full block text-center px-4 py-3 rounded-2xl font-headline text-sm font-semibold text-primary border border-primary/30 hover:bg-primary/5 transition-all">
+              Login to Your Account
+            </NuxtLink>
+            <NuxtLink to="/register" @click="mobileMenuOpen = false" class="w-full block text-center px-4 py-3.5 rounded-2xl font-headline text-sm font-bold text-on-primary bg-primary hover:bg-primary-dim shadow-md transition-all">
+              🚀 Get Started Free — Zero Cost
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </header>
 
   <!-- ========================================================================= -->
   <!-- 2. HERO SECTION WITH AMBIENT VIDEO BACKGROUND                             -->
   <!-- ========================================================================= -->
-  <section class="relative isolate pt-14 pb-16 md:pt-20 md:pb-20 overflow-hidden flex flex-col items-center justify-center">
+  <section class="relative isolate min-h-[85vh] md:min-h-0 pt-10 pb-10 md:pt-20 md:pb-20 overflow-hidden flex flex-col items-center justify-center">
     
-    <!-- Ambient Video Canvas Container (Strictly Isolated to Hero Section Only) -->
+    <!-- Ambient Video Canvas (Desktop) / Gradient Fallback (Mobile) -->
+    <!-- Mobile: CSS gradient is always shown. Video is mounted but hidden on mobile to save battery & avoid autoplay blocks -->
     <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+      <!-- Mobile-first gradient background (replaces video on small screens) -->
+      <div class="absolute inset-0 md:hidden bg-gradient-to-br from-[#e8e0ff] via-[#f3eeff] to-[#ddd6f3]"></div>
+      <!-- Decorative orbs for mobile (mimics video aesthetic) -->
+      <div class="absolute top-1/4 left-1/4 w-48 h-48 rounded-full bg-primary/20 blur-3xl md:hidden"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-secondary/15 blur-3xl md:hidden"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-tertiary/10 blur-3xl md:hidden"></div>
+
+      <!-- Desktop Video (hidden on mobile) -->
       <video
         ref="heroVideoRef"
         autoplay
@@ -92,7 +142,7 @@
         :muted="true"
         playsinline
         preload="auto"
-        class="w-full h-full object-cover object-center pointer-events-none opacity-90"
+        class="hidden md:block w-full h-full object-cover object-center pointer-events-none opacity-90"
         @error="handleVideoError"
       >
         <source src="/hero-loop.mp4" type="video/mp4" />
@@ -105,12 +155,12 @@
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center relative z-10 flex flex-col items-center">
       
-      <!-- Video Status Pill & Peer Learning Badge -->
-      <div class="flex flex-wrap items-center justify-center gap-2.5 mb-6">
-        <!-- Interactive Video Play/Pause Micro-Badge -->
+      <!-- Badges Row -->
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-5">
+        <!-- Video Play/Pause badge (hidden on mobile since no video) -->
         <button
           @click="toggleVideoPlay"
-          class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-label font-medium text-primary bg-white/90 shadow-sm border border-outline-variant/30 backdrop-blur-md hover:bg-white transition-all cursor-pointer"
+          class="hidden md:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-label font-medium text-primary bg-white/90 shadow-sm border border-outline-variant/30 backdrop-blur-md hover:bg-white transition-all cursor-pointer"
           title="Click to play/pause background video"
         >
           <span class="w-2 h-2 rounded-full" :class="isVideoPlaying ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'"></span>
@@ -118,46 +168,49 @@
           <span>{{ isVideoPlaying ? 'Ambient Motion Video Active' : 'Motion Background Paused' }}</span>
         </button>
 
-        <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-label font-semibold text-secondary-dim bg-secondary-fixed/50 border border-outline-variant/40 shadow-xs">
-          <span class="material-symbols-outlined text-sm text-secondary" data-icon="auto_awesome">auto_awesome</span>
-          <span>Zero Cash Needed • 100% Peer-to-Peer Campus Learning</span>
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-label font-semibold text-secondary-dim bg-white/80 md:bg-secondary-fixed/50 border border-outline-variant/40 shadow-xs backdrop-blur-sm">
+          <span class="material-symbols-outlined text-sm text-secondary">auto_awesome</span>
+          <span>Zero Cash Needed • 100% Peer-to-Peer</span>
         </div>
       </div>
 
       <!-- Headline -->
-      <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-headline font-extrabold text-on-surface tracking-tight leading-[1.1] max-w-4xl mb-6">
-        Trade What You Know. <br class="hidden sm:inline"/>
+      <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-headline font-extrabold text-on-surface tracking-tight leading-[1.1] max-w-4xl mb-5 px-2 sm:px-0">
+        Trade What You Know.
+        <br/>
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#543ce0] via-[#7c3aed] to-[#a855f7]">
           Learn What You Want.
         </span>
       </h1>
 
       <!-- Subheadline -->
-      <p class="text-base sm:text-lg md:text-xl text-on-surface-variant max-w-2xl font-body leading-relaxed mb-10">
-        The decentralized campus skill marketplace. Connect with verified university peers to learn any skill, share your passions, and grow together—zero money exchanged.
+      <p class="text-sm sm:text-lg md:text-xl text-on-surface-variant max-w-2xl font-body leading-relaxed mb-8 px-2 sm:px-0">
+        <span class="hidden sm:inline">The decentralized campus skill marketplace. Connect with verified university peers to learn any skill, share your passions, and grow together—</span>
+        <span class="sm:hidden">Connect with verified campus peers to swap skills and grow together—</span>
+        zero money exchanged.
       </p>
 
       <!-- Action Buttons -->
-      <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-14">
+      <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mb-10 max-w-sm sm:max-w-none mx-auto px-4 sm:px-0">
         <NuxtLink
           :to="currentUser ? '/dashboard' : '/register'"
-          class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-on-primary font-headline font-bold text-base shadow-lg shadow-primary/30 hover:shadow-primary/45 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 group"
+          class="w-full sm:w-auto px-7 py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-on-primary font-headline font-bold text-sm sm:text-base shadow-lg shadow-primary/30 hover:shadow-primary/45 hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 group"
         >
           <span>{{ currentUser ? 'Open Your Dashboard' : 'Start Swapping Skills' }}</span>
-          <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+          <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
         </NuxtLink>
 
         <button
           @click="scrollToSection('how-it-works')"
-          class="w-full sm:w-auto px-7 py-4 rounded-xl bg-white/80 backdrop-blur-md text-on-surface font-headline font-semibold text-base hover:bg-white/95 border border-outline-variant/40 shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
+          class="w-full sm:w-auto px-6 py-3.5 sm:py-4 rounded-xl bg-white/80 backdrop-blur-md text-on-surface font-headline font-semibold text-sm sm:text-base hover:bg-white/95 border border-outline-variant/40 shadow-sm hover:scale-[1.02] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
         >
-          <span class="material-symbols-outlined text-primary text-xl" data-icon="play_circle">play_circle</span>
+          <span class="material-symbols-outlined text-primary text-xl">play_circle</span>
           <span>How It Works</span>
         </button>
       </div>
 
       <!-- Verified Metric Bar Strip -->
-      <div class="w-full max-w-4xl bg-white/85 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/90 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center">
+      <div class="w-full max-w-sm sm:max-w-4xl bg-white/85 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/90 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 text-center">
         <div class="flex flex-col items-center">
           <span class="text-2xl sm:text-3xl font-headline font-extrabold text-primary">2,400+</span>
           <span class="text-xs sm:text-sm font-label text-on-surface-variant font-medium mt-0.5">Swaps Completed</span>
@@ -528,6 +581,7 @@ const activeSection = ref('how-it-works')
 const currentUser = ref(null)
 const quickEmail = ref('')
 const isCopied = ref(false)
+const mobileMenuOpen = ref(false)
 
 function scrollToSection(sectionId) {
   activeSection.value = sectionId
@@ -614,5 +668,21 @@ onMounted(() => {
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+/* Mobile Drawer slide animation */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.2s ease-out;
+  overflow: hidden;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.slide-down-enter-to,
+.slide-down-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>
