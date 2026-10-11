@@ -1122,44 +1122,59 @@ Required JSON format:
 The "answer" field is the 0-based index of the correct option in the "options" array.
 """
 
-    try:
-        response = _genai_client.models.generate_content(
-            model='gemini-2.0-flash-lite',
-            contents=prompt,
-            config=_genai_types.GenerateContentConfig(
-                temperature=0.7,
-                max_output_tokens=2048,
+    # Try models in order of preference - fall back if one isn't available
+    _MODELS_TO_TRY = [
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-latest',
+    ]
+    last_error = 'Unknown error'
+    for model_name in _MODELS_TO_TRY:
+        try:
+            response = _genai_client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=_genai_types.GenerateContentConfig(
+                    temperature=0.7,
+                    max_output_tokens=2048,
+                )
             )
-        )
-        raw = response.text.strip()
+            raw = response.text.strip()
 
-        # Strip markdown code fences if Gemini wraps in ```json ... ```
-        if raw.startswith('```'):
-            raw = raw.split('```')[1]
-            if raw.startswith('json'):
-                raw = raw[4:]
-            raw = raw.strip()
+            # Strip markdown code fences if Gemini wraps in ```json ... ```
+            if raw.startswith('```'):
+                raw = raw.split('```')[1]
+                if raw.startswith('json'):
+                    raw = raw[4:]
+                raw = raw.strip()
 
-        questions = _json.loads(raw)
+            questions = _json.loads(raw)
 
-        # Validate structure
-        validated = []
-        for q in questions:
-            if (isinstance(q, dict)
-                    and 'q' in q
-                    and 'options' in q
-                    and 'answer' in q
-                    and isinstance(q['options'], list)
-                    and len(q['options']) == 4
-                    and isinstance(q['answer'], int)
-                    and 0 <= q['answer'] <= 3):
-                validated.append(q)
+            # Validate structure
+            validated = []
+            for q in questions:
+                if (isinstance(q, dict)
+                        and 'q' in q
+                        and 'options' in q
+                        and 'answer' in q
+                        and isinstance(q['options'], list)
+                        and len(q['options']) == 4
+                        and isinstance(q['answer'], int)
+                        and 0 <= q['answer'] <= 3):
+                    validated.append(q)
 
-        return validated if len(validated) >= 3 else None
+            if len(validated) >= 3:
+                app.logger.info(f'Quiz generated via model={model_name} for skill={skill_name}')
+                return validated, None
 
-    except Exception as e:
-        app.logger.error(f'Gemini question generation failed for "{skill_name}" ({difficulty}): {e}')
-        return None
+            last_error = f'Model {model_name} returned invalid/insufficient questions'
+        except Exception as e:
+            last_error = str(e)
+            app.logger.warning(f'Gemini model={model_name} failed for "{skill_name}" ({difficulty}): {e}')
+            continue
+
+    app.logger.error(f'All Gemini models failed for "{skill_name}" ({difficulty}): {last_error}')
+    return None, last_error
 
 
 @app.route('/api/quiz/generate', methods=['POST'])
@@ -1179,11 +1194,16 @@ def generate_quiz():
     if not GEMINI_AVAILABLE:
         return jsonify({"error": "AI quiz engine is not configured. Please set GEMINI_API_KEY in your .env file."}), 503
 
-    # Generate fresh questions from Gemini
-    questions = generate_ai_questions(skill_name, difficulty)
+    # Generate fresh questions from Gemini (returns (questions, error) tuple)
+    result = generate_ai_questions(skill_name, difficulty)
+    if isinstance(result, tuple):
+        questions, gen_error = result
+    else:
+        questions, gen_error = result, None
 
     if not questions:
-        return jsonify({"error": f"Could not generate questions for '{skill_name}'. Please try again."}), 503
+        error_msg = gen_error or f"Could not generate questions for '{skill_name}'. Please try again."
+        return jsonify({"error": error_msg}), 503
 
     # Shuffle option order for each question to prevent pattern recognition
     for q in questions:
