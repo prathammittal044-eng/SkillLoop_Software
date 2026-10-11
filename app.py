@@ -856,7 +856,7 @@ def get_connections():
     
     # Get incoming pending
     pending_rows = db.execute('''
-        SELECT c.id, c.requester_id, u.id as user_id, u.username, u.full_name, u.department, u.avatar_color, c.created_at
+        SELECT c.id, c.requester_id, u.id as user_id, u.username, u.full_name, u.department, u.avatar_color, u.profile_picture, c.created_at
         FROM connections c JOIN users u ON c.requester_id = u.id 
         WHERE c.receiver_id = ? AND c.status = 'pending'
         ORDER BY c.created_at DESC
@@ -874,6 +874,7 @@ def get_connections():
             "full_name": p['full_name'] or p['username'],
             "department": p['department'] or 'Campus Peer',
             "avatar_color": p['avatar_color'],
+            "profile_picture": p['profile_picture'] if 'profile_picture' in p.keys() else None,
             "skill_offered": ", ".join(teaches) if teaches else "Various Skills",
             "skill_wanted": ", ".join(learns) if learns else "New Skills",
             "teaches": teaches,
@@ -883,7 +884,7 @@ def get_connections():
 
     # Get active connections (where user is either requester or receiver)
     active_rows = db.execute('''
-        SELECT c.id, u.id as user_id, u.username, u.full_name, u.department, u.avatar_color, c.created_at
+        SELECT c.id, u.id as user_id, u.username, u.full_name, u.department, u.avatar_color, u.profile_picture, c.created_at
         FROM connections c JOIN users u ON (c.requester_id = u.id OR c.receiver_id = u.id)
         WHERE (c.requester_id = ? OR c.receiver_id = ?) AND c.status = 'accepted' AND u.id != ?
         ORDER BY c.created_at DESC
@@ -901,6 +902,7 @@ def get_connections():
             "full_name": a['full_name'] or a['username'],
             "department": a['department'] or 'Campus Peer',
             "avatar_color": a['avatar_color'],
+            "profile_picture": a['profile_picture'] if 'profile_picture' in a.keys() else None,
             "teaches": teaches,
             "learns": learns,
             "created_at": a['created_at']
@@ -919,7 +921,7 @@ def search_users():
     current_uid = session['user_id']
     like = f"%{q}%"
     rows = db.execute('''
-        SELECT id, username, full_name, department, semester, avatar_color
+        SELECT id, username, full_name, department, semester, avatar_color, profile_picture
         FROM users
         WHERE id != ? AND (LOWER(username) LIKE ? OR LOWER(full_name) LIKE ?)
         LIMIT 10
@@ -955,6 +957,7 @@ def search_users():
             "department": r['department'] or 'Campus Peer',
             "semester": r['semester'],
             "avatar_color": r['avatar_color'],
+            "profile_picture": r['profile_picture'] if 'profile_picture' in r.keys() else None,
             "teaches": teaches,
             "learns": learns,
             "connection_status": conn_status,

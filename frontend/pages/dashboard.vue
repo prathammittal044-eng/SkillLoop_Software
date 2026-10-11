@@ -246,35 +246,115 @@
       <!-- Main Content -->
       <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-8">
 
-        <!-- Welcome Banner -->
-        <section class="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 border border-surface-container shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-          <div class="relative z-10 space-y-1.5 max-w-2xl">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low text-primary text-xs font-semibold uppercase tracking-wider font-label mb-1">
-              <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              Campus Exchange Live
+        <!-- Welcome & Command Center -->
+        <section class="bg-surface-container-lowest rounded-3xl p-6 sm:p-8 border border-primary/25 shadow-sm relative overflow-hidden">
+          <!-- Ambient gradient glow -->
+          <div class="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-secondary-fixed/30 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <!-- Greeting & Dynamic Context Status -->
+            <div class="space-y-2 max-w-2xl">
+              <div class="flex items-center gap-2.5 flex-wrap">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold uppercase tracking-wider font-label shadow-xs">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Campus Network Live</span>
+                </div>
+                <div v-if="cycles.length > 0" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold font-label">
+                  <span class="material-symbols-outlined text-sm">sync_alt</span>
+                  <span>{{ cycles.length }} Exchange Loop{{ cycles.length > 1 ? 's' : '' }} Ready</span>
+                </div>
+                <div v-if="pendingConnections.length > 0" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold font-label">
+                  <span class="material-symbols-outlined text-sm">notifications</span>
+                  <span>{{ pendingConnections.length }} Pending Request{{ pendingConnections.length > 1 ? 's' : '' }}</span>
+                </div>
+              </div>
+
+              <h1 class="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-on-surface tracking-tight">
+                Welcome back, {{ user.full_name?.split(' ')[0] || user.username }} ✨
+              </h1>
+
+              <p class="text-on-surface-variant font-body text-sm sm:text-base leading-relaxed">
+                <template v-if="cycles.length > 0">
+                  Our algorithm detected <span class="font-bold text-primary">{{ cycles.length }} reciprocal learning loop{{ cycles.length > 1 ? 's' : '' }}</span> for your skills. Connect below to start swapping.
+                </template>
+                <template v-else-if="teaches.length === 0">
+                  Ready to start? Add skills you can teach to unlock 1-on-1 peer learning sessions.
+                </template>
+                <template v-else>
+                  You're active with <span class="font-semibold text-primary">{{ teaches.length }} skill{{ teaches.length > 1 ? 's' : '' }} offered</span> and <span class="font-semibold text-secondary">{{ learns.length }} learning goal{{ learns.length > 1 ? 's' : '' }}</span>.
+                </template>
+              </p>
             </div>
-            <h1 class="font-display text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
-              Welcome back, {{ user.full_name?.split(' ')[0] || user.username }} ✨
-            </h1>
-            <p class="text-on-surface-variant font-body text-sm sm:text-base leading-relaxed">
-              You have <span class="font-semibold text-primary">{{ pendingConnections.length }} pending requests</span> waiting for you.
-            </p>
+
+            <!-- Action CTAs -->
+            <div class="flex items-center flex-wrap gap-2.5 shrink-0">
+              <button 
+                @click="isAdding = !isAdding" 
+                class="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-headline text-sm font-bold shadow-md shadow-primary/25 hover:bg-primary-dim active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <span class="material-symbols-outlined text-lg">{{ isAdding ? 'close' : 'add' }}</span>
+                <span>{{ isAdding ? 'Close Drawer' : 'Add Skill' }}</span>
+              </button>
+              <NuxtLink 
+                to="/quiz" 
+                class="px-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface hover:text-primary hover:bg-surface-container font-headline text-sm font-semibold active:scale-95 transition-all flex items-center gap-2 border border-surface-container-high shadow-xs"
+              >
+                <span class="material-symbols-outlined text-lg text-primary">quiz</span>
+                <span>Take Quiz</span>
+              </NuxtLink>
+              <NuxtLink 
+                to="/resume" 
+                class="px-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface hover:text-primary hover:bg-surface-container font-headline text-sm font-semibold active:scale-95 transition-all flex items-center gap-2 border border-surface-container-high shadow-xs"
+              >
+                <span class="material-symbols-outlined text-lg text-secondary">workspace_premium</span>
+                <span>Resume Studio</span>
+              </NuxtLink>
+            </div>
           </div>
-          <div class="relative z-10 flex items-center flex-wrap gap-3">
-            <button @click="isAdding = !isAdding" class="px-5 py-2.5 rounded-xl bg-primary text-on-primary font-headline text-sm font-bold shadow-sm hover:bg-primary-dim active:scale-95 transition-all flex items-center gap-2">
-              <span class="material-symbols-outlined text-lg">add</span>
-              <span>Add Skill</span>
-            </button>
-            <NuxtLink to="/quiz" class="px-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface-variant font-headline text-sm font-semibold hover:text-primary hover:bg-surface-container active:scale-95 transition-all flex items-center gap-2 border border-surface-variant/50">
-              <span class="material-symbols-outlined text-lg">quiz</span>
-              <span>Take Quiz</span>
-            </NuxtLink>
-            <NuxtLink to="/resume" class="px-4 py-2.5 rounded-xl bg-surface-container-low text-on-surface-variant font-headline text-sm font-semibold hover:text-primary hover:bg-surface-container active:scale-95 transition-all flex items-center gap-2 border border-surface-variant/50">
-              <span class="material-symbols-outlined text-lg">description</span>
-              <span>Resume Studio</span>
-            </NuxtLink>
+
+          <!-- Micro Telemetry Quick Bar -->
+          <div class="mt-6 pt-5 border-t border-surface-container/60 grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
+            <div class="bg-surface-container-low/70 rounded-2xl p-3 border border-surface-container/80 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-on-surface-variant font-label block">Time Credits</span>
+                <span class="text-base font-headline font-bold text-on-surface">{{ (user.time_credits || 0).toFixed(1) }} <span class="text-xs text-primary font-semibold">cr</span></span>
+              </div>
+            </div>
+
+            <div class="bg-surface-container-low/70 rounded-2xl p-3 border border-surface-container/80 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-on-surface-variant font-label block">Current Level</span>
+                <span class="text-base font-headline font-bold text-on-surface">Level {{ user.level || 1 }} <span class="text-xs text-on-surface-variant font-normal">({{ user.xp || 0 }} XP)</span></span>
+              </div>
+            </div>
+
+            <div class="bg-surface-container-low/70 rounded-2xl p-3 border border-surface-container/80 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-xl">school</span>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-on-surface-variant font-label block">Skills Offered</span>
+                <span class="text-base font-headline font-bold text-on-surface">{{ teaches.length }} <span class="text-xs text-on-surface-variant font-normal">Active</span></span>
+              </div>
+            </div>
+
+            <div class="bg-surface-container-low/70 rounded-2xl p-3 border border-surface-container/80 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-xl">track_changes</span>
+              </div>
+              <div class="min-w-0">
+                <span class="text-xs text-on-surface-variant font-label block">Learning Goals</span>
+                <span class="text-base font-headline font-bold text-on-surface">{{ learns.length }} <span class="text-xs text-on-surface-variant font-normal">Targeted</span></span>
+              </div>
+            </div>
           </div>
-          <div class="absolute -right-16 -top-16 w-48 h-48 bg-secondary-container/30 rounded-full blur-3xl pointer-events-none"></div>
         </section>
 
         <!-- Add Skill Form (shown when isAdding) -->
@@ -401,23 +481,41 @@
 
           <!-- Active & Pending Tab Content -->
           <div v-if="sessionTab === 'active'">
-            <!-- Empty state if no active sessions -->
-            <div v-if="activeSessionsList.length === 0" class="py-8 px-4 text-center rounded-2xl bg-surface-bright/50 border border-dashed border-surface-container flex flex-col items-center justify-center gap-2.5">
-              <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-2xl">event_available</span>
+            <!-- Dynamic Escrow State when no active sessions are running -->
+            <div 
+              v-if="activeSessionsList.length === 0" 
+              class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-surface-container-low via-surface-bright to-surface-container-low border border-primary/20 shadow-xs flex flex-col md:flex-row items-center justify-between gap-5"
+            >
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-on-primary flex items-center justify-center shrink-0 shadow-sm">
+                  <span class="material-symbols-outlined text-2xl">verified_user</span>
+                </div>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-headline font-bold text-sm text-on-surface">Time Credit Escrow Ready</h4>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">100% Protected</span>
+                  </div>
+                  <p class="text-xs text-on-surface-variant max-w-xl leading-relaxed">
+                    <template v-if="cycles.length > 0">
+                      An algorithmic exchange loop is ready with <strong class="text-on-surface">{{ getCyclePeer(cycles[0])?.name || 'a peer' }}</strong>. Schedule your session to lock credits safely in escrow.
+                    </template>
+                    <template v-else>
+                      No active sessions scheduled yet. Book a 1:1 peer session with your {{ (user.time_credits || 0).toFixed(1) }} available credits—escrow safely locks credits until you confirm completion.
+                    </template>
+                  </p>
+                </div>
               </div>
-              <div class="space-y-0.5">
-                <h4 class="font-headline font-bold text-sm text-on-surface">No active exchange sessions</h4>
-                <p class="text-xs text-on-surface-variant max-w-sm">Schedule a 1:1 session with a learning partner below. Your credits are locked safely in escrow until you confirm completion.</p>
+
+              <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <button
+                  type="button"
+                  @click="openBookModal(cycles.length > 0 ? getCyclePeer(cycles[0]) : null, cycles.length > 0 ? getCyclePeer(cycles[0])?.teaches_next : null)"
+                  class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span class="material-symbols-outlined text-sm">event_available</span>
+                  <span>{{ cycles.length > 0 ? 'Schedule with Matched Peer' : 'Schedule 1:1 Session' }}</span>
+                </button>
               </div>
-              <button
-                type="button"
-                @click="openBookModal(null)"
-                class="mt-1 px-4 py-2 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1.5"
-              >
-                <span class="material-symbols-outlined text-sm">add</span>
-                <span>Schedule Your First Session</span>
-              </button>
             </div>
 
             <!-- Active Sessions Grid -->
@@ -614,284 +712,438 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           <!-- LEFT: Profile Card -->
-          <aside class="lg:col-span-4 bg-surface-container-lowest rounded-3xl p-6 border border-surface-container shadow-sm space-y-6">
-            <div class="flex flex-col items-center text-center space-y-3 pt-2">
-              <div class="relative">
-                <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-tertiary-container flex items-center justify-center text-on-primary font-display font-bold text-3xl shadow-md">
-                  {{ (user.full_name || user.username || 'U').charAt(0).toUpperCase() }}
+          <aside class="lg:col-span-4 bg-surface-container-lowest rounded-3xl p-6 border border-primary/20 shadow-sm space-y-6 relative overflow-hidden">
+            <!-- Subtle backdrop gradient -->
+            <div class="absolute -top-12 -left-12 w-36 h-36 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="flex flex-col items-center text-center space-y-3 pt-1 relative z-10">
+              <div class="relative group">
+                <div class="w-24 h-24 rounded-2xl overflow-hidden ring-4 ring-primary/20 shadow-lg bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-on-primary font-display font-extrabold text-3xl transition-transform group-hover:scale-105 duration-200">
+                  <img 
+                    v-if="user.profile_picture" 
+                    :src="user.profile_picture" 
+                    @error="user.profile_picture = null" 
+                    class="w-full h-full object-cover" 
+                    alt="Profile Avatar"
+                  />
+                  <span v-else>{{ (user.full_name || user.username || 'U').charAt(0).toUpperCase() }}</span>
                 </div>
-                <div v-if="verifiedSkills.length > 0" class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full p-1.5 shadow-sm" title="Verified Member">
-                  <span class="material-symbols-outlined text-sm leading-none" style="font-variation-settings: 'FILL' 1;">verified</span>
-                </div>
+                
+                <!-- Online Presence Dot -->
+                <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 ring-2 ring-white flex items-center justify-center" title="Active on Campus">
+                  <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                </span>
               </div>
-              <div>
+
+              <div class="space-y-0.5">
                 <div class="flex items-center justify-center gap-1.5">
                   <h2 class="font-display text-xl font-bold text-on-surface">{{ user.full_name || user.username }}</h2>
+                  <span v-if="verifiedSkills.length > 0" class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;" title="Verified Peer">verified</span>
                 </div>
-                <p class="text-xs font-medium text-on-surface-variant font-label">@{{ user.username }}</p>
+                <p class="text-xs font-semibold text-primary font-label">@{{ user.username }}</p>
+                <p v-if="user.headline" class="text-xs text-on-surface-variant font-body italic max-w-xs">"{{ user.headline }}"</p>
               </div>
-              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low text-xs font-semibold text-secondary font-headline">
+
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-surface-container-high text-xs font-semibold text-secondary font-headline">
                 <span class="material-symbols-outlined text-sm">school</span>
-                {{ user.department || 'No Department' }} • Semester {{ user.semester }}
+                <span>{{ user.department || 'Campus Student' }} &bull; Semester {{ user.semester || 1 }}</span>
               </div>
             </div>
 
             <!-- XP Progress -->
-            <div class="bg-surface-container-low rounded-2xl p-4 space-y-3 border border-surface-container/60">
+            <div class="bg-surface-container-low rounded-2xl p-4 space-y-2.5 border border-surface-container/70 shadow-2xs">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="w-8 h-8 rounded-lg bg-tertiary-container/30 text-tertiary flex items-center justify-center">
+                  <span class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                     <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">military_tech</span>
                   </span>
                   <div>
                     <p class="text-xs font-bold text-on-surface uppercase tracking-wide font-headline">Level {{ user.level || 1 }}</p>
-                    <p class="text-[11px] text-on-surface-variant">Campus Peer</p>
+                    <p class="text-[11px] text-on-surface-variant font-medium">Campus Peer</p>
                   </div>
                 </div>
                 <span class="text-xs font-bold text-primary font-headline">{{ user.xp || 0 }} XP</span>
               </div>
               <div class="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-primary to-tertiary-fixed rounded-full transition-all" :style="`width: ${Math.min(((user.xp || 0) % 100), 100)}%`"></div>
+                <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all" :style="`width: ${Math.min(((user.xp || 0) % 100), 100)}%`"></div>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-on-surface-variant font-label">
+                <span>Tier Milestone</span>
+                <span>{{ (user.xp || 0) % 100 }} / 100 XP to Next Tier</span>
               </div>
             </div>
 
-            <!-- Stats -->
-            <div class="grid grid-cols-2 gap-2">
-              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
-                <span class="text-sm sm:text-base font-bold font-headline text-on-surface block">{{ user.total_sessions || user.sessions_completed || 0 }}</span>
-                <span class="text-[10px] font-medium text-on-surface-variant">Sessions</span>
+            <!-- Stats (4 Telemetry Bento Tiles) -->
+            <div class="grid grid-cols-2 gap-2.5">
+              <div class="bg-surface-container-low/60 hover:bg-surface-container-low border border-surface-container rounded-2xl p-3 text-center transition-all shadow-2xs">
+                <div class="flex items-center justify-center text-primary mb-1">
+                  <span class="material-symbols-outlined text-base">forum</span>
+                </div>
+                <span class="text-base font-bold font-headline text-on-surface block leading-tight">{{ user.total_sessions || user.sessions_completed || 0 }}</span>
+                <span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Sessions</span>
               </div>
-              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
-                <span class="text-sm sm:text-base font-bold font-headline text-primary block">{{ (user.time_credits || 0).toFixed(1) }}</span>
-                <span class="text-[10px] font-medium text-on-surface-variant">Credits</span>
+
+              <div class="bg-surface-container-low/60 hover:bg-surface-container-low border border-surface-container rounded-2xl p-3 text-center transition-all shadow-2xs">
+                <div class="flex items-center justify-center text-primary mb-1">
+                  <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                </div>
+                <span class="text-base font-bold font-headline text-primary block leading-tight">{{ (user.time_credits || 0).toFixed(1) }}</span>
+                <span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Credits</span>
               </div>
-              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
-                <span class="text-sm sm:text-base font-bold font-headline text-emerald-600 flex items-center justify-center gap-0.5">
-                  <span class="material-symbols-outlined text-xs">timer</span>
-                  <span>{{ formatTeachingDuration(user.total_teaching_seconds) }}</span>
-                </span>
-                <span class="text-[10px] font-medium text-on-surface-variant">Time Taught</span>
+
+              <div class="bg-surface-container-low/60 hover:bg-surface-container-low border border-surface-container rounded-2xl p-3 text-center transition-all shadow-2xs">
+                <div class="flex items-center justify-center text-emerald-600 mb-1">
+                  <span class="material-symbols-outlined text-base">schedule</span>
+                </div>
+                <span class="text-base font-bold font-headline text-emerald-700 block leading-tight">{{ formatTeachingDuration(user.total_teaching_seconds) }}</span>
+                <span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Time Taught</span>
               </div>
-              <div class="bg-surface-container-lowest border border-surface-container rounded-2xl p-2.5 text-center shadow-xs">
-                <span class="text-sm sm:text-base font-bold font-headline text-amber-500 flex items-center justify-center gap-0.5">
-                  <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span>
-                  <span>{{ user.rating_avg > 0 ? user.rating_avg.toFixed(1) : 'New' }}</span>
-                </span>
-                <span class="text-[10px] font-medium text-on-surface-variant">Rating ({{ user.rating_count || 0 }})</span>
+
+              <div class="bg-surface-container-low/60 hover:bg-surface-container-low border border-surface-container rounded-2xl p-3 text-center transition-all shadow-2xs">
+                <div class="flex items-center justify-center text-amber-500 mb-1">
+                  <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+                </div>
+                <span class="text-base font-bold font-headline text-amber-600 block leading-tight">{{ user.rating_avg > 0 ? user.rating_avg.toFixed(1) + ' ★' : 'New' }}</span>
+                <span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Rating ({{ user.rating_count || 0 }})</span>
               </div>
             </div>
 
-            <button @click="showEditModal = true" class="w-full py-2.5 rounded-xl border border-primary/40 text-primary hover:bg-primary/5 active:scale-95 font-headline font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2">
+            <button @click="showEditModal = true" class="w-full py-2.5 rounded-xl border border-primary/30 text-primary hover:bg-primary/5 active:scale-95 font-headline font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs">
               <span class="material-symbols-outlined text-base">edit</span>
-              <span>Edit Profile</span>
+              <span>Edit Profile Details</span>
             </button>
           </aside>
 
-          <!-- CENTER: Skills -->
+          <!-- CENTER: Skills & Graph Matches -->
           <section class="lg:col-span-5 space-y-6">
-            <div class="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container shadow-sm space-y-6">
-              <div class="flex items-center justify-between pb-3 border-b border-surface-container/50">
+            <div class="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container shadow-sm space-y-6 relative overflow-hidden">
+              <div class="flex items-center justify-between pb-3 border-b border-surface-container/60 gap-3">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center">
-                    <span class="material-symbols-outlined text-lg">psychology</span>
+                  <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-xl">psychology</span>
                   </div>
-                  <h2 class="font-display text-xl font-bold text-on-surface tracking-tight">My Skills</h2>
+                  <div>
+                    <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface tracking-tight">Skill Inventory</h2>
+                    <p class="text-[11px] text-on-surface-variant font-body">180-day Proof-of-Work heartbeat engine</p>
+                  </div>
                 </div>
+
+                <!-- Add Skill toggle / indicator -->
+                <button
+                  type="button"
+                  @click="isAdding = !isAdding"
+                  class="px-3 py-1.5 rounded-xl border border-primary/30 text-primary hover:bg-primary/5 active:scale-95 font-headline text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="Add teaching or learning skill"
+                >
+                  <span class="material-symbols-outlined text-sm transition-transform duration-200" :class="isAdding ? 'rotate-45' : ''">add</span>
+                  <span>{{ isAdding ? 'Close' : 'Add Skill' }}</span>
+                </button>
               </div>
 
-              <!-- Teaching Skills -->
+              <!-- Teaching Skills (Offers) -->
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
-                    <h3 class="font-headline text-sm font-bold text-on-surface">Skills I Teach</h3>
+                    <span class="w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/15"></span>
+                    <h3 class="font-headline text-xs sm:text-sm font-bold text-on-surface uppercase tracking-wider">Skills I Teach (Offers)</h3>
                   </div>
-                  <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label text-xs font-bold">{{ teaches.length }} Offered</span>
+                  <span class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-label text-xs font-bold">{{ teaches.length }} Active</span>
                 </div>
-                <div v-if="teaches.length === 0" class="p-4 rounded-2xl bg-surface-container-low/60 border border-dashed border-surface-container text-center text-on-surface-variant text-xs">
-                  No skills added yet. Click "Add Skill" above to get started!
+
+                <!-- Empty State -->
+                <div v-if="teaches.length === 0" class="p-6 rounded-2xl bg-surface-container-low/50 border border-dashed border-surface-container text-center space-y-2">
+                  <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                    <span class="material-symbols-outlined text-xl">school</span>
+                  </div>
+                  <p class="font-headline font-semibold text-xs sm:text-sm text-on-surface">No teaching skills listed yet</p>
+                  <p class="text-xs text-on-surface-variant max-w-sm mx-auto">Offer what you know (e.g. Python, English, Figma) to match reciprocal loops and earn time credits.</p>
+                  <button @click="isAdding = true" class="mt-1 px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-2xs">
+                    + Add Teaching Skill
+                  </button>
                 </div>
-                <div v-for="skill in teaches" :key="skill.id" class="p-3.5 rounded-2xl bg-surface-container-low border border-surface-container/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/40 transition-colors group">
-                  <div class="flex items-center gap-2.5 flex-wrap">
-                    <span class="font-headline font-semibold text-sm text-on-surface">{{ skill.name }}</span>
-                    
-                    <!-- Proof-of-Work Heartbeat Badge -->
-                    <template v-if="getSkillVerification(skill.name)">
-                      <!-- Active (Heartbeat pulsating) -->
-                      <div 
-                        v-if="getSkillVerification(skill.name).decay_status === 'active'"
-                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-[10px] font-bold"
-                        :title="`Proof-of-Work Heartbeat: ${getSkillVerification(skill.name).days_remaining} days remaining (Health: ${getSkillVerification(skill.name).health_percent}%)`"
-                      >
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Active ({{ getSkillVerification(skill.name).days_remaining }}d left)</span>
-                        <span class="text-[9px] uppercase opacity-75">• {{ getSkillVerification(skill.name).verified_level }}</span>
-                      </div>
 
-                      <!-- Expiring Soon (Warning Alert) -->
-                      <div 
-                        v-else-if="getSkillVerification(skill.name).decay_status === 'expiring_soon'"
-                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-700 text-[10px] font-bold animate-pulse"
-                        :title="`Expiring soon! Stale verification warning in ${getSkillVerification(skill.name).days_remaining} days. Teach in an A.E.E. session to refresh.`"
-                      >
-                        <span class="material-symbols-outlined text-xs text-amber-600">warning</span>
-                        <span>Expiring in {{ getSkillVerification(skill.name).days_remaining }}d</span>
+                <!-- Skill Cards List -->
+                <div v-else class="space-y-2.5">
+                  <div
+                    v-for="skill in teaches"
+                    :key="skill.id"
+                    class="p-3.5 rounded-2xl bg-surface-container-low/80 hover:bg-surface-container-low border border-surface-container/80 hover:border-primary/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all duration-200 group shadow-2xs"
+                  >
+                    <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                      <div class="w-7 h-7 rounded-lg bg-surface-container-lowest text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                        <span class="material-symbols-outlined text-sm">terminal</span>
                       </div>
+                      <span class="font-headline font-bold text-sm text-on-surface capitalize truncate">{{ skill.name }}</span>
+                      
+                      <!-- Proof-of-Work Heartbeat Badge -->
+                      <template v-if="getSkillVerification(skill.name)">
+                        <!-- Active (Heartbeat pulsating) -->
+                        <div 
+                          v-if="getSkillVerification(skill.name).decay_status === 'active'"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 text-[10px] font-bold"
+                          :title="`Proof-of-Work Heartbeat: ${getSkillVerification(skill.name).days_remaining} days remaining (Health: ${getSkillVerification(skill.name).health_percent}%)`"
+                        >
+                          <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span>Active ({{ getSkillVerification(skill.name).days_remaining }}d left)</span>
+                          <span class="text-[9px] uppercase tracking-wider opacity-80">&bull; {{ getSkillVerification(skill.name).verified_level }}</span>
+                        </div>
 
-                      <!-- Decayed / Stale -->
-                      <div 
+                        <!-- Expiring Soon (Warning Alert) -->
+                        <div 
+                          v-else-if="getSkillVerification(skill.name).decay_status === 'expiring_soon'"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-800 text-[10px] font-bold animate-pulse"
+                          :title="`Expiring soon! Stale verification warning in ${getSkillVerification(skill.name).days_remaining} days. Teach in an A.E.E. session to refresh.`"
+                        >
+                          <span class="material-symbols-outlined text-xs text-amber-600">warning</span>
+                          <span>Expiring in {{ getSkillVerification(skill.name).days_remaining }}d</span>
+                        </div>
+
+                        <!-- Decayed / Stale -->
+                        <div 
+                          v-else
+                          class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-500/10 border border-slate-400/30 text-slate-600 text-[10px] font-bold"
+                          title="Skill verification has decayed (>180 days). It is marked inactive for HRs. Teach or pass quiz to revive!"
+                        >
+                          <span class="material-symbols-outlined text-xs">history_toggle_off</span>
+                          <span>Decayed &bull; Inactive for HRs</span>
+                        </div>
+                      </template>
+                      
+                      <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-[10px] font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant/50"></span>
+                        <span>Unverified</span>
+                      </span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                      <!-- Log A.E.E. Session Action (for verified skills) -->
+                      <button 
+                        v-if="getSkillVerification(skill.name)"
+                        type="button"
+                        @click="openAeeModal(skill.name)"
+                        class="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-on-primary font-headline text-[11px] font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Log an Applied Exchange & Execution (A.E.E.) teaching session to refresh your 180-day heartbeat"
+                      >
+                        <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                        <span>Log A.E.E.</span>
+                      </button>
+                      
+                      <!-- Verify via Quiz (for unverified skills) -->
+                      <NuxtLink 
                         v-else
-                        class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-500/10 border border-slate-400/30 text-slate-600 text-[10px] font-bold"
-                        title="Skill verification has decayed (>180 days). It is marked inactive for HRs. Teach or pass quiz to revive!"
+                        to="/quiz"
+                        class="px-2.5 py-1 rounded-xl bg-secondary-container/50 hover:bg-secondary-container text-secondary font-headline text-[11px] font-bold transition-all flex items-center gap-1 shadow-2xs"
+                        title="Take AI-proctored verification quiz to earn +XP"
                       >
-                        <span class="material-symbols-outlined text-xs">history_toggle_off</span>
-                        <span>Decayed • Inactive for HRs</span>
-                      </div>
-                    </template>
+                        <span class="material-symbols-outlined text-xs">quiz</span>
+                        <span>Verify (+XP)</span>
+                      </NuxtLink>
+
+                      <!-- Remove Skill Button -->
+                      <button 
+                        type="button"
+                        @click="removeSkill(skill.id)" 
+                        class="text-on-surface-variant/60 hover:text-error hover:bg-error/10 transition-all rounded-lg p-1" 
+                        title="Remove skill"
+                      >
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                    </div>
                   </div>
+                </div>
+              </div>
 
-                  <div class="flex items-center gap-2 self-end sm:self-center">
-                    <!-- Log A.E.E. Session Action (for verified skills) -->
+              <!-- Learning Skills (Goals) -->
+              <div class="space-y-3 pt-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-secondary ring-4 ring-secondary/15"></span>
+                    <h3 class="font-headline text-xs sm:text-sm font-bold text-on-surface uppercase tracking-wider">Skills I Want to Learn (Goals)</h3>
+                  </div>
+                  <span class="px-2.5 py-0.5 rounded-full bg-secondary/10 text-secondary font-label text-xs font-bold">{{ learns.length }} Goals</span>
+                </div>
+
+                <!-- Empty State -->
+                <div v-if="learns.length === 0" class="p-6 rounded-2xl bg-surface-container-low/50 border border-dashed border-surface-container text-center space-y-2">
+                  <div class="w-10 h-10 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center mx-auto">
+                    <span class="material-symbols-outlined text-xl">track_changes</span>
+                  </div>
+                  <p class="font-headline font-semibold text-xs sm:text-sm text-on-surface">No learning targets added</p>
+                  <p class="text-xs text-on-surface-variant max-w-sm mx-auto">Add topics or technologies you want to master to unlock algorithmic barter cycles.</p>
+                  <button @click="isAdding = true" class="mt-1 px-3 py-1.5 rounded-xl bg-secondary text-white font-headline text-xs font-bold hover:bg-secondary-dim active:scale-95 transition-all shadow-2xs">
+                    + Add Learning Goal
+                  </button>
+                </div>
+
+                <!-- Learning List -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div 
+                    v-for="skill in learns" 
+                    :key="skill.id" 
+                    class="p-3 rounded-2xl bg-surface-container-low/80 hover:bg-surface-container-low border border-surface-container/80 flex items-center justify-between gap-2 group transition-all shadow-2xs"
+                  >
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="material-symbols-outlined text-secondary text-base shrink-0">track_changes</span>
+                      <span class="font-headline font-bold text-xs sm:text-sm text-on-surface capitalize truncate">{{ skill.name }}</span>
+                    </div>
                     <button 
-                      v-if="getSkillVerification(skill.name)"
-                      @click="openAeeModal(skill.name)"
-                      class="px-2.5 py-1 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-on-primary font-headline text-[11px] font-bold transition-all flex items-center gap-1 shadow-xs"
-                      title="Log an Applied Exchange & Execution (A.E.E.) teaching session to refresh your 180-day heartbeat"
+                      type="button"
+                      @click="removeSkill(skill.id)" 
+                      class="text-on-surface-variant/60 hover:text-error hover:bg-error/10 transition-all rounded-lg p-1 shrink-0"
+                      title="Remove learning target"
                     >
-                      <span class="material-symbols-outlined text-xs">bolt</span>
-                      <span>Log A.E.E.</span>
-                    </button>
-                    
-                    <NuxtLink 
-                      v-else
-                      to="/quiz"
-                      class="px-2.5 py-1 rounded-xl bg-secondary-container/40 hover:bg-secondary-container text-secondary font-headline text-[11px] font-bold transition-all flex items-center gap-1"
-                      title="Take verification quiz"
-                    >
-                      <span class="material-symbols-outlined text-xs">quiz</span>
-                      <span>Verify</span>
-                    </NuxtLink>
-
-                    <button @click="removeSkill(skill.id)" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all text-xs p-1" title="Remove skill">
                       <span class="material-symbols-outlined text-sm">close</span>
                     </button>
                   </div>
                 </div>
               </div>
-
-              <!-- Learning Skills -->
-              <div class="space-y-3 pt-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
-                    <h3 class="font-headline text-sm font-bold text-on-surface">Skills I Want to Learn</h3>
-                  </div>
-                  <span class="px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-label text-xs font-bold">{{ learns.length }} Goals</span>
-                </div>
-                <div v-if="learns.length === 0" class="p-4 rounded-2xl bg-surface-container-low/60 border border-dashed border-surface-container text-center text-on-surface-variant text-xs">
-                  Add skills you want to learn to find matching peers!
-                </div>
-                <div v-for="skill in learns" :key="skill.id" class="p-3 rounded-2xl bg-surface-container-low/70 border border-surface-container/80 flex items-center justify-between group">
-                  <span class="font-headline font-semibold text-sm text-on-surface">{{ skill.name }}</span>
-                  <button @click="removeSkill(skill.id)" class="opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-error transition-all text-xs">
-                    <span class="material-symbols-outlined text-sm">close</span>
-                  </button>
-                </div>
-              </div>
             </div>
 
-            <!-- Smart Cycle Matches -->
-            <div class="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container shadow-sm space-y-5">
-              <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-surface-container/50">
+            <!-- Smart Cycle Matches / Loop Exchanges -->
+            <div class="bg-surface-container-lowest rounded-3xl p-6 border border-primary/20 shadow-sm space-y-5 relative overflow-hidden">
+              <!-- Ambient background blur -->
+              <div class="absolute -right-16 -top-16 w-44 h-44 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-surface-container/60 relative z-10">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-primary-container/40 text-primary flex items-center justify-center shrink-0">
+                  <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-secondary text-on-primary flex items-center justify-center shrink-0 shadow-sm">
                     <span class="material-symbols-outlined text-lg">sync_alt</span>
                   </div>
                   <div>
                     <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface tracking-tight">Loop Exchanges</h2>
-                    <p class="text-xs text-on-surface-variant font-body">Multi-peer cycles detected by algorithm</p>
+                    <p class="text-[11px] text-on-surface-variant font-body">Multi-peer circular barter solver (Zero credits required)</p>
                   </div>
                 </div>
-                <span v-if="cycles.length > 0" class="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold font-label shrink-0">
-                  {{ cycles.length }} Available
-                </span>
+
+                <div class="flex items-center gap-2">
+                  <span v-if="cycles.length > 0" class="px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold font-label shrink-0 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                    <span>{{ cycles.length }} Available</span>
+                  </span>
+                </div>
               </div>
 
               <!-- Loading State -->
-              <div v-if="isLoadingCycles" class="p-6 text-center text-on-surface-variant text-xs flex items-center justify-center gap-2">
-                <span class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
-                <span>Finding loop cycles...</span>
+              <div v-if="isLoadingCycles" class="p-8 text-center text-on-surface-variant text-xs flex flex-col items-center justify-center gap-3">
+                <span class="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
+                <span class="font-headline font-semibold">Traversing campus skill graph...</span>
               </div>
 
               <!-- Empty State -->
-              <div v-else-if="cycles.length === 0" class="p-6 rounded-2xl bg-surface-container-low/60 border border-dashed border-surface-container text-center space-y-1">
-                <p class="font-headline font-semibold text-sm text-on-surface">No loops found yet</p>
-                <p class="text-xs text-on-surface-variant">Add more teaching and learning skills to unlock multi-peer exchange cycles!</p>
+              <div v-else-if="cycles.length === 0" class="p-8 rounded-2xl bg-surface-container-low/50 border border-dashed border-surface-container text-center space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-surface-container text-on-surface-variant flex items-center justify-center mx-auto">
+                  <span class="material-symbols-outlined text-2xl">hub</span>
+                </div>
+                <p class="font-headline font-bold text-sm text-on-surface">No circular loops found right now</p>
+                <p class="text-xs text-on-surface-variant max-w-sm mx-auto leading-relaxed">
+                  Loop matching connects 2 or 3 students where each gives knowledge to one and receives from another. Add more teaching and learning targets to unlock matches!
+                </p>
+                <button @click="isAdding = true" class="mt-2 px-4 py-2 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-2xs">
+                  Expand My Skills
+                </button>
               </div>
 
               <!-- Cycle Cards List -->
-              <div v-else class="space-y-4">
+              <div v-else class="space-y-4 relative z-10">
                 <div
                   v-for="(cycle, cIdx) in cycles"
                   :key="cIdx"
-                  class="p-4 rounded-2xl bg-surface-container-low border border-surface-container/80 space-y-3 hover:border-primary/40 transition-all duration-200"
+                  class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-surface-container-low/90 to-surface-container-lowest border border-primary/25 hover:border-primary/50 space-y-4 hover:shadow-md transition-all duration-200"
                 >
                   <!-- Cycle Header Badge -->
-                  <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
-                    <span class="px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container text-[10px] sm:text-[11px] font-bold uppercase tracking-wide font-label shrink-0">
-                      {{ cycle.length }}-Party Loop • {{ cycle.quality }}
-                    </span>
-                    <span class="text-xs font-bold text-primary font-headline shrink-0">{{ cycle.score }} Match Score</span>
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold uppercase tracking-wider font-label">
+                        {{ cycle.length }}-Party Loop &bull; {{ cycle.quality }}
+                      </span>
+                      <span class="text-[11px] text-on-surface-variant hidden sm:inline">&bull; Zero-currency trade</span>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                      <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">star</span>
+                      <span>{{ cycle.score }}% Match Score</span>
+                    </div>
                   </div>
 
-                  <!-- Chain Flow -->
-                  <div class="flex items-center flex-wrap gap-2 pt-1 text-xs">
-                    <template v-for="(node, nIdx) in cycle.nodes" :key="nIdx">
-                      <div class="flex items-center gap-1.5 bg-surface-container-lowest px-2.5 py-1.5 rounded-xl border border-surface-container shadow-xs">
-                        <div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] uppercase">
-                          {{ node.name.charAt(0) }}
+                  <!-- Node Graph Flow -->
+                  <div class="p-3 sm:p-4 rounded-xl bg-surface-container-lowest/80 border border-surface-container/70 shadow-2xs space-y-2">
+                    <div class="flex items-center flex-wrap gap-2 text-xs">
+                      <template v-for="(node, nIdx) in cycle.nodes" :key="nIdx">
+                        <!-- Node Item -->
+                        <div class="flex items-center gap-2 bg-surface-container-low px-3 py-2 rounded-xl border border-surface-container shadow-2xs">
+                          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-primary to-secondary text-on-primary flex items-center justify-center font-bold text-xs uppercase shadow-2xs">
+                            {{ node.name.charAt(0) }}
+                          </div>
+                          <div class="min-w-0">
+                            <div class="flex items-center gap-1">
+                              <span class="font-headline font-bold text-on-surface text-xs truncate">{{ node.name }}</span>
+                              <span v-if="node.name.toLowerCase() === user.full_name?.toLowerCase() || node.name.toLowerCase() === user.username?.toLowerCase()" class="px-1.5 py-0.2 rounded bg-primary text-white text-[9px] font-bold">You</span>
+                            </div>
+                            <span class="text-[10px] text-primary font-semibold block capitalize truncate">
+                              teaches {{ node.teaches_next }}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span class="font-headline font-bold text-on-surface">{{ node.name }}</span>
-                          <span class="text-[10px] text-tertiary block font-semibold">teaches {{ node.teaches_next }}</span>
+
+                        <!-- Directional Arrow -->
+                        <div v-if="nIdx < cycle.nodes.length - 1" class="flex items-center text-primary px-0.5">
+                          <span class="material-symbols-outlined text-base">arrow_forward</span>
                         </div>
+                      </template>
+
+                      <!-- Return Arrow closing the loop -->
+                      <div class="flex items-center text-primary px-0.5">
+                        <span class="material-symbols-outlined text-base">arrow_forward</span>
                       </div>
-                      <span v-if="nIdx < cycle.nodes.length - 1" class="text-primary font-bold">➔</span>
-                    </template>
-                    <span class="text-primary font-bold">➔</span>
-                    <span class="text-[11px] font-semibold text-primary font-label">Loop Closed ✨</span>
+
+                      <!-- Loop Closed Chip -->
+                      <div class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 font-headline font-bold text-xs shadow-2xs">
+                        <span class="material-symbols-outlined text-xs">verified</span>
+                        <span>Loop Closed ✨</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <!-- Quick Connect Button -->
-                  <div class="pt-2 border-t border-surface-container/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-                    <span class="text-[11px] text-on-surface-variant">Everyone learns & gives knowledge</span>
-                    <div v-if="getCyclePeer(cycle)" class="flex items-center gap-2 flex-wrap">
-                      <button
-                        v-if="isPeerConnected(getCyclePeer(cycle).user_id)"
-                        type="button"
-                        @click="openBookModal(getCyclePeer(cycle), getCyclePeer(cycle)?.teaches_next)"
-                        class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 font-headline text-xs font-bold active:scale-95 transition-all shadow-xs flex items-center gap-1 shrink-0"
-                        title="Schedule Skill Exchange"
-                      >
-                        <span class="material-symbols-outlined text-sm">event</span>
-                        <span>Schedule</span>
-                      </button>
-                      <NuxtLink
-                        v-if="isPeerConnected(getCyclePeer(cycle).user_id)"
-                        :to="'/chat?id=' + getCyclePeer(cycle).user_id"
-                        class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-headline text-xs font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-xs flex items-center gap-1 shrink-0"
-                      >
-                        <span>Chat & Call</span>
-                        <span class="material-symbols-outlined text-sm">chat</span>
-                      </NuxtLink>
+                  <!-- Quick Action Bar -->
+                  <div class="pt-2 border-t border-surface-container/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-1.5 text-[11px] text-on-surface-variant font-medium">
+                      <span class="material-symbols-outlined text-xs text-primary">autorenew</span>
+                      <span>1:1 reciprocal exchange &bull; Escrow locks upon booking</span>
+                    </div>
+
+                    <div v-if="getCyclePeer(cycle)" class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                      <!-- Peer Connected: Schedule & Chat -->
+                      <template v-if="isPeerConnected(getCyclePeer(cycle).user_id)">
+                        <button
+                          type="button"
+                          @click="openBookModal(getCyclePeer(cycle), getCyclePeer(cycle)?.teaches_next)"
+                          class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 font-headline text-xs font-bold active:scale-95 transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Schedule Skill Exchange"
+                        >
+                          <span class="material-symbols-outlined text-sm">event</span>
+                          <span>Schedule</span>
+                        </button>
+                        <NuxtLink
+                          :to="'/chat?id=' + getCyclePeer(cycle).user_id"
+                          class="flex-1 sm:flex-none px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white font-headline text-xs font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-2xs flex items-center justify-center gap-1.5"
+                        >
+                          <span class="material-symbols-outlined text-sm">chat</span>
+                          <span>Chat &amp; Call</span>
+                        </NuxtLink>
+                      </template>
+
+                      <!-- Peer Not Connected: Connect Loop -->
                       <button
                         v-else
                         type="button"
                         @click="sendConnectRequest(getCyclePeer(cycle).user_id)"
-                        class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1 shrink-0"
+                        class="w-full sm:w-auto px-4 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <span>Connect Loop</span>
-                        <span class="material-symbols-outlined text-sm">bolt</span>
+                        <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                        <span>Connect Loop Partner</span>
                       </button>
                     </div>
                   </div>
@@ -900,194 +1152,314 @@
             </div>
           </section>
 
-          <!-- RIGHT: Quick Links -->
+          <!-- RIGHT: Quick Links & Network Pulse -->
           <aside class="lg:col-span-3 space-y-4">
-            <NuxtLink to="/quiz" class="block bg-surface-container-lowest rounded-3xl p-5 border border-surface-container hover:border-primary/50 shadow-sm hover:shadow-md transition-all duration-200 group">
+            <!-- Skill Quiz -->
+            <NuxtLink to="/quiz" class="block bg-surface-container-lowest rounded-3xl p-5 border border-surface-container hover:border-primary/50 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden">
+              <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-primary/10 rounded-full blur-xl pointer-events-none"></div>
               <div class="flex items-start justify-between">
-                <div class="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <div class="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-2xs group-hover:bg-primary group-hover:text-on-primary transition-all">
                   <span class="material-symbols-outlined text-2xl">quiz</span>
                 </div>
-                <span class="px-2 py-0.5 rounded-full bg-primary text-on-primary text-[10px] font-bold font-label tracking-wide">+XP</span>
+                <span class="px-2 py-0.5 rounded-full bg-primary text-on-primary text-[10px] font-bold font-label tracking-wide shadow-2xs">+XP</span>
               </div>
               <div class="mt-4 space-y-1">
                 <h3 class="font-display text-base font-bold text-on-surface group-hover:text-primary transition-colors">Skill Quiz</h3>
-                <p class="text-xs text-on-surface-variant font-body leading-relaxed">Verify your skills and earn time credits instantly.</p>
+                <p class="text-xs text-on-surface-variant font-body leading-relaxed">AI-proctored verification to prove skills and boost campus trust score.</p>
               </div>
               <div class="mt-4 pt-3 border-t border-surface-container-low flex items-center justify-between text-xs font-bold text-primary font-headline">
-                <span>Start Quiz</span>
+                <span>Start Assessment</span>
                 <span class="material-symbols-outlined text-sm transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </div>
             </NuxtLink>
 
-            <NuxtLink to="/leaderboard" class="block bg-surface-container-lowest rounded-3xl p-5 border border-surface-container hover:border-tertiary/50 shadow-sm hover:shadow-md transition-all duration-200 group">
+            <!-- Campus Leaderboard -->
+            <NuxtLink to="/leaderboard" class="block bg-surface-container-lowest rounded-3xl p-5 border border-surface-container hover:border-tertiary/50 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden">
+              <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
               <div class="flex items-start justify-between">
-                <div class="w-11 h-11 rounded-2xl bg-tertiary-container/30 text-tertiary flex items-center justify-center">
+                <div class="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shadow-2xs group-hover:bg-amber-500 group-hover:text-white transition-all">
                   <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">emoji_events</span>
                 </div>
+                <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 text-[10px] font-bold font-label tracking-wide">Campus Ranks</span>
               </div>
               <div class="mt-4 space-y-1">
-                <h3 class="font-display text-base font-bold text-on-surface group-hover:text-tertiary transition-colors">Campus Leaderboard</h3>
-                <p class="text-xs text-on-surface-variant font-body leading-relaxed">See how you rank against campus peers.</p>
+                <h3 class="font-display text-base font-bold text-on-surface group-hover:text-amber-700 transition-colors">Campus Leaderboard</h3>
+                <p class="text-xs text-on-surface-variant font-body leading-relaxed">Compare teaching hours, verified skills, and XP across departments.</p>
               </div>
-              <div class="mt-4 pt-3 border-t border-surface-container-low flex items-center justify-between text-xs font-bold text-tertiary font-headline">
-                <span>View Ranks</span>
+              <div class="mt-4 pt-3 border-t border-surface-container-low flex items-center justify-between text-xs font-bold text-amber-700 font-headline">
+                <span>View Campus Ranks</span>
                 <span class="material-symbols-outlined text-sm transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </div>
             </NuxtLink>
 
-            <NuxtLink to="/resume" class="block bg-surface-container-lowest rounded-3xl p-5 border border-surface-container hover:border-secondary/50 shadow-sm hover:shadow-md transition-all duration-200 group">
+            <!-- Verified Resume -->
+            <NuxtLink to="/resume" class="block bg-surface-container-lowest rounded-3xl p-5 border border-surface-container hover:border-secondary/50 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden">
+              <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-secondary/10 rounded-full blur-xl pointer-events-none"></div>
               <div class="flex items-start justify-between">
-                <div class="w-11 h-11 rounded-2xl bg-secondary-container/50 text-secondary flex items-center justify-center">
+                <div class="w-11 h-11 rounded-2xl bg-secondary-container/50 text-secondary flex items-center justify-center shadow-2xs group-hover:bg-secondary group-hover:text-on-secondary transition-all">
                   <span class="material-symbols-outlined text-2xl">workspace_premium</span>
                 </div>
-                <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold font-label">PDF</span>
+                <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold font-label">PDF Studio</span>
               </div>
               <div class="mt-4 space-y-1">
                 <h3 class="font-display text-base font-bold text-on-surface group-hover:text-secondary transition-colors">Verified Resume</h3>
-                <p class="text-xs text-on-surface-variant font-body leading-relaxed">Export your peer-endorsed credentials.</p>
+                <p class="text-xs text-on-surface-variant font-body leading-relaxed">Export real peer-endorsed credentials and teaching proof for recruiters.</p>
               </div>
               <div class="mt-4 pt-3 border-t border-surface-container-low flex items-center justify-between text-xs font-bold text-secondary font-headline">
-                <span>Generate CV</span>
+                <span>Generate Resume</span>
                 <span class="material-symbols-outlined text-sm transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </div>
             </NuxtLink>
+
+            <!-- Network Status Bento Mini-card -->
+            <div class="bg-surface-container-low/60 rounded-3xl p-4.5 border border-surface-container space-y-2.5 shadow-2xs">
+              <div class="flex items-center justify-between text-xs font-headline font-bold text-on-surface">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Network Pulse</span>
+                </span>
+                <span class="text-[10px] text-on-surface-variant font-mono">Live</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-center pt-1">
+                <div class="p-2 rounded-xl bg-surface-container-lowest border border-surface-container">
+                  <span class="text-sm font-bold font-headline text-primary block leading-tight">{{ activeConnections.length }}</span>
+                  <span class="text-[9px] uppercase tracking-wider text-on-surface-variant font-medium">Partners</span>
+                </div>
+                <div class="p-2 rounded-xl bg-surface-container-lowest border border-surface-container">
+                  <span class="text-sm font-bold font-headline text-on-surface block leading-tight">{{ cycles.length }}</span>
+                  <span class="text-[9px] uppercase tracking-wider text-on-surface-variant font-medium">Loops</span>
+                </div>
+              </div>
+            </div>
           </aside>
         </div>
 
         <!-- Find & Connect with Campus Peers -->
-        <section class="bg-surface-container-lowest rounded-3xl p-6 border border-surface-container shadow-sm space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-lg">person_search</span>
+        <section class="bg-surface-container-lowest rounded-3xl p-6 sm:p-7 border border-surface-container shadow-sm space-y-5 relative overflow-hidden">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-xl">person_search</span>
               </div>
               <div>
-                <h2 class="font-display text-xl font-bold text-on-surface tracking-tight">Find & Connect Peers</h2>
-                <p class="text-xs text-on-surface-variant font-body">Search by @username or name to connect directly</p>
+                <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface tracking-tight">Campus Peer Directory</h2>
+                <p class="text-xs text-on-surface-variant font-body">Search by username or name to connect and barter skills directly</p>
               </div>
             </div>
+
             <!-- Search Bar -->
-            <div class="relative max-w-sm w-full">
-              <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-base">search</span>
+            <div class="relative max-w-md w-full">
+              <span class="material-symbols-outlined absolute left-3.5 top-2.5 text-on-surface-variant text-base">search</span>
               <input
                 v-model="searchPeerQuery"
                 @input="searchPeers"
                 type="text"
-                placeholder="e.g. @mittalserenity or Krishna"
-                class="w-full pl-9 pr-4 py-2 rounded-xl bg-surface-bright border border-surface-container-high text-xs focus:outline-none focus:border-primary transition-all font-body"
+                placeholder="Search campus peers (e.g. @pooja or CS)..."
+                class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-surface-container-low/70 border border-surface-container-high text-xs sm:text-sm focus:outline-none focus:border-primary focus:bg-white transition-all font-body text-on-surface"
               />
+              <button
+                v-if="searchPeerQuery"
+                type="button"
+                @click="searchPeerQuery = ''; searchPeerResults = []"
+                class="absolute right-3 top-2.5 text-on-surface-variant/60 hover:text-on-surface transition-colors"
+                title="Clear search"
+              >
+                <span class="material-symbols-outlined text-base">close</span>
+              </button>
+              <div v-else-if="isSearchingPeers" class="absolute right-3 top-2.5">
+                <span class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin block"></span>
+              </div>
             </div>
           </div>
 
           <!-- Search Results Dropdown/Grid -->
-          <div v-if="searchPeerResults.length > 0" class="pt-2 border-t border-surface-container/50 space-y-2">
-            <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Search Results</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div v-if="searchPeerResults.length > 0" class="pt-3 border-t border-surface-container/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant font-label">Search Results ({{ searchPeerResults.length }})</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
               <div
                 v-for="p in searchPeerResults"
                 :key="p.id"
-                class="p-3.5 rounded-2xl bg-surface-container-low border border-surface-container/80 flex items-center justify-between gap-3 hover:border-primary/40 transition-all"
+                class="p-4 rounded-2xl bg-surface-container-low/80 hover:bg-surface-container-low border border-surface-container/80 hover:border-primary/40 flex flex-col justify-between gap-3 transition-all duration-200 shadow-2xs group"
               >
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary/20 to-tertiary/20 text-primary font-bold text-sm flex items-center justify-center shrink-0 uppercase">
-                    {{ (p.full_name || p.username).charAt(0) }}
+                <div class="flex items-start gap-3 min-w-0">
+                  <!-- Peer Avatar with image or fallback -->
+                  <div class="relative shrink-0">
+                    <img
+                      v-if="p.profile_picture"
+                      :src="p.profile_picture"
+                      :alt="p.full_name || p.username"
+                      class="w-11 h-11 rounded-2xl object-cover shadow-2xs border border-primary/20"
+                      @error="p.profile_picture = null"
+                    />
+                    <div
+                      v-else
+                      class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-on-primary font-bold text-sm flex items-center justify-center uppercase shadow-2xs"
+                    >
+                      {{ (p.full_name || p.username).charAt(0) }}
+                    </div>
                   </div>
-                  <div class="min-w-0">
-                    <h4 class="font-headline font-bold text-xs text-on-surface truncate">{{ p.full_name }}</h4>
-                    <p class="text-[10px] text-on-surface-variant truncate">@{{ p.username }}</p>
-                    <p v-if="p.teaches && p.teaches.length" class="text-[10px] text-primary font-semibold truncate">
-                      Teaches: {{ p.teaches.join(', ') }}
-                    </p>
+
+                  <div class="min-w-0 flex-1">
+                    <h4 class="font-headline font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{{ p.full_name }}</h4>
+                    <p class="text-[11px] text-on-surface-variant truncate">@{{ p.username }} &bull; {{ p.department || 'Campus Peer' }}</p>
+                    
+                    <!-- Teaches Tags -->
+                    <div v-if="p.teaches && p.teaches.length" class="flex flex-wrap gap-1 mt-1.5">
+                      <span
+                        v-for="(t, tIdx) in p.teaches.slice(0, 2)"
+                        :key="tIdx"
+                        class="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold truncate max-w-[120px]"
+                      >
+                        {{ t }}
+                      </span>
+                      <span v-if="p.teaches.length > 2" class="text-[10px] text-on-surface-variant font-medium">
+                        +{{ p.teaches.length - 2 }}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div class="shrink-0">
+                <div class="pt-2 border-t border-surface-container/60 flex items-center justify-end">
                   <NuxtLink
                     v-if="p.connection_status === 'connected'"
                     :to="'/chat?id=' + p.id"
-                    class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-headline text-[11px] font-bold hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1"
+                    class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-headline text-xs font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-2xs flex items-center gap-1"
                   >
-                    <span>Chat</span>
-                    <span class="material-symbols-outlined text-xs">chat</span>
+                    <span class="material-symbols-outlined text-sm">chat</span>
+                    <span>Chat &amp; Call</span>
                   </NuxtLink>
                   <button
                     v-else-if="p.connection_status === 'pending_received'"
+                    type="button"
                     @click="respondConnection(p.connection_id, 'accepted')"
-                    class="px-2.5 py-1.5 rounded-lg bg-primary text-on-primary font-headline text-[11px] font-bold hover:bg-primary-dim active:scale-95 transition-all"
+                    class="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-2xs flex items-center gap-1"
                   >
-                    Accept
+                    <span class="material-symbols-outlined text-sm">how_to_reg</span>
+                    <span>Accept Request</span>
                   </button>
                   <span
                     v-else-if="p.connection_status === 'pending_sent'"
-                    class="px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant font-headline text-[11px] font-semibold"
+                    class="px-3 py-1.5 rounded-xl bg-surface-container text-on-surface-variant font-headline text-xs font-semibold flex items-center gap-1"
                   >
-                    Pending
+                    <span class="material-symbols-outlined text-sm">schedule</span>
+                    <span>Pending</span>
                   </span>
                   <button
                     v-else
+                    type="button"
                     @click="connectWithPeer(p)"
-                    class="px-2.5 py-1.5 rounded-lg bg-primary text-on-primary font-headline text-[11px] font-bold hover:bg-primary-dim active:scale-95 transition-all flex items-center gap-1"
+                    class="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-2xs flex items-center gap-1 cursor-pointer"
                   >
+                    <span class="material-symbols-outlined text-sm">person_add</span>
                     <span>Connect</span>
-                    <span class="material-symbols-outlined text-xs">person_add</span>
                   </button>
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Empty search query result feedback -->
+          <div v-else-if="searchPeerQuery && !isSearchingPeers" class="pt-3 border-t border-surface-container/60 text-center py-4 text-xs text-on-surface-variant">
+            No campus peers found matching "<span class="font-bold text-on-surface">{{ searchPeerQuery }}</span>". Try searching by another name or department!
           </div>
         </section>
 
         <!-- Pending Connection Requests -->
-        <section class="space-y-4 pt-2">
+        <section class="space-y-4 pt-1">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg">person_add</span>
+              </div>
               <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface">Pending Requests</h2>
-              <span v-if="pendingConnections.length > 0" class="px-2 sm:px-2.5 py-0.5 rounded-full bg-primary text-on-primary text-[10px] sm:text-xs font-bold font-label shadow-xs shrink-0">{{ pendingConnections.length }} New</span>
+              <span v-if="pendingConnections.length > 0" class="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold font-label shadow-2xs shrink-0">
+                {{ pendingConnections.length }} Action Required
+              </span>
             </div>
           </div>
 
-          <div v-if="pendingConnections.length === 0" class="p-6 rounded-3xl bg-surface-container-lowest border border-surface-container text-center text-on-surface-variant text-sm">
-            No pending requests right now. Share your @{{ user.username }} profile with campus peers!
+          <div v-if="pendingConnections.length === 0" class="p-6 rounded-3xl bg-surface-container-lowest border border-surface-container text-center text-on-surface-variant text-xs sm:text-sm">
+            No pending incoming connection requests. Connect with peers from Loop Exchanges or directory above!
           </div>
 
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div v-for="conn in pendingConnections" :key="conn.id" class="bg-surface-container-lowest rounded-3xl p-6 border border-primary/30 shadow-sm flex flex-col justify-between space-y-4 hover:border-primary transition-colors">
-              <div class="space-y-3">
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              v-for="conn in pendingConnections"
+              :key="conn.id"
+              class="bg-surface-container-lowest rounded-3xl p-5 sm:p-6 border-2 border-primary/25 shadow-sm flex flex-col justify-between space-y-4 hover:border-primary transition-all duration-200"
+            >
+              <div class="space-y-3.5">
                 <div class="flex items-center gap-3.5">
-                  <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-tertiary text-on-primary font-bold text-lg flex items-center justify-center shadow-sm shrink-0 uppercase">
-                    {{ (conn.full_name || conn.username || '?').charAt(0) }}
+                  <div class="relative shrink-0">
+                    <img
+                      v-if="conn.profile_picture"
+                      :src="conn.profile_picture"
+                      :alt="conn.full_name || conn.username"
+                      class="w-12 h-12 rounded-2xl object-cover shadow-2xs border border-primary/20"
+                      @error="conn.profile_picture = null"
+                    />
+                    <div
+                      v-else
+                      class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-on-primary font-bold text-lg flex items-center justify-center shadow-2xs uppercase"
+                    >
+                      {{ (conn.full_name || conn.username || '?').charAt(0) }}
+                    </div>
                   </div>
-                  <div>
-                    <h3 class="font-display text-base font-bold text-on-surface">{{ conn.full_name || conn.username }}</h3>
-                    <p class="text-xs text-primary font-semibold">@{{ conn.username }} • {{ conn.department || 'Campus Peer' }}</p>
+                  <div class="min-w-0">
+                    <h3 class="font-display text-base font-bold text-on-surface truncate">{{ conn.full_name || conn.username }}</h3>
+                    <p class="text-xs text-primary font-semibold truncate">@{{ conn.username }} &bull; {{ conn.department || 'Campus Peer' }}</p>
                   </div>
                 </div>
-                <div class="p-3 rounded-2xl bg-surface-container-low border border-surface-container/60 space-y-1 text-xs">
-                  <span class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block font-label">Skill Exchange Match</span>
+
+                <div class="p-3 rounded-2xl bg-surface-container-low border border-surface-container/70 space-y-1.5 text-xs">
+                  <span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block font-label">Bilateral Skill Barter</span>
                   <div class="flex flex-wrap items-center gap-1.5 font-headline font-semibold text-on-surface">
-                    <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Offers: {{ conn.skill_offered }}</span>
-                    <span class="text-primary font-bold">⇌</span>
-                    <span class="text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">Wants: {{ conn.skill_wanted }}</span>
+                    <span class="text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 text-xs">
+                      Offers: {{ conn.skill_offered }}
+                    </span>
+                    <span class="text-primary font-bold text-sm">&rlarr;</span>
+                    <span class="text-primary bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20 text-xs">
+                      Wants: {{ conn.skill_wanted }}
+                    </span>
                   </div>
                 </div>
               </div>
+
               <div class="flex items-center gap-2 pt-2 border-t border-surface-container-low">
-                <button @click="respondConnection(conn.id, 'accepted')" class="flex-1 py-2 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold shadow-xs hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                <button
+                  type="button"
+                  @click="respondConnection(conn.id, 'accepted')"
+                  class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold shadow-2xs hover:bg-primary-dim active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
                   <span class="material-symbols-outlined text-base">check_circle</span>
                   <span>Accept Connection</span>
                 </button>
-                <button @click="respondConnection(conn.id, 'rejected')" class="py-2 px-3 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error hover:bg-error/10 font-headline text-xs font-semibold active:scale-95 transition-all">Decline</button>
+                <button
+                  type="button"
+                  @click="respondConnection(conn.id, 'rejected')"
+                  class="py-2.5 px-4 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error hover:bg-error/10 font-headline text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+                >
+                  Decline
+                </button>
               </div>
             </div>
           </div>
         </section>
 
         <!-- Active Connected Peers (My Learning Network) -->
-        <section class="space-y-4 pt-2">
+        <section class="space-y-4 pt-1">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg">diversity_3</span>
+              </div>
               <h2 class="font-display text-lg sm:text-xl font-bold text-on-surface">My Learning Partners</h2>
-              <span v-if="activeConnections.length > 0" class="px-2 sm:px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-bold font-label shadow-xs shrink-0">{{ activeConnections.length }} Connected</span>
+              <span v-if="activeConnections.length > 0" class="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold font-label shadow-2xs shrink-0">
+                {{ activeConnections.length }} Connected
+              </span>
             </div>
             <NuxtLink to="/chat" class="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0">
               <span>Open Chat Hub</span>
@@ -1095,40 +1467,64 @@
             </NuxtLink>
           </div>
 
-          <div v-if="activeConnections.length === 0" class="p-6 rounded-3xl bg-surface-container-lowest border border-surface-container text-center text-on-surface-variant text-sm">
-            You don't have active learning partners yet. Connect with peers from Loop Exchanges above or search by username!
+          <div v-if="activeConnections.length === 0" class="p-8 rounded-3xl bg-surface-container-lowest border border-surface-container text-center text-on-surface-variant text-xs sm:text-sm space-y-2">
+            <div class="w-11 h-11 rounded-2xl bg-surface-container text-on-surface-variant flex items-center justify-center mx-auto">
+              <span class="material-symbols-outlined text-2xl">group_add</span>
+            </div>
+            <p class="font-headline font-bold text-sm text-on-surface">No active learning partners connected yet</p>
+            <p class="text-xs text-on-surface-variant max-w-sm mx-auto">
+              Connect with peers from Loop Exchanges above or search by @username to start chatting and booking 1:1 sessions.
+            </p>
           </div>
 
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div
               v-for="c in activeConnections"
               :key="c.id"
-              class="p-4 rounded-3xl bg-surface-container-lowest border border-surface-container shadow-sm flex items-center justify-between gap-3 hover:border-primary/40 transition-all"
+              class="p-4 sm:p-5 rounded-3xl bg-surface-container-lowest border border-surface-container hover:border-primary/40 shadow-sm flex flex-col justify-between gap-4 transition-all duration-200 group"
             >
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary/20 to-tertiary/20 text-primary font-bold text-base flex items-center justify-center shrink-0 uppercase shadow-xs">
-                  {{ (c.full_name || c.username).charAt(0) }}
+              <div class="flex items-start gap-3 min-w-0">
+                <!-- Avatar with image or fallback -->
+                <div class="relative shrink-0">
+                  <img
+                    v-if="c.profile_picture"
+                    :src="c.profile_picture"
+                    :alt="c.full_name || c.username"
+                    class="w-12 h-12 rounded-2xl object-cover shadow-2xs border border-primary/20"
+                    @error="c.profile_picture = null"
+                  />
+                  <div
+                    v-else
+                    class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-on-primary font-bold text-base flex items-center justify-center uppercase shadow-2xs"
+                  >
+                    {{ (c.full_name || c.username).charAt(0) }}
+                  </div>
+                  <!-- Online presence indicator -->
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white"></span>
                 </div>
-                <div class="min-w-0">
-                  <h4 class="font-headline font-bold text-sm text-on-surface truncate">{{ c.full_name }}</h4>
-                  <p class="text-xs text-on-surface-variant truncate">@{{ c.username }}</p>
-                  <p v-if="c.teaches && c.teaches.length" class="text-[11px] text-primary font-semibold truncate">
-                    Teaches {{ c.teaches[0] }}
+
+                <div class="min-w-0 flex-1">
+                  <h4 class="font-headline font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{{ c.full_name }}</h4>
+                  <p class="text-xs text-on-surface-variant truncate">@{{ c.username }} &bull; {{ c.department || 'Campus Peer' }}</p>
+                  <p v-if="c.teaches && c.teaches.length" class="text-[11px] text-primary font-semibold truncate mt-1">
+                    Teaches {{ c.teaches.slice(0, 2).join(', ') }}
                   </p>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
+
+              <div class="pt-2 border-t border-surface-container-low flex items-center gap-2">
                 <button
+                  type="button"
                   @click="openBookModal(c)"
-                  class="px-2.5 py-1.5 rounded-xl border border-primary/40 text-primary hover:bg-primary/5 font-headline text-xs font-bold active:scale-95 transition-all flex items-center gap-1"
+                  class="flex-1 py-2 rounded-xl border border-primary/30 text-primary hover:bg-primary/5 font-headline text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-2xs"
                   title="Schedule a skill exchange session"
                 >
                   <span class="material-symbols-outlined text-sm">event</span>
-                  <span>Book</span>
+                  <span>Book 1:1</span>
                 </button>
                 <NuxtLink
                   :to="'/chat?id=' + c.user_id"
-                  class="px-2.5 py-1.5 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-xs flex items-center gap-1"
+                  class="flex-1 py-2 rounded-xl bg-primary text-on-primary font-headline text-xs font-bold hover:bg-primary-dim active:scale-95 transition-all shadow-2xs flex items-center justify-center gap-1"
                 >
                   <span class="material-symbols-outlined text-sm">chat</span>
                   <span>Chat</span>
