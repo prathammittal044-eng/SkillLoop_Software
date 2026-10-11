@@ -87,28 +87,28 @@
   <!-- ========================================================================= -->
   <!-- 2. HERO SECTION WITH AMBIENT VIDEO BACKGROUND                             -->
   <!-- ========================================================================= -->
-  <section class="relative pt-14 pb-16 md:pt-20 md:pb-20 overflow-hidden flex flex-col items-center justify-center">
+  <section class="relative isolate pt-14 pb-16 md:pt-20 md:pb-20 overflow-hidden flex flex-col items-center justify-center">
     
     <!-- Ambient Video Canvas Container (Strictly Isolated to Hero Section Only) -->
-    <div class="absolute inset-0 w-full h-full overflow-hidden -z-20 pointer-events-none bg-[#fbf4ff]">
+    <div class="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
       <video
         ref="heroVideoRef"
         autoplay
         loop
         muted
+        :muted="true"
         playsinline
-        class="w-full h-full object-cover object-center opacity-80 filter saturate-105 transition-opacity duration-700 pointer-events-none"
+        preload="auto"
+        class="w-full h-full object-cover object-center pointer-events-none opacity-90"
         @error="handleVideoError"
       >
         <source src="/hero-loop.mp4" type="video/mp4" />
       </video>
     </div>
 
-    <!-- Soft Central Readability Gradient & Seamless Bottom Feather into Page -->
-    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-white/30 via-transparent to-white/70 pointer-events-none"></div>
-    <div class="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-b from-transparent via-background/80 to-background pointer-events-none -z-10"></div>
-    <div class="absolute top-1/4 left-1/10 w-96 h-96 bg-primary-fixed/20 rounded-full blur-3xl pointer-events-none -z-10"></div>
-    <div class="absolute bottom-10 right-1/10 w-96 h-96 bg-tertiary-fixed/15 rounded-full blur-3xl pointer-events-none -z-10"></div>
+    <!-- Soft Central Sheen & Seamless Bottom Feather into Page -->
+    <div class="absolute inset-0 bg-white/25 pointer-events-none z-1"></div>
+    <div class="absolute bottom-0 inset-x-0 h-36 bg-gradient-to-b from-transparent via-[#fbf4ff]/80 to-[#fbf4ff] pointer-events-none z-2"></div>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center relative z-10 flex flex-col items-center">
       
@@ -940,6 +940,19 @@ onMounted(() => {
     }
   } catch (err) {
     console.error('Error reading user session:', err)
+  }
+
+  // Ensure video autoplay is properly triggered
+  if (heroVideoRef.value) {
+    heroVideoRef.value.muted = true
+    const playPromise = heroVideoRef.value.play()
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        isVideoPlaying.value = true
+      }).catch(err => {
+        console.warn('Hero video autoplay:', err)
+      })
+    }
   }
 
   // Intersection observer to highlight current nav section
