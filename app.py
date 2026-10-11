@@ -37,8 +37,19 @@ from turn_config import turn_bp
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Reflect request Origin so LAN IPs / Cloudflare tunnels can use credentialed Socket.IO
-CORS(app, supports_credentials=True, origins=True)
+# Build allowed origins list: always include localhost, and add Vercel domain in production
+_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5000",
+]
+# Accept the FRONTEND_URL env var (set this in Render to your Vercel URL)
+_FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
+if _FRONTEND_URL:
+    _ALLOWED_ORIGINS.append(_FRONTEND_URL.rstrip('/'))
+# Also allow any *.vercel.app domain for preview deployments
+CORS(app, supports_credentials=True, origins=_ALLOWED_ORIGINS)
 
 # Register modular Chat blueprint
 app.register_blueprint(chat_bp)
@@ -370,16 +381,29 @@ def logout():
     return resp, 200
 
 # ─── Profile Picture & Banner Upload ─────────────────────────────────────────
+# NOTE: Images are stored as Base64 data URLs directly in the database.
+# This ensures images persist across Render restarts (no ephemeral disk dependency).
 import uuid
-from werkzeug.utils import secure_filename
-from flask import send_from_directory
+import base64
 
-PROFILE_UPLOADS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'profiles')
-os.makedirs(PROFILE_UPLOADS, exist_ok=True)
 ALLOWED_IMAGE_EXTS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+# 5 MB limit per image (base64 inflates ~33%, so raw file max ~3.75 MB)
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+MIME_MAP = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'gif': 'image/gif', 'webp': 'image/webp'}
 
 def _allowed_image(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTS
+
+def _file_to_data_url(file_obj, ext):
+    """Read uploaded file and return a data: URL string (persistent in DB)."""
+    raw = file_obj.read()
+    if len(raw) > MAX_IMAGE_BYTES:
+        return None, "Image is too large (max 5 MB)"
+    mime = MIME_MAP.get(ext, 'image/jpeg')
+    b64 = base64.b64encode(raw).decode('ascii')
+    return f"data:{mime};base64,{b64}", None
 
 @app.route('/api/user/upload-avatar', methods=['POST'])
 def upload_avatar():
@@ -389,14 +413,13 @@ def upload_avatar():
     if not f.filename or not _allowed_image(f.filename):
         return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
     ext = f.filename.rsplit('.', 1)[1].lower()
-    filename = f"avatar_{session['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join(PROFILE_UPLOADS, filename)
-    f.save(filepath)
-    url = f"/api/uploads/profiles/{filename}"
+    data_url, err = _file_to_data_url(f, ext)
+    if err:
+        return jsonify({"error": err}), 400
     db = get_db()
-    db.execute("UPDATE users SET profile_picture = ? WHERE id = ?", (url, session['user_id']))
+    db.execute("UPDATE users SET profile_picture = ? WHERE id = ?", (data_url, session['user_id']))
     db.commit()
-    return jsonify({"url": url}), 200
+    return jsonify({"url": data_url}), 200
 
 @app.route('/api/user/upload-banner', methods=['POST'])
 def upload_banner():
@@ -406,19 +429,13 @@ def upload_banner():
     if not f.filename or not _allowed_image(f.filename):
         return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
     ext = f.filename.rsplit('.', 1)[1].lower()
-    filename = f"banner_{session['user_id']}_{uuid.uuid4().hex[:8]}.{ext}"
-    filepath = os.path.join(PROFILE_UPLOADS, filename)
-    f.save(filepath)
-    url = f"/api/uploads/profiles/{filename}"
+    data_url, err = _file_to_data_url(f, ext)
+    if err:
+        return jsonify({"error": err}), 400
     db = get_db()
-    db.execute("UPDATE users SET banner_image = ? WHERE id = ?", (url, session['user_id']))
+    db.execute("UPDATE users SET banner_image = ? WHERE id = ?", (data_url, session['user_id']))
     db.commit()
-    return jsonify({"url": url}), 200
-
-@app.route('/api/uploads/profiles/<path:filename>')
-@app.route('/uploads/profiles/<path:filename>')
-def serve_profile_upload(filename):
-    return send_from_directory(PROFILE_UPLOADS, filename)
+    return jsonify({"url": data_url}), 200
 
 
 @app.route('/api/user/xp', methods=['POST'])

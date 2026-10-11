@@ -141,10 +141,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, useRuntimeConfig } from '#imports'
 
 const router = useRouter()
 const route = useRoute()
+const config = useRuntimeConfig()
 const username = ref('')
 const password = ref('')
 const rememberMe = ref(true)
@@ -152,10 +153,15 @@ const error = ref(null)
 const loading = ref(false)
 const showPassword = ref(false)
 
+// Helper: returns the correct base URL for API calls
+// On Vercel (production), relative /api/* paths go through Nuxt's routeRules proxy to Render
+// On localhost, same thing - relative paths proxied to Flask on port 5000
+const apiUrl = (path) => path
+
 onMounted(async () => {
   // If user already has an active session, automatically redirect to dashboard
   try {
-    const res = await fetch('/api/user/me', { credentials: 'include' })
+    const res = await fetch(apiUrl('/api/user/me'), { credentials: 'include' })
     if (res.ok) {
       const data = await res.json()
       if (data.user) {
@@ -163,7 +169,7 @@ onMounted(async () => {
           localStorage.setItem('skillloop_auth_active', 'true')
         }
         const target = route.query.redirect || '/dashboard'
-        window.location.href = target
+        await navigateTo(target)
       }
     }
   } catch (e) {}
@@ -173,7 +179,7 @@ const handleLogin = async () => {
   error.value = null
   loading.value = true
   try {
-    const res = await fetch('/api/login', {
+    const res = await fetch(apiUrl('/api/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -189,7 +195,7 @@ const handleLogin = async () => {
         localStorage.setItem('skillloop_auth_active', 'true')
       }
       const target = route.query.redirect || '/dashboard'
-      window.location.href = target
+      await navigateTo(target)
     } else {
       error.value = data.error || 'Invalid credentials. Please try again.'
     }
