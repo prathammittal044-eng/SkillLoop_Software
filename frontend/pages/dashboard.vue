@@ -2474,6 +2474,18 @@ const fetchUserData = async () => {
     if (res.ok) {
       const data = await res.json()
       user.value = data.user
+
+      if (user.value) {
+        if (user.value.profile_picture && user.value.profile_picture.startsWith('/api/uploads/')) {
+          user.value.profile_picture = null
+        }
+        if (typeof localStorage !== 'undefined' && user.value.username) {
+          const cached = localStorage.getItem(`skillloop_avatar_${user.value.username}`)
+          if (cached && !user.value.profile_picture) {
+            user.value.profile_picture = cached
+          }
+        }
+      }
     }
   } catch (e) {
     console.error('Error fetching user:', e)

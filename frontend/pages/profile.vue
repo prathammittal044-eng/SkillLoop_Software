@@ -785,6 +785,24 @@ async function fetchMe() {
     if (res.ok) {
       const data = await res.json()
       me.value = data.user
+      
+      if (me.value?.username && typeof localStorage !== 'undefined') {
+        const uKey = `skillloop_avatar_${me.value.username}`
+        const cachedAvatar = localStorage.getItem(uKey)
+        
+        if (me.value.profile_picture && me.value.profile_picture.startsWith('data:image/')) {
+          try { localStorage.setItem(uKey, me.value.profile_picture) } catch (e) {}
+        } else if (cachedAvatar && (!me.value.profile_picture || me.value.profile_picture.startsWith('/api/uploads/'))) {
+          // Auto-heal: restore avatar from client cache to memory and server
+          me.value.profile_picture = cachedAvatar
+          fetch('/api/user/upload-avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ image: cachedAvatar })
+          }).catch(() => {})
+        }
+      }
     }
   } catch {}
 }
@@ -801,11 +819,70 @@ async function fetchProfile() {
     return
   }
 
+  // Instant optimistic render from client cache
+  if (typeof localStorage !== 'undefined') {
+    const cachedAvatar = localStorage.getItem(`skillloop_avatar_${username}`)
+    const cachedBanner = localStorage.getItem(`skillloop_banner_${username}`)
+    if (!profile.value && (cachedAvatar || cachedBanner)) {
+      profile.value = {
+        username: username,
+        profile_picture: cachedAvatar,
+        banner_image: cachedBanner
+      }
+    }
+  }
+
   try {
     const res = await fetch(`/api/user/${encodeURIComponent(username)}`, { credentials: 'include' })
     if (res.ok) {
       const data = await res.json()
-      profile.value = data.profile
+      const p = data.profile
+
+      // Clean out legacy dead relative path
+      if (p.profile_picture && p.profile_picture.startsWith('/api/uploads/')) {
+        p.profile_picture = null
+      }
+      if (p.banner_image && p.banner_image.startsWith('/api/uploads/')) {
+        p.banner_image = null
+      }
+
+      // Check client cache & auto-heal if empty on server
+      if (typeof localStorage !== 'undefined') {
+        const uKeyAvatar = `skillloop_avatar_${username}`
+        const uKeyBanner = `skillloop_banner_${username}`
+        const cachedAvatar = localStorage.getItem(uKeyAvatar)
+        const cachedBanner = localStorage.getItem(uKeyBanner)
+
+        if (p.profile_picture) {
+          try { localStorage.setItem(uKeyAvatar, p.profile_picture) } catch (e) {}
+        } else if (cachedAvatar) {
+          p.profile_picture = cachedAvatar
+          if (isOwnProfile.value) {
+            fetch('/api/user/upload-avatar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ image: cachedAvatar })
+            }).catch(() => {})
+          }
+        }
+
+        if (p.banner_image) {
+          try { localStorage.setItem(uKeyBanner, p.banner_image) } catch (e) {}
+        } else if (cachedBanner) {
+          p.banner_image = cachedBanner
+          if (isOwnProfile.value) {
+            fetch('/api/user/upload-banner', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ image: cachedBanner })
+            }).catch(() => {})
+          }
+        }
+      }
+
+      profile.value = p
     } else {
       notFound.value = true
     }
@@ -897,12 +974,26 @@ async function uploadAvatar(event) {
   uploadingAvatar.value = true
 
   try {
-    // Compress avatar to max 400x400 (typically 40-70 KB)
+    // Compress avatar to max 400x400 (typically 25-45 KB)
     const dataUrl = await compressImageToDataUrl(file, 400, 400, 0.85)
 
     // Instant optimistic preview
-    profile.value.profile_picture = dataUrl
+    if (profile.value) profile.value.profile_picture = dataUrl
     if (me.value) me.value.profile_picture = dataUrl
+
+    // Persist to client cache immediately
+    if (typeof localStorage !== 'undefined') {
+      const uname = me.value?.username || profile.value?.username || 'me'
+      try {
+        localStorage.setItem(`skillloop_avatar_${uname}`, dataUrl)
+        const stored = localStorage.getItem('user')
+        if (stored) {
+          const u = JSON.parse(stored)
+          u.profile_picture = dataUrl
+          localStorage.setItem('user', JSON.stringify(u))
+        }
+      } catch (e) {}
+    }
 
     const res = await fetch('/api/user/upload-avatar', {
       method: 'POST',
@@ -912,10 +1003,10 @@ async function uploadAvatar(event) {
     })
     const data = await res.json()
     if (res.ok) {
-      profile.value.profile_picture = data.url
+      if (profile.value) profile.value.profile_picture = data.url
       if (me.value) me.value.profile_picture = data.url
     } else {
-      alert(data.error || 'Failed to upload profile picture.')
+      alert(data.error || 'Server error, picture saved locally.')
     }
   } catch (err) {
     console.error('Avatar upload error:', err)
@@ -932,11 +1023,19 @@ async function uploadBanner(event) {
   uploadingBanner.value = true
 
   try {
-    // Compress banner to max 1400x500 (typically 100-150 KB)
-    const dataUrl = await compressImageToDataUrl(file, 1400, 500, 0.85)
+    // Compress banner to max 1200x450 (typically 60-90 KB)
+    const dataUrl = await compressImageToDataUrl(file, 1200, 450, 0.85)
 
     // Instant optimistic preview
-    profile.value.banner_image = dataUrl
+    if (profile.value) profile.value.banner_image = dataUrl
+
+    // Persist to client cache immediately
+    if (typeof localStorage !== 'undefined') {
+      const uname = me.value?.username || profile.value?.username || 'me'
+      try {
+        localStorage.setItem(`skillloop_banner_${uname}`, dataUrl)
+      } catch (e) {}
+    }
 
     const res = await fetch('/api/user/upload-banner', {
       method: 'POST',
@@ -946,9 +1045,9 @@ async function uploadBanner(event) {
     })
     const data = await res.json()
     if (res.ok) {
-      profile.value.banner_image = data.url
+      if (profile.value) profile.value.banner_image = data.url
     } else {
-      alert(data.error || 'Failed to upload banner image.')
+      alert(data.error || 'Server error, banner saved locally.')
     }
   } catch (err) {
     console.error('Banner upload error:', err)
