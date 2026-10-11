@@ -1078,15 +1078,47 @@ QUIZ_TIME_MAP = {'beginner': 20, 'intermediate': 15, 'advanced': 10}
 # How many questions per quiz
 QUIZ_QUESTION_COUNT = 7
 
-def generate_ai_questions(skill_name: str, difficulty: str) -> list | None:
+def _get_gemini_models(client):
+    """Return available Gemini model names dynamically, prioritized for speed & quality."""
+    try:
+        discovered = []
+        for m in client.models.list():
+            name = getattr(m, 'name', '') or ''
+            clean = name.replace('models/', '').strip()
+            methods = getattr(m, 'supported_actions', []) or getattr(m, 'supported_generation_methods', []) or []
+            if not methods or 'generateContent' in methods:
+                discovered.append(clean)
+        if discovered:
+            prioritized = []
+            for pref in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro']:
+                for d in discovered:
+                    if pref in d and d not in prioritized:
+                        prioritized.append(d)
+            for d in discovered:
+                if d not in prioritized:
+                    prioritized.append(d)
+            if prioritized:
+                return prioritized
+    except Exception as e:
+        app.logger.warning(f"Could not list models from Google GenAI: {e}")
+    # Fallback to verified GA model names
+    return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
+
+
+def generate_ai_questions(skill_name: str, difficulty: str):
     """
     Ask Google Gemini to generate QUIZ_QUESTION_COUNT multiple-choice questions
     about `skill_name` at `difficulty` level.
-    Returns a list of dicts: [{'q': ..., 'options': [...], 'answer': int}, ...]
-    or None if the call fails.
+    Returns (validated_questions, None) on success or (None, error_str) on failure.
     """
-    if not GEMINI_AVAILABLE:
-        return None
+    key = os.environ.get('GEMINI_API_KEY', '').strip()
+    if not key:
+        return None, "GEMINI_API_KEY is not set in Render environment variables."
+
+    try:
+        client = _genai.Client(api_key=key)
+    except Exception as e:
+        return None, f"Failed to initialize Gemini client: {e}"
 
     difficulty_guidance = {
         'beginner':     'very basic, introductory concepts that a complete newcomer would know after a week of learning',
@@ -1122,16 +1154,13 @@ Required JSON format:
 The "answer" field is the 0-based index of the correct option in the "options" array.
 """
 
-    # Try models in order of preference - fall back if one isn't available
-    _MODELS_TO_TRY = [
-        'gemini-2.0-flash-lite',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
-    ]
-    last_error = 'Unknown error'
-    for model_name in _MODELS_TO_TRY:
+    candidate_models = _get_gemini_models(client)
+    app.logger.info(f"Trying Gemini models for quiz: {candidate_models[:3]}")
+
+    all_errors = []
+    for model_name in candidate_models:
         try:
-            response = _genai_client.models.generate_content(
+            response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=_genai_types.GenerateContentConfig(
@@ -1139,7 +1168,7 @@ The "answer" field is the 0-based index of the correct option in the "options" a
                     max_output_tokens=2048,
                 )
             )
-            raw = response.text.strip()
+            raw = (response.text or '').strip()
 
             # Strip markdown code fences if Gemini wraps in ```json ... ```
             if raw.startswith('```'):
@@ -1164,17 +1193,19 @@ The "answer" field is the 0-based index of the correct option in the "options" a
                     validated.append(q)
 
             if len(validated) >= 3:
-                app.logger.info(f'Quiz generated via model={model_name} for skill={skill_name}')
+                app.logger.info(f'Quiz generated successfully via model={model_name} for skill={skill_name}')
                 return validated, None
 
-            last_error = f'Model {model_name} returned invalid/insufficient questions'
+            all_errors.append(f"[{model_name}]: Returned {len(validated)} questions (need at least 3)")
         except Exception as e:
-            last_error = str(e)
-            app.logger.warning(f'Gemini model={model_name} failed for "{skill_name}" ({difficulty}): {e}')
+            err_msg = str(e)
+            all_errors.append(f"[{model_name}]: {err_msg}")
+            app.logger.warning(f'Gemini model={model_name} failed for "{skill_name}": {err_msg}')
             continue
 
-    app.logger.error(f'All Gemini models failed for "{skill_name}" ({difficulty}): {last_error}')
-    return None, last_error
+    summary_error = " | ".join(all_errors[:3])
+    app.logger.error(f'All Gemini models failed for "{skill_name}": {summary_error}')
+    return None, summary_error
 
 
 @app.route('/api/quiz/generate', methods=['POST'])
@@ -2470,8 +2501,12 @@ Content:
 \"\"\"{content}\"\"\"
 """
     try:
-        response = _genai_client.models.generate_content(
-            model='gemini-2.0-flash-lite',
+        key = os.environ.get('GEMINI_API_KEY', '').strip()
+        client = _genai.Client(api_key=key) if key else None
+        if not client:
+            return jsonify({"error": "GEMINI_API_KEY not configured"}), 503
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
             contents=prompt,
             config=_genai_types.GenerateContentConfig(
                 temperature=0.7,
@@ -2485,6 +2520,39 @@ Content:
     except Exception as e:
         app.logger.error(f"AI Polish error: {e}")
         return jsonify({"error": f"Failed to polish content: {str(e)}"}), 500
+
+
+@app.route('/api/gemini/test', methods=['GET'])
+def test_gemini_endpoint():
+    """Diagnostic route to test Gemini API connectivity directly from browser."""
+    key = os.environ.get('GEMINI_API_KEY', '').strip()
+    if not key:
+        return jsonify({
+            "status": "error",
+            "message": "GEMINI_API_KEY environment variable is empty or not set."
+        }), 500
+    try:
+        client = _genai.Client(api_key=key)
+        # 1. Discover models
+        models = [m.name.replace('models/', '') for m in client.models.list()]
+        # 2. Run test generation
+        test_model = 'gemini-2.0-flash' if 'gemini-2.0-flash' in models else (models[0] if models else 'gemini-2.0-flash')
+        resp = client.models.generate_content(
+            model=test_model,
+            contents="Say 'SkillLoop Gemini integration is active!' in 6 words or less."
+        )
+        return jsonify({
+            "status": "ok",
+            "active_model": test_model,
+            "test_response": (resp.text or '').strip(),
+            "discovered_models": models[:10]
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "key_prefix": key[:6] + "..." if len(key) >= 6 else "short"
+        }), 500
 
 
 @app.route('/api/institutions/search', methods=['GET'])
