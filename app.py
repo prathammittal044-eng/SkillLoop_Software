@@ -407,15 +407,28 @@ def _file_to_data_url(file_obj, ext):
 
 @app.route('/api/user/upload-avatar', methods=['POST'])
 def upload_avatar():
-    if 'user_id' not in session: return jsonify({"error": "Not authenticated"}), 401
-    if 'file' not in request.files: return jsonify({"error": "No file provided"}), 400
-    f = request.files['file']
-    if not f.filename or not _allowed_image(f.filename):
-        return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
-    ext = f.filename.rsplit('.', 1)[1].lower()
-    data_url, err = _file_to_data_url(f, ext)
-    if err:
-        return jsonify({"error": err}), 400
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    data_url = None
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        img = data.get('image') or data.get('data_url')
+        if img and str(img).startswith('data:image/'):
+            data_url = str(img)
+        else:
+            return jsonify({"error": "Invalid base64 image data"}), 400
+    elif 'file' in request.files:
+        f = request.files['file']
+        if not f.filename or not _allowed_image(f.filename):
+            return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
+        ext = f.filename.rsplit('.', 1)[1].lower()
+        data_url, err = _file_to_data_url(f, ext)
+        if err:
+            return jsonify({"error": err}), 400
+    else:
+        return jsonify({"error": "No image data or file provided"}), 400
+
     db = get_db()
     db.execute("UPDATE users SET profile_picture = ? WHERE id = ?", (data_url, session['user_id']))
     db.commit()
@@ -423,15 +436,28 @@ def upload_avatar():
 
 @app.route('/api/user/upload-banner', methods=['POST'])
 def upload_banner():
-    if 'user_id' not in session: return jsonify({"error": "Not authenticated"}), 401
-    if 'file' not in request.files: return jsonify({"error": "No file provided"}), 400
-    f = request.files['file']
-    if not f.filename or not _allowed_image(f.filename):
-        return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
-    ext = f.filename.rsplit('.', 1)[1].lower()
-    data_url, err = _file_to_data_url(f, ext)
-    if err:
-        return jsonify({"error": err}), 400
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    data_url = None
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        img = data.get('image') or data.get('data_url')
+        if img and str(img).startswith('data:image/'):
+            data_url = str(img)
+        else:
+            return jsonify({"error": "Invalid base64 image data"}), 400
+    elif 'file' in request.files:
+        f = request.files['file']
+        if not f.filename or not _allowed_image(f.filename):
+            return jsonify({"error": "Invalid image file (png, jpg, jpeg, gif, webp allowed)"}), 400
+        ext = f.filename.rsplit('.', 1)[1].lower()
+        data_url, err = _file_to_data_url(f, ext)
+        if err:
+            return jsonify({"error": err}), 400
+    else:
+        return jsonify({"error": "No image data or file provided"}), 400
+
     db = get_db()
     db.execute("UPDATE users SET banner_image = ? WHERE id = ?", (data_url, session['user_id']))
     db.commit()

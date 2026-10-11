@@ -54,7 +54,7 @@
           </NuxtLink>
 
           <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm shrink-0 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all" title="My Profile">
-            <img v-if="currentUser?.profile_picture" :src="currentUser.profile_picture" class="w-full h-full object-cover" />
+            <img v-if="currentUser?.profile_picture" :src="currentUser.profile_picture" @error="currentUser.profile_picture = null" class="w-full h-full object-cover" />
             <span v-else>{{ (currentUser?.full_name || currentUser?.username || 'U').charAt(0) }}</span>
           </NuxtLink>
 

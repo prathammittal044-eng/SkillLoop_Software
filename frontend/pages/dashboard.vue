@@ -128,7 +128,7 @@
                       >
                         <div class="flex items-center gap-2.5">
                           <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
-                            <img v-if="pc.profile_picture" :src="pc.profile_picture" class="w-full h-full object-cover" />
+                            <img v-if="pc.profile_picture" :src="pc.profile_picture" @error="pc.profile_picture = null" class="w-full h-full object-cover" />
                             <span v-else>{{ (pc.full_name || pc.username || 'U').charAt(0) }}</span>
                           </div>
                           <div class="flex-1 min-w-0">
@@ -233,7 +233,7 @@
               </div>
             </div>
             <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all shrink-0">
-              <img v-if="user.profile_picture" :src="user.profile_picture" class="w-full h-full object-cover" />
+              <img v-if="user.profile_picture" :src="user.profile_picture" @error="user.profile_picture = null" class="w-full h-full object-cover" />
               <span v-else>{{ (user.full_name || user.username || 'U').charAt(0) }}</span>
             </NuxtLink>
             <button @click="logout" class="hidden sm:inline text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>

@@ -36,7 +36,7 @@
           </div>
 
           <NuxtLink to="/profile" class="relative w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs sm:text-sm uppercase shadow-sm overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all shrink-0" title="My Profile">
-            <img v-if="me?.profile_picture" :src="me.profile_picture" class="w-full h-full object-cover" />
+            <img v-if="me?.profile_picture" :src="me.profile_picture" @error="me.profile_picture = null" class="w-full h-full object-cover" />
             <span v-else>{{ (me?.full_name || me?.username || 'U').charAt(0) }}</span>
           </NuxtLink>
           <button @click="logout" class="hidden sm:inline text-xs text-on-surface-variant hover:text-error transition-colors font-semibold">Logout</button>
@@ -72,7 +72,7 @@
 
         <!-- Top Banner (~180px) -->
         <div class="relative h-44 sm:h-52 overflow-hidden" :style="bannerStyle">
-          <img v-if="profile.banner_image" :src="profile.banner_image" class="w-full h-full object-cover" />
+          <img v-if="profile.banner_image" :src="profile.banner_image" @error="profile.banner_image = null" class="w-full h-full object-cover" />
 
           <!-- Banner Action Controls (Own Profile) -->
           <div v-if="isOwnProfile" class="absolute top-4 right-4 flex items-center gap-2 z-20">
@@ -108,7 +108,7 @@
               class="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-lg overflow-hidden flex items-center justify-center font-bold text-3xl sm:text-4xl text-on-primary bg-primary relative"
               :style="avatarStyle(profile)"
             >
-              <img v-if="profile.profile_picture" :src="profile.profile_picture" class="w-full h-full object-cover" />
+              <img v-if="profile.profile_picture" :src="profile.profile_picture" @error="profile.profile_picture = null" class="w-full h-full object-cover" />
               <span v-else>{{ (profile.full_name || profile.username || 'U').charAt(0) }}</span>
             </div>
 
@@ -861,29 +861,65 @@ async function saveProfile() {
   }
 }
 
+// In-browser image compressor: scales down high-res photos to lightweight JPEG Base64
+// This prevents large payloads, eliminates multipart boundary errors, and guarantees instant uploads
+const compressImageToDataUrl = (file, maxWidth, maxHeight, quality = 0.85) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('Invalid image file format'))
+      img.onload = () => {
+        let width = img.width
+        let height = img.height
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 async function uploadAvatar(event) {
   const file = event.target.files?.[0]
   if (!file) return
   uploadingAvatar.value = true
-  const formData = new FormData()
-  formData.append('file', file)
 
   try {
+    // Compress avatar to max 400x400 (typically 40-70 KB)
+    const dataUrl = await compressImageToDataUrl(file, 400, 400, 0.85)
+
+    // Instant optimistic preview
+    profile.value.profile_picture = dataUrl
+    if (me.value) me.value.profile_picture = dataUrl
+
     const res = await fetch('/api/user/upload-avatar', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: formData
+      body: JSON.stringify({ image: dataUrl })
     })
     const data = await res.json()
     if (res.ok) {
-      const updatedUrl = data.url + '?t=' + Date.now()
-      profile.value.profile_picture = updatedUrl
-      if (me.value) me.value.profile_picture = updatedUrl
+      profile.value.profile_picture = data.url
+      if (me.value) me.value.profile_picture = data.url
     } else {
       alert(data.error || 'Failed to upload profile picture.')
     }
-  } catch {
-    alert('Failed to upload picture. Check server connection.')
+  } catch (err) {
+    console.error('Avatar upload error:', err)
+    alert('Failed to upload picture: ' + (err.message || 'Check server connection.'))
   } finally {
     uploadingAvatar.value = false
     event.target.value = ''
@@ -894,24 +930,29 @@ async function uploadBanner(event) {
   const file = event.target.files?.[0]
   if (!file) return
   uploadingBanner.value = true
-  const formData = new FormData()
-  formData.append('file', file)
 
   try {
+    // Compress banner to max 1400x500 (typically 100-150 KB)
+    const dataUrl = await compressImageToDataUrl(file, 1400, 500, 0.85)
+
+    // Instant optimistic preview
+    profile.value.banner_image = dataUrl
+
     const res = await fetch('/api/user/upload-banner', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: formData
+      body: JSON.stringify({ image: dataUrl })
     })
     const data = await res.json()
     if (res.ok) {
-      const updatedUrl = data.url + '?t=' + Date.now()
-      profile.value.banner_image = updatedUrl
+      profile.value.banner_image = data.url
     } else {
       alert(data.error || 'Failed to upload banner image.')
     }
-  } catch {
-    alert('Failed to upload banner. Check server connection.')
+  } catch (err) {
+    console.error('Banner upload error:', err)
+    alert('Failed to upload banner: ' + (err.message || 'Check server connection.'))
   } finally {
     uploadingBanner.value = false
     event.target.value = ''
