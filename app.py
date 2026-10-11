@@ -1124,7 +1124,7 @@ The "answer" field is the 0-based index of the correct option in the "options" a
 
     try:
         response = _genai_client.models.generate_content(
-            model='models/gemini-3.1-flash-lite',
+            model='gemini-2.0-flash-lite',
             contents=prompt,
             config=_genai_types.GenerateContentConfig(
                 temperature=0.7,
@@ -2451,7 +2451,7 @@ Content:
 """
     try:
         response = _genai_client.models.generate_content(
-            model='models/gemini-3.1-flash-lite',
+            model='gemini-2.0-flash-lite',
             contents=prompt,
             config=_genai_types.GenerateContentConfig(
                 temperature=0.7,
