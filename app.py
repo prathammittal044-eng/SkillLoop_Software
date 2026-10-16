@@ -1110,9 +1110,9 @@ QUIZ_QUESTION_COUNT = 7
 # In-memory question cache for instant 5ms quiz loads
 _QUIZ_CACHE = {}
 
-def _get_gemini_models(client):
-    """Fast-path top models; only inspect dynamically if preferred models fail."""
-    return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
+def _get_gemini_models(client=None):
+    """Fast-path modern available models."""
+    return ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-flash-latest']
 
 
 def generate_ai_questions(skill_name: str, difficulty: str):
