@@ -16,6 +16,7 @@ _load_dotenv()
 
 import random
 import sqlite3
+import json as _json
 import html as html_module
 from datetime import datetime
 try:
@@ -348,6 +349,202 @@ def login():
         }
     }), 200
 
+def _get_teacher_stats(db, user_id):
+    """
+    Computes credible, professional teacher statistics for a user:
+    - Pure Teacher Rating (AVG rating from session reviews where role = 'learner_rating_teacher')
+    - Total teaching duration from verified call logs and user record
+    - Students mentored count (unique learners taught)
+    - Per-skill breakdown (hours taught, teaching level, verified status, sessions count)
+    - Peer endorsement tags frequency from reviews
+    """
+    try:
+        # 1. Total teaching duration
+        u_row = db.execute('SELECT total_teaching_seconds, rating_avg, rating_count FROM users WHERE id = ?', (user_id,)).fetchone()
+        user_sec = u_row['total_teaching_seconds'] if u_row and u_row['total_teaching_seconds'] else 0
+
+        log_sec_row = db.execute('SELECT COALESCE(SUM(duration_seconds), 0) as s FROM teaching_call_logs WHERE teacher_id = ?', (user_id,)).fetchone()
+        logs_sec = log_sec_row['s'] if log_sec_row else 0
+
+        total_sec = max(user_sec, logs_sec)
+        
+        if total_sec >= 3600:
+            hrs = round(total_sec / 3600.0, 1)
+            total_formatted = f"{int(hrs) if hrs.is_integer() else hrs} hrs"
+        elif total_sec >= 60:
+            total_formatted = f"{total_sec // 60} mins"
+        elif total_sec > 0:
+            total_formatted = f"{total_sec}s"
+        else:
+            total_formatted = "0 hrs"
+
+        # 2. Pure Teacher Rating
+        t_rev = db.execute('''
+            SELECT 
+                ROUND(AVG(rating), 1) as avg_rating,
+                COUNT(*) as review_count
+            FROM session_reviews
+            WHERE reviewee_id = ? AND role = 'learner_rating_teacher'
+        ''', (user_id,)).fetchone()
+        
+        teacher_rating_avg = float(t_rev['avg_rating']) if t_rev and t_rev['avg_rating'] is not None else None
+        teacher_rating_count = int(t_rev['review_count']) if t_rev else 0
+
+        # Dedicated Learner Rating
+        l_rev = db.execute('''
+            SELECT 
+                ROUND(AVG(rating), 1) as avg_rating,
+                COUNT(*) as review_count
+            FROM session_reviews
+            WHERE reviewee_id = ? AND role = 'teacher_rating_learner'
+        ''', (user_id,)).fetchone()
+        learner_rating_avg = float(l_rev['avg_rating']) if l_rev and l_rev['avg_rating'] is not None else None
+        learner_rating_count = int(l_rev['review_count']) if l_rev else 0
+
+        # 3. Unique students mentored
+        students_row = db.execute('SELECT COUNT(DISTINCT learner_id) as c FROM teaching_call_logs WHERE teacher_id = ?', (user_id,)).fetchone()
+        students_count = int(students_row['c']) if students_row else 0
+
+        # 4. Verified skills map
+        verif_rows = db.execute('''
+            SELECT skill_name, verified_level, verified_at, sessions_taught
+            FROM skill_verifications
+            WHERE user_id = ?
+        ''', (user_id,)).fetchall()
+        verif_map = {v['skill_name'].strip().lower(): dict(v) for v in verif_rows}
+
+        # 5. Call logs aggregated by skill
+        call_logs = db.execute('''
+            SELECT 
+                LOWER(skill_name) as norm_skill,
+                skill_name,
+                COALESCE(SUM(duration_seconds), 0) as total_seconds,
+                COUNT(id) as sessions_count,
+                COUNT(DISTINCT learner_id) as students_count
+            FROM teaching_call_logs
+            WHERE teacher_id = ?
+            GROUP BY LOWER(skill_name)
+        ''', (user_id,)).fetchall()
+        call_map = {c['norm_skill']: dict(c) for c in call_logs}
+
+        # 6. User's declared teaching skills
+        skill_rows = db.execute('''
+            SELECT id, skill_name, teaching_level
+            FROM user_skills
+            WHERE user_id = ? AND skill_type = 'teaches'
+            ORDER BY id ASC
+        ''', (user_id,)).fetchall()
+
+        skills_breakdown = []
+        seen_skills = set()
+
+        for s in skill_rows:
+            s_name = s['skill_name'].strip()
+            norm = s_name.lower()
+            seen_skills.add(norm)
+            
+            v_info = verif_map.get(norm)
+            is_verified = bool(v_info)
+            verified_lvl = v_info['verified_level'].strip().title() if v_info and v_info.get('verified_level') else None
+            
+            teaching_lvl = verified_lvl or (s['teaching_level'].strip().title() if s['teaching_level'] else 'Beginner')
+            
+            c_info = call_map.get(norm)
+            sec = c_info['total_seconds'] if c_info else 0
+            sess_cnt = c_info['sessions_count'] if c_info else (v_info['sessions_taught'] if v_info else 0)
+            stud_cnt = c_info['students_count'] if c_info else 0
+
+            if sec >= 3600:
+                h = round(sec / 3600.0, 1)
+                fmt = f"{int(h) if h.is_integer() else h} hrs"
+            elif sec >= 60:
+                fmt = f"{sec // 60} mins"
+            elif sec > 0:
+                fmt = f"{sec}s"
+            else:
+                fmt = "0 hrs"
+
+            skills_breakdown.append({
+                "skill_id": s['id'],
+                "skill_name": s_name,
+                "teaching_level": teaching_lvl,
+                "is_verified": is_verified,
+                "verified_level": verified_lvl,
+                "hours_taught_seconds": sec,
+                "hours_taught_formatted": fmt,
+                "sessions_count": sess_cnt,
+                "students_count": stud_cnt
+            })
+
+        for norm, c_info in call_map.items():
+            if norm not in seen_skills:
+                v_info = verif_map.get(norm)
+                sec = c_info['total_seconds']
+                if sec >= 3600:
+                    h = round(sec / 3600.0, 1)
+                    fmt = f"{int(h) if h.is_integer() else h} hrs"
+                elif sec >= 60:
+                    fmt = f"{sec // 60} mins"
+                else:
+                    fmt = f"{sec}s"
+
+                skills_breakdown.append({
+                    "skill_id": None,
+                    "skill_name": c_info['skill_name'],
+                    "teaching_level": v_info['verified_level'].strip().title() if v_info else 'Beginner',
+                    "is_verified": bool(v_info),
+                    "verified_level": v_info['verified_level'].strip().title() if v_info else None,
+                    "hours_taught_seconds": sec,
+                    "hours_taught_formatted": fmt,
+                    "sessions_count": c_info['sessions_count'],
+                    "students_count": c_info['students_count']
+                })
+
+        # 7. Endorsement tags frequency
+        tag_counts = {}
+        review_rows = db.execute('''
+            SELECT tags FROM session_reviews
+            WHERE reviewee_id = ? AND role = 'learner_rating_teacher' AND tags IS NOT NULL AND tags != ''
+        ''', (user_id,)).fetchall()
+        
+        for r in review_rows:
+            try:
+                parsed = _json.loads(r['tags'])
+                if isinstance(parsed, list):
+                    for t in parsed:
+                        t_clean = str(t).strip()
+                        if t_clean:
+                            tag_counts[t_clean] = tag_counts.get(t_clean, 0) + 1
+            except Exception:
+                pass
+
+        endorsement_tags = [{"tag": k, "count": v} for k, v in sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)]
+
+        return {
+            "total_teaching_seconds": total_sec,
+            "total_teaching_formatted": total_formatted,
+            "teacher_rating_avg": teacher_rating_avg,
+            "teacher_rating_count": teacher_rating_count,
+            "learner_rating_avg": learner_rating_avg,
+            "learner_rating_count": learner_rating_count,
+            "students_mentored_count": students_count,
+            "skills_breakdown": skills_breakdown,
+            "endorsement_tags": endorsement_tags
+        }
+    except Exception as e:
+        app.logger.warning(f"Error computing teacher stats for user {user_id}: {e}")
+        return {
+            "total_teaching_seconds": 0,
+            "total_teaching_formatted": "0 hrs",
+            "teacher_rating_avg": None,
+            "teacher_rating_count": 0,
+            "learner_rating_avg": None,
+            "learner_rating_count": 0,
+            "students_mentored_count": 0,
+            "skills_breakdown": [],
+            "endorsement_tags": []
+        }
+
 @app.route('/api/user/me', methods=['GET'])
 def get_current_user():
     if 'user_id' not in session:
@@ -370,7 +567,9 @@ def get_current_user():
         return jsonify({"error": "User not found"}), 404
         
     session.modified = True
-    return jsonify({"user": dict(user)}), 200
+    user_dict = dict(user)
+    user_dict['teacher_stats'] = _get_teacher_stats(db, session['user_id'])
+    return jsonify({"user": user_dict}), 200
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -504,9 +703,9 @@ def manage_skills():
     user_id = session['user_id']
     
     if request.method == 'GET':
-        skills = db.execute('SELECT id, skill_name, skill_type FROM user_skills WHERE user_id = ?', (user_id,)).fetchall()
+        skills = db.execute('SELECT id, skill_name, skill_type, teaching_level FROM user_skills WHERE user_id = ?', (user_id,)).fetchall()
         
-        teaches = [{"id": s['id'], "name": s['skill_name']} for s in skills if s['skill_type'] == 'teaches']
+        teaches = [{"id": s['id'], "name": s['skill_name'], "teaching_level": (s['teaching_level'] or 'Beginner').strip().title()} for s in skills if s['skill_type'] == 'teaches']
         learns = [{"id": s['id'], "name": s['skill_name']} for s in skills if s['skill_type'] == 'learns']
         
         return jsonify({"teaches": teaches, "learns": learns}), 200
@@ -515,17 +714,33 @@ def manage_skills():
         data = request.json
         skill_name = data.get('skill_name', '').strip().lower()
         skill_type = data.get('skill_type')
+        teaching_level = (data.get('teaching_level') or 'Beginner').strip().title()
+        if teaching_level not in ('Beginner', 'Intermediate', 'Advanced'):
+            teaching_level = 'Beginner'
         
         if not skill_name or skill_type not in ('teaches', 'learns'):
             return jsonify({"error": "Invalid input"}), 400
             
         try:
-            cursor = db.execute('INSERT INTO user_skills (user_id, skill_name, skill_type) VALUES (?, ?, ?)',
-                                (user_id, skill_name, skill_type))
+            cursor = db.execute('INSERT INTO user_skills (user_id, skill_name, skill_type, teaching_level) VALUES (?, ?, ?, ?)',
+                                (user_id, skill_name, skill_type, teaching_level))
             db.commit()
-            return jsonify({"message": "Skill added", "id": cursor.lastrowid, "name": skill_name, "type": skill_type}), 201
+            return jsonify({"message": "Skill added", "id": cursor.lastrowid, "name": skill_name, "type": skill_type, "teaching_level": teaching_level}), 201
         except sqlite3.IntegrityError:
             return jsonify({"error": "Skill already added"}), 409
+
+@app.route('/api/skills/<int:skill_id>', methods=['PUT'])
+def update_skill_level(skill_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.json or {}
+    teaching_level = (data.get('teaching_level') or 'Beginner').strip().title()
+    if teaching_level not in ('Beginner', 'Intermediate', 'Advanced'):
+        return jsonify({"error": "Invalid teaching level. Choose Beginner, Intermediate, or Advanced"}), 400
+    db = get_db()
+    db.execute('UPDATE user_skills SET teaching_level = ? WHERE id = ? AND user_id = ?', (teaching_level, skill_id, session['user_id']))
+    db.commit()
+    return jsonify({"message": "Teaching level updated", "teaching_level": teaching_level}), 200
 
 @app.route('/api/skills/<int:skill_id>', methods=['DELETE'])
 def delete_skill(skill_id):
@@ -1038,17 +1253,24 @@ def get_public_profile(username):
     ).fetchall()
     verified_list = [dict(v) for v in verified]
 
-    # Reviews received (last 10)
+    # Reviews received (last 20)
     reviews = db.execute('''
-        SELECT sr.rating, sr.comment, sr.role, sr.created_at,
+        SELECT sr.id, sr.rating, sr.comment, sr.role, sr.tags, sr.created_at,
                u.full_name AS reviewer_name, u.username AS reviewer_username, u.avatar_color AS reviewer_color
         FROM session_reviews sr
         JOIN users u ON u.id = sr.reviewer_id
         WHERE sr.reviewee_id = ?
         ORDER BY sr.created_at DESC
-        LIMIT 10
+        LIMIT 20
     ''', (user_id,)).fetchall()
-    reviews_list = [dict(r) for r in reviews]
+    reviews_list = []
+    for r in reviews:
+        rd = dict(r)
+        try:
+            rd['tags'] = _json.loads(rd['tags']) if rd.get('tags') else []
+        except Exception:
+            rd['tags'] = []
+        reviews_list.append(rd)
 
     # Connection status with currently logged-in user
     conn_status = None
@@ -1067,6 +1289,7 @@ def get_public_profile(username):
     profile['verified_skills'] = verified_list
     profile['reviews'] = reviews_list
     profile['connection_status'] = conn_status
+    profile['teacher_stats'] = _get_teacher_stats(db, user_id)
     return jsonify({"profile": profile}), 200
 
 
@@ -1474,6 +1697,22 @@ def submit_quiz():
                 INSERT INTO skill_verifications (user_id, skill_name, verified_level, verified_at, last_activity_at, activity_type, sessions_taught) 
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'quiz', 0)
             ''', (session['user_id'], skill_name, difficulty))
+
+        # Also sync teaching_level in user_skills if this skill is in user's teaches list
+        try:
+            curr_skill = db.execute(
+                'SELECT teaching_level FROM user_skills WHERE user_id = ? AND LOWER(skill_name) = ? AND skill_type = "teaches"',
+                (session['user_id'], skill_name.strip().lower())
+            ).fetchone()
+            if curr_skill:
+                curr_lvl = (curr_skill['teaching_level'] or 'beginner').lower()
+                chosen_lvl = difficulty if level_order.get(difficulty, 0) > level_order.get(curr_lvl, 0) else curr_skill['teaching_level']
+                db.execute(
+                    'UPDATE user_skills SET teaching_level = ? WHERE user_id = ? AND LOWER(skill_name) = ? AND skill_type = "teaches"',
+                    (chosen_lvl.capitalize(), session['user_id'], skill_name.strip().lower())
+                )
+        except Exception as e:
+            app.logger.warning(f"Error syncing user_skills teaching_level: {e}")
     
     db.commit()
     
@@ -1808,6 +2047,7 @@ def init_sessions_db(db):
             skill_name TEXT NOT NULL,
             session_id INTEGER,
             duration_seconds INTEGER NOT NULL,
+            teaching_level TEXT DEFAULT 'Beginner',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (teacher_id) REFERENCES users(id),
             FOREIGN KEY (learner_id) REFERENCES users(id)
@@ -1815,6 +2055,16 @@ def init_sessions_db(db):
     ''')
 
     cursor = db.cursor()
+    cursor.execute("PRAGMA table_info(user_skills)")
+    uskill_cols = [row[1] for row in cursor.fetchall()]
+    if 'teaching_level' not in uskill_cols:
+        cursor.execute("ALTER TABLE user_skills ADD COLUMN teaching_level TEXT DEFAULT 'Beginner'")
+
+    cursor.execute("PRAGMA table_info(teaching_call_logs)")
+    call_cols = [row[1] for row in cursor.fetchall()]
+    if 'teaching_level' not in call_cols:
+        cursor.execute("ALTER TABLE teaching_call_logs ADD COLUMN teaching_level TEXT DEFAULT 'Beginner'")
+
     cursor.execute("PRAGMA table_info(users)")
     u_cols = [row[1] for row in cursor.fetchall()]
     if 'total_teaching_seconds' not in u_cols:
@@ -2367,11 +2617,21 @@ def record_teaching_time():
         except Exception as e:
             app.logger.warning(f"Error updating exchange_session duration: {e}")
 
+    # Resolve teaching level (verified > declared > Beginner)
+    teaching_level = (data.get('teaching_level') or '').strip().title()
+    if not teaching_level:
+        v = db.execute('SELECT verified_level FROM skill_verifications WHERE user_id = ? AND LOWER(skill_name) = ?', (teacher_id, skill_name.lower())).fetchone()
+        if v and v['verified_level']:
+            teaching_level = v['verified_level'].strip().title()
+        else:
+            us = db.execute('SELECT teaching_level FROM user_skills WHERE user_id = ? AND LOWER(skill_name) = ? AND skill_type = "teaches"', (teacher_id, skill_name.lower())).fetchone()
+            teaching_level = (us['teaching_level'] if us and us['teaching_level'] else 'Beginner').strip().title()
+
     # 4. Insert into teaching_call_logs
     db.execute('''
-        INSERT INTO teaching_call_logs (teacher_id, learner_id, skill_name, session_id, duration_seconds)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (teacher_id, learner_id, skill_name, session_id, duration_seconds))
+        INSERT INTO teaching_call_logs (teacher_id, learner_id, skill_name, session_id, duration_seconds, teaching_level)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (teacher_id, learner_id, skill_name, session_id, duration_seconds, teaching_level))
 
     # 5. Heartbeat skill verification for teacher (keeps decay timer active)
     if skill_name:

@@ -406,6 +406,11 @@
               <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">I Can Teach (Skill Offered)</label>
               <div class="flex gap-2">
                 <input v-model="newTeach" placeholder="e.g. Python, UI/UX, Guitar, Calculus" class="flex-1 px-4 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-xs sm:text-sm focus:outline-none focus:border-primary transition-colors"/>
+                <select v-model="newTeachLevel" class="px-2.5 py-2.5 rounded-xl bg-surface-bright border border-surface-container-high text-xs font-semibold text-on-surface focus:outline-none focus:border-primary cursor-pointer" title="Teaching proficiency level">
+                  <option value="Beginner">Beginner</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Advanced">Advanced</option>
+                </select>
                 <button @click="addSkill('teaches')" :disabled="!newTeach.trim()" class="px-4 py-2.5 rounded-xl bg-primary text-on-primary text-xs sm:text-sm font-bold hover:bg-primary-dim disabled:opacity-50 transition-colors cursor-pointer">Add</button>
               </div>
             </div>
@@ -906,6 +911,9 @@
                         <h3 class="font-headline text-sm font-bold text-on-surface capitalize">{{ skill.name }}</h3>
                         <span v-if="getSkillVerification(skill.name)" class="px-2 py-0.5 rounded text-[10px] font-mono bg-primary-container text-on-primary-container font-semibold">
                           Lvl: {{ getSkillVerification(skill.name).verified_level || 'Mentor' }}
+                        </span>
+                        <span v-else class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface-container-high text-on-surface-variant font-semibold">
+                          Lvl: {{ skill.teaching_level || 'Beginner' }}
                         </span>
                       </div>
                       <div class="flex items-center gap-3 text-xs text-on-surface-variant mt-1">
@@ -1843,6 +1851,7 @@ const teaches = ref([])
 const learns = ref([])
 const cycles = ref([])
 const newTeach = ref('')
+const newTeachLevel = ref('Beginner')
 const newLearn = ref('')
 const isAdding = ref(false)
 const isLoadingCycles = ref(false)
@@ -2450,10 +2459,23 @@ const addSkill = async (type) => {
   if (!skillName) return
   isAdding.value = true
   try {
-    const res = await fetch('/api/skills', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ skill_name: skillName, skill_type: type }) })
+    const payload = { skill_name: skillName, skill_type: type }
+    if (type === 'teaches') {
+      payload.teaching_level = newTeachLevel.value || 'Beginner'
+    }
+    const res = await fetch('/api/skills', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      credentials: 'include', 
+      body: JSON.stringify(payload) 
+    })
     if (res.ok) {
-      if (type === 'teaches') newTeach.value = ''
-      else newLearn.value = ''
+      if (type === 'teaches') {
+        newTeach.value = ''
+        newTeachLevel.value = 'Beginner'
+      } else {
+        newLearn.value = ''
+      }
       await Promise.all([fetchSkills(), fetchCycles()])
     }
   } catch (e) { console.error(e) }

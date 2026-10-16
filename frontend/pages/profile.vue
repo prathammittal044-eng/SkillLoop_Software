@@ -201,31 +201,37 @@
             </div>
           </div>
 
-          <!-- Stats Row (4 Pill Chips from Mockup) -->
+          <!-- Stats Row (Official Credential Chips) -->
           <div class="flex flex-wrap items-center gap-2.5 mt-6 pt-5 border-t border-surface-container">
             <!-- 1. XP -->
-            <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs">
+            <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs" title="Platform Experience Points">
               <span class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">bolt</span>
               <span>{{ profile.xp || 0 }} XP</span>
             </div>
 
-            <!-- 2. Sessions -->
-            <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs">
-              <span class="material-symbols-outlined text-secondary text-base" style="font-variation-settings: 'FILL' 1;">school</span>
-              <span>{{ profile.total_sessions || 0 }} Sessions</span>
+            <!-- 2. Teaching Hours (Official Record) -->
+            <div class="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-4 py-2 rounded-2xl text-xs font-bold text-amber-900 shadow-xs" title="Verified Teaching Instruction Hours">
+              <span class="material-symbols-outlined text-amber-600 text-base" style="font-variation-settings: 'FILL' 1;">timer</span>
+              <span>{{ teacherStats.total_teaching_formatted || formatTime(profile.total_teaching_seconds) }} Taught</span>
             </div>
 
-            <!-- 3. Rating -->
-            <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs">
+            <!-- 3. Teacher Rating -->
+            <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs" title="Verified Teacher Evaluation">
               <span class="material-symbols-outlined text-amber-500 text-base" style="font-variation-settings: 'FILL' 1;">star</span>
-              <span>{{ profile.rating_avg ? profile.rating_avg.toFixed(1) : '5.0' }} Rating</span>
-              <span v-if="profile.rating_count" class="text-on-surface-variant font-normal">({{ profile.rating_count }})</span>
+              <span>{{ teacherStats.teacher_rating_avg ? teacherStats.teacher_rating_avg.toFixed(1) : (profile.rating_avg ? profile.rating_avg.toFixed(1) : '5.0') }} Teacher Rating</span>
+              <span v-if="teacherStats.teacher_rating_count || profile.rating_count" class="text-on-surface-variant font-normal">({{ teacherStats.teacher_rating_count || profile.rating_count }})</span>
             </div>
 
-            <!-- 4. Teaching Time -->
+            <!-- 4. Students Mentored -->
+            <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs" title="Distinct peers taught in 1:1 sessions">
+              <span class="material-symbols-outlined text-secondary text-base" style="font-variation-settings: 'FILL' 1;">groups</span>
+              <span>{{ teacherStats.students_mentored_count || 0 }} Mentored</span>
+            </div>
+
+            <!-- 5. Total Sessions -->
             <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-2xl border border-surface-container text-xs font-bold text-on-surface shadow-xs">
-              <span class="material-symbols-outlined text-tertiary text-base" style="font-variation-settings: 'FILL' 1;">timer</span>
-              <span>{{ formatTime(profile.total_teaching_seconds) }} Taught</span>
+              <span class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">school</span>
+              <span>{{ profile.total_sessions || 0 }} Sessions</span>
             </div>
           </div>
 
@@ -258,35 +264,141 @@
             </p>
           </div>
 
-          <!-- Skills I Teach Card -->
-          <div class="bg-white rounded-3xl p-6 border border-surface-container shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="font-headline font-bold text-base text-on-surface flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-xl">psychology</span>
-                <span>Skills I Teach</span>
-              </h2>
-              <span v-if="(profile.teaches || []).length" class="text-xs font-bold text-on-surface-variant px-2 py-0.5 rounded-full bg-surface-container">
-                {{ profile.teaches.length }}
-              </span>
-            </div>
-
-            <div v-if="(profile.teaches || []).length" class="flex flex-wrap gap-2.5">
-              <div
-                v-for="skill in profile.teaches"
-                :key="skill"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-headline font-bold text-xs shadow-xs transition-all"
-                :class="isVerified(skill) ? 'bg-primary text-on-primary' : 'bg-primary/10 text-primary border border-primary/20'"
-              >
-                <span v-if="isVerified(skill)" class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
-                <span>{{ skill }}</span>
-                <span v-if="isVerified(skill)" class="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] uppercase font-mono tracking-wider">
-                  {{ getVerifiedLevel(skill) }}
+          <!-- Verified Teaching Portfolio & Skill Matrix Card -->
+          <div class="bg-white rounded-3xl p-6 border border-surface-container shadow-sm space-y-5">
+            <!-- Card Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-surface-container/60">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+                  </div>
+                  <h2 class="font-headline font-bold text-base text-on-surface">Verified Teaching Portfolio</h2>
+                </div>
+                <p class="text-xs text-on-surface-variant">Official instruction record, competency levels & hours logged</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  {{ teachingSkills.length }} {{ teachingSkills.length === 1 ? 'Skill' : 'Skills' }} Offered
+                </span>
+                <span v-if="teacherStats.total_teaching_formatted && teacherStats.total_teaching_formatted !== '0 hrs'" class="text-xs font-bold px-3 py-1 rounded-full bg-amber-500/10 text-amber-800 border border-amber-500/20">
+                  ⏱️ {{ teacherStats.total_teaching_formatted }} Total
                 </span>
               </div>
             </div>
-            <p v-else class="text-on-surface-variant/70 text-sm italic">
-              No teaching skills listed yet.
-            </p>
+
+            <!-- Skill Cards Grid -->
+            <div v-if="teachingSkills.length" class="space-y-3.5">
+              <div
+                v-for="s in teachingSkills"
+                :key="s.skill_name"
+                class="p-4 rounded-2xl border border-surface-container/80 bg-surface-container-low/40 hover:bg-surface-container-low hover:border-primary/40 transition-all space-y-3"
+              >
+                <!-- Skill Top Row: Name + Verification + Level Badge -->
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5">
+                    <span class="font-headline font-bold text-sm text-on-surface capitalize">
+                      {{ s.skill_name }}
+                    </span>
+                    <!-- Verified Status Pill -->
+                    <span
+                      v-if="s.is_verified"
+                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/30"
+                      title="Officially tested and verified via SkillLoop AI Quiz Engine"
+                    >
+                      <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+                      <span>Verified {{ s.verified_level || s.teaching_level }}</span>
+                    </span>
+                    <NuxtLink
+                      v-else-if="isOwnProfile"
+                      :to="'/quiz?skill=' + encodeURIComponent(s.skill_name)"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/5 text-primary hover:bg-primary hover:text-white border border-primary/20 transition-all"
+                      title="Take official AI verification quiz to prove skill level"
+                    >
+                      <span>Take Quiz</span>
+                      <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                    </NuxtLink>
+                  </div>
+
+                  <!-- Level Badge & Selector -->
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] font-semibold text-on-surface-variant font-label">Level:</span>
+                    <div
+                      class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border"
+                      :class="{
+                        'bg-emerald-50 text-emerald-800 border-emerald-300': (s.teaching_level || '').toLowerCase() === 'beginner',
+                        'bg-blue-50 text-blue-800 border-blue-300': (s.teaching_level || '').toLowerCase() === 'intermediate',
+                        'bg-purple-50 text-purple-800 border-purple-300': (s.teaching_level || '').toLowerCase() === 'advanced'
+                      }"
+                    >
+                      <span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">
+                        {{ (s.teaching_level || '').toLowerCase() === 'advanced' ? 'military_tech' : ((s.teaching_level || '').toLowerCase() === 'intermediate' ? 'school' : 'auto_stories') }}
+                      </span>
+                      <span>{{ s.teaching_level || 'Beginner' }}</span>
+                    </div>
+
+                    <!-- Quick Level Selector for Own Profile -->
+                    <select
+                      v-if="isOwnProfile && s.skill_id"
+                      :value="s.teaching_level || 'Beginner'"
+                      @change="updateTeachingLevel(s, $event.target.value)"
+                      class="text-[11px] font-semibold bg-white border border-surface-container rounded-lg px-1.5 py-0.5 text-on-surface cursor-pointer hover:border-primary focus:outline-none"
+                      title="Adjust declared teaching level"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Skill Metrics Footer -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-surface-container/50 text-xs text-on-surface-variant">
+                  <div class="flex items-center gap-1.5 font-bold text-on-surface">
+                    <span class="material-symbols-outlined text-sm text-primary">schedule</span>
+                    <span>{{ s.hours_taught_formatted }} Instruction Logged</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-[11px]">
+                    <span class="flex items-center gap-1 text-on-surface-variant">
+                      <span class="material-symbols-outlined text-xs text-secondary">person</span>
+                      <span>{{ s.students_count || 0 }} {{ (s.students_count || 0) === 1 ? 'Peer' : 'Peers' }} Taught</span>
+                    </span>
+                    <span class="flex items-center gap-1 text-on-surface-variant">
+                      <span class="material-symbols-outlined text-xs text-primary">call</span>
+                      <span>{{ s.sessions_count || 0 }} Calls</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else class="p-6 rounded-2xl bg-surface-container-low/60 border border-dashed border-surface-container text-center space-y-1">
+              <span class="material-symbols-outlined text-3xl text-on-surface-variant/50">school</span>
+              <p class="font-headline font-semibold text-xs text-on-surface">No teaching skills listed yet</p>
+              <p class="text-[11px] text-on-surface-variant/70">Add skills in Dashboard to offer peer teaching and build your hours.</p>
+            </div>
+
+            <!-- Peer Endorsements Strip -->
+            <div v-if="(teacherStats.endorsement_tags || []).length" class="pt-3 border-t border-surface-container/60 space-y-2">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-label flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-amber-500 text-sm" style="font-variation-settings: 'FILL' 1;">recommend</span>
+                <span>Peer Teaching Endorsements</span>
+              </h4>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="tag in teacherStats.endorsement_tags"
+                  :key="tag.tag"
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-900 border border-amber-500/20 shadow-2xs"
+                >
+                  <span class="material-symbols-outlined text-xs text-amber-600" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                  <span>{{ tag.tag }}</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-800 font-mono">
+                    {{ tag.count }}
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- Skills I Want to Learn Card -->
@@ -440,24 +552,51 @@
             </div>
           </div>
 
-          <!-- Reviews from Peers Card (From Mockup) -->
+          <!-- Reviews from Peers Card (Upgraded with Teacher vs Learner filters) -->
           <div class="bg-white rounded-3xl p-6 border border-surface-container shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="font-headline font-bold text-base text-on-surface flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-surface-container/60">
+              <div class="flex items-center gap-2">
                 <span class="material-symbols-outlined text-amber-500 text-xl" style="font-variation-settings: 'FILL' 1;">star</span>
-                <span>Reviews from Peers</span>
-              </h2>
-              <span v-if="(profile.reviews || []).length" class="text-xs font-bold text-on-surface-variant px-2.5 py-0.5 rounded-full bg-surface-container">
-                {{ profile.reviews.length }}
-              </span>
+                <h2 class="font-headline font-bold text-base text-on-surface">Reviews & Ratings</h2>
+                <span v-if="(profile.reviews || []).length" class="text-xs font-bold text-on-surface-variant px-2.5 py-0.5 rounded-full bg-surface-container">
+                  {{ (profile.reviews || []).length }}
+                </span>
+              </div>
+
+              <!-- Filter Tabs -->
+              <div class="inline-flex items-center p-1 rounded-xl bg-surface-container-low border border-surface-container text-xs font-bold">
+                <button
+                  @click="activeReviewFilter = 'all'"
+                  class="px-2.5 py-1 rounded-lg transition-all"
+                  :class="activeReviewFilter === 'all' ? 'bg-white text-on-surface shadow-xs' : 'text-on-surface-variant hover:text-on-surface'"
+                >
+                  All ({{ (profile.reviews || []).length }})
+                </button>
+                <button
+                  @click="activeReviewFilter = 'teacher'"
+                  class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
+                  :class="activeReviewFilter === 'teacher' ? 'bg-white text-on-surface shadow-xs' : 'text-on-surface-variant hover:text-on-surface'"
+                >
+                  <span>As Teacher</span>
+                  <span class="text-[10px] px-1.5 rounded-full bg-primary/10 text-primary">{{ teacherReviewsCount }}</span>
+                </button>
+                <button
+                  @click="activeReviewFilter = 'learner'"
+                  class="px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
+                  :class="activeReviewFilter === 'learner' ? 'bg-white text-on-surface shadow-xs' : 'text-on-surface-variant hover:text-on-surface'"
+                >
+                  <span>As Learner</span>
+                  <span class="text-[10px] px-1.5 rounded-full bg-secondary/10 text-secondary">{{ learnerReviewsCount }}</span>
+                </button>
+              </div>
             </div>
 
             <!-- Review Cards List -->
-            <div v-if="(profile.reviews || []).length" class="space-y-3.5">
+            <div v-if="filteredReviews.length" class="space-y-3.5">
               <div
-                v-for="r in profile.reviews"
-                :key="r.created_at"
-                class="p-4 rounded-2xl bg-surface-container-low border border-surface-container/70 space-y-2 hover:border-primary/30 transition-all"
+                v-for="r in filteredReviews"
+                :key="r.id || r.created_at"
+                class="p-4 rounded-2xl bg-surface-container-low border border-surface-container/70 space-y-2.5 hover:border-primary/30 transition-all"
               >
                 <!-- Reviewer header + Stars -->
                 <div class="flex items-center justify-between gap-2">
@@ -478,6 +617,7 @@
                     <span v-for="i in 5" :key="i" class="material-symbols-outlined text-sm" :class="i <= r.rating ? 'opacity-100' : 'text-gray-300'" style="font-variation-settings: 'FILL' 1;">
                       star
                     </span>
+                    <span class="text-xs font-bold ml-1 text-on-surface">{{ r.rating.toFixed(1) }}</span>
                   </div>
                 </div>
 
@@ -486,9 +626,25 @@
                   "{{ r.comment }}"
                 </p>
 
+                <!-- Tags if present -->
+                <div v-if="(r.tags || []).length" class="flex flex-wrap gap-1.5 pt-1">
+                  <span
+                    v-for="t in r.tags"
+                    :key="t"
+                    class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-surface-container text-on-surface-variant shadow-2xs"
+                  >
+                    {{ t }}
+                  </span>
+                </div>
+
                 <!-- Role badge and date -->
-                <div class="flex items-center justify-between text-[10px] text-on-surface-variant/70 pt-1 border-t border-surface-container/50">
-                  <span>{{ r.role === 'learner_rating_teacher' ? 'As Teacher' : 'As Learner' }}</span>
+                <div class="flex items-center justify-between text-[10px] text-on-surface-variant/70 pt-1.5 border-t border-surface-container/50">
+                  <span
+                    class="font-bold px-2 py-0.5 rounded-md"
+                    :class="r.role === 'learner_rating_teacher' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'"
+                  >
+                    {{ r.role === 'learner_rating_teacher' ? '👨‍🏫 Taught Peer' : '🎓 Learned from Peer' }}
+                  </span>
                   <span>{{ formatDate(r.created_at) }}</span>
                 </div>
               </div>
@@ -497,8 +653,8 @@
             <!-- Empty Reviews State -->
             <div v-else class="p-6 rounded-2xl bg-surface-container-low/60 border border-dashed border-surface-container text-center space-y-1">
               <span class="material-symbols-outlined text-3xl text-on-surface-variant/50">rate_review</span>
-              <p class="font-headline font-semibold text-xs text-on-surface">No reviews yet</p>
-              <p class="text-[11px] text-on-surface-variant/70">Complete skill exchange calls to earn peer ratings!</p>
+              <p class="font-headline font-semibold text-xs text-on-surface">No reviews in this category</p>
+              <p class="text-[11px] text-on-surface-variant/70">Complete skill exchange calls to earn peer ratings and feedback.</p>
             </div>
           </div>
 
@@ -776,6 +932,71 @@ function getVerifiedLevel(skillName) {
     v => v.skill_name.toLowerCase() === skillName.toLowerCase()
   )
   return v ? v.verified_level : ''
+}
+
+// ─── TEACHER CREDIBILITY & REVIEWS COMPUTED ─────────────────────────────────
+const teacherStats = computed(() => profile.value?.teacher_stats || {})
+
+const teachingSkills = computed(() => {
+  const breakdown = teacherStats.value.skills_breakdown
+  if (breakdown && breakdown.length > 0) return breakdown
+  return (profile.value?.teaches || []).map(skillName => {
+    const verifiedLvl = getVerifiedLevel(skillName)
+    return {
+      skill_id: null,
+      skill_name: skillName,
+      teaching_level: verifiedLvl || 'Beginner',
+      is_verified: isVerified(skillName),
+      verified_level: verifiedLvl,
+      hours_taught_seconds: 0,
+      hours_taught_formatted: '0 hrs',
+      sessions_count: 0,
+      students_count: 0
+    }
+  })
+})
+
+const activeReviewFilter = ref('all') // 'all' | 'teacher' | 'learner'
+
+const filteredReviews = computed(() => {
+  const list = profile.value?.reviews || []
+  if (activeReviewFilter.value === 'teacher') {
+    return list.filter(r => r.role === 'learner_rating_teacher')
+  }
+  if (activeReviewFilter.value === 'learner') {
+    return list.filter(r => r.role === 'teacher_rating_learner')
+  }
+  return list
+})
+
+const teacherReviewsCount = computed(() => {
+  return (profile.value?.reviews || []).filter(r => r.role === 'learner_rating_teacher').length
+})
+
+const learnerReviewsCount = computed(() => {
+  return (profile.value?.reviews || []).filter(r => r.role === 'teacher_rating_learner').length
+})
+
+// Quick inline level updater for own profile
+const updatingSkillId = ref(null)
+async function updateTeachingLevel(skill, newLevel) {
+  if (!isOwnProfile.value || !skill.skill_id) return
+  updatingSkillId.value = skill.skill_id
+  try {
+    const res = await fetch(`/api/skills/${skill.skill_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ teaching_level: newLevel })
+    })
+    if (res.ok) {
+      skill.teaching_level = newLevel
+    }
+  } catch (err) {
+    console.error('Failed to update skill level:', err)
+  } finally {
+    updatingSkillId.value = null
+  }
 }
 
 // Fetch current user

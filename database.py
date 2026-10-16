@@ -50,6 +50,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             skill_name TEXT NOT NULL,
             skill_type TEXT NOT NULL, -- 'teaches' or 'learns'
+            teaching_level TEXT DEFAULT 'Beginner',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id),
             UNIQUE(user_id, skill_name, skill_type)
@@ -213,6 +214,7 @@ def init_db():
             skill_name TEXT NOT NULL,
             session_id INTEGER,
             duration_seconds INTEGER NOT NULL,
+            teaching_level TEXT DEFAULT 'Beginner',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (teacher_id) REFERENCES users(id),
             FOREIGN KEY (learner_id) REFERENCES users(id)
@@ -221,6 +223,16 @@ def init_db():
 
     # Safe schema migration for existing databases
     cursor = db.cursor()
+    cursor.execute("PRAGMA table_info(user_skills)")
+    uskill_cols = [row[1] for row in cursor.fetchall()]
+    if 'teaching_level' not in uskill_cols:
+        cursor.execute("ALTER TABLE user_skills ADD COLUMN teaching_level TEXT DEFAULT 'Beginner'")
+
+    cursor.execute("PRAGMA table_info(teaching_call_logs)")
+    call_cols = [row[1] for row in cursor.fetchall()]
+    if 'teaching_level' not in call_cols:
+        cursor.execute("ALTER TABLE teaching_call_logs ADD COLUMN teaching_level TEXT DEFAULT 'Beginner'")
+
     cursor.execute("PRAGMA table_info(skill_verifications)")
     existing_cols = [row[1] for row in cursor.fetchall()]
     if 'last_activity_at' not in existing_cols:
