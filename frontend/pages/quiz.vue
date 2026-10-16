@@ -438,6 +438,25 @@ const buildShuffled = (rawQuestions) => {
 
 const currentQuestion = computed(() => shuffledQuestions.value[currentQ.value] || { q: '', shuffledOptions: [] })
 
+// Instant hydration from local cache so the page renders in 0.0s without waiting for server
+if (typeof localStorage !== 'undefined') {
+  try {
+    const cachedSkills = localStorage.getItem('skillloop_cached_teach_skills')
+    if (cachedSkills) {
+      teachSkills.value = JSON.parse(cachedSkills)
+      loading.value = false
+    }
+    const cachedVer = localStorage.getItem('skillloop_cached_verified_skills')
+    if (cachedVer) {
+      verifiedSkills.value = JSON.parse(cachedVer)
+    }
+    const cachedHist = localStorage.getItem('skillloop_cached_quiz_history')
+    if (cachedHist) {
+      history.value = JSON.parse(cachedHist)
+    }
+  } catch (e) {}
+}
+
 const fetchInitialData = async () => {
   try {
     const [resSkills, resVerified, resHistory] = await Promise.all([
@@ -445,11 +464,26 @@ const fetchInitialData = async () => {
       fetch('/api/quiz/verified', { credentials: 'include' }).catch(() => null),
       fetch('/api/quiz/history', { credentials: 'include' }).catch(() => null)
     ])
-    if (resSkills?.ok)  { const d = await resSkills.json();  teachSkills.value = d.teaches || [] }
-    if (resVerified?.ok){ const d = await resVerified.json();verifiedSkills.value = d.verified || [] }
-    if (resHistory?.ok) { const d = await resHistory.json(); history.value = d.history || [] }
-  } catch (e) { console.error(e) }
-  finally { loading.value = false }
+    if (resSkills?.ok) {
+      const d = await resSkills.json()
+      teachSkills.value = d.teaches || []
+      try { localStorage.setItem('skillloop_cached_teach_skills', JSON.stringify(teachSkills.value)) } catch (e) {}
+    }
+    if (resVerified?.ok) {
+      const d = await resVerified.json()
+      verifiedSkills.value = d.verified || []
+      try { localStorage.setItem('skillloop_cached_verified_skills', JSON.stringify(verifiedSkills.value)) } catch (e) {}
+    }
+    if (resHistory?.ok) {
+      const d = await resHistory.json()
+      history.value = d.history || []
+      try { localStorage.setItem('skillloop_cached_quiz_history', JSON.stringify(history.value)) } catch (e) {}
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {

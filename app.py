@@ -1107,30 +1107,11 @@ QUIZ_TIME_MAP = {'beginner': 20, 'intermediate': 15, 'advanced': 10}
 # How many questions per quiz
 QUIZ_QUESTION_COUNT = 7
 
+# In-memory question cache for instant 5ms quiz loads
+_QUIZ_CACHE = {}
+
 def _get_gemini_models(client):
-    """Return available Gemini model names dynamically, prioritized for speed & quality."""
-    try:
-        discovered = []
-        for m in client.models.list():
-            name = getattr(m, 'name', '') or ''
-            clean = name.replace('models/', '').strip()
-            methods = getattr(m, 'supported_actions', []) or getattr(m, 'supported_generation_methods', []) or []
-            if not methods or 'generateContent' in methods:
-                discovered.append(clean)
-        if discovered:
-            prioritized = []
-            for pref in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro']:
-                for d in discovered:
-                    if pref in d and d not in prioritized:
-                        prioritized.append(d)
-            for d in discovered:
-                if d not in prioritized:
-                    prioritized.append(d)
-            if prioritized:
-                return prioritized
-    except Exception as e:
-        app.logger.warning(f"Could not list models from Google GenAI: {e}")
-    # Fallback to verified GA model names
+    """Fast-path top models; only inspect dynamically if preferred models fail."""
     return ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']
 
 
@@ -1140,6 +1121,14 @@ def generate_ai_questions(skill_name: str, difficulty: str):
     about `skill_name` at `difficulty` level.
     Returns (validated_questions, None) on success or (None, error_str) on failure.
     """
+    import copy
+    cache_key = (skill_name.strip().lower(), difficulty.strip().lower())
+    if cache_key in _QUIZ_CACHE:
+        cached = _QUIZ_CACHE[cache_key]
+        if len(cached) >= 3:
+            app.logger.info(f"Instant cache hit for quiz: {skill_name} ({difficulty})")
+            return copy.deepcopy(cached), None
+
     key = os.environ.get('GEMINI_API_KEY', '').strip()
     if not key:
         return None, "GEMINI_API_KEY is not set in Render environment variables."
@@ -1184,7 +1173,7 @@ The "answer" field is the 0-based index of the correct option in the "options" a
 """
 
     candidate_models = _get_gemini_models(client)
-    app.logger.info(f"Trying Gemini models for quiz: {candidate_models[:3]}")
+    app.logger.info(f"Generating quiz with Gemini model: {candidate_models[0]}")
 
     all_errors = []
     for model_name in candidate_models:
@@ -1223,6 +1212,7 @@ The "answer" field is the 0-based index of the correct option in the "options" a
 
             if len(validated) >= 3:
                 app.logger.info(f'Quiz generated successfully via model={model_name} for skill={skill_name}')
+                _QUIZ_CACHE[cache_key] = copy.deepcopy(validated)
                 return validated, None
 
             all_errors.append(f"[{model_name}]: Returned {len(validated)} questions (need at least 3)")

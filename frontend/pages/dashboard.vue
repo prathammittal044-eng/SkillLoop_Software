@@ -2406,7 +2406,14 @@ const fetchVerifications = async () => {
 const fetchSkills = async () => {
   try {
     const res = await fetch('/api/skills', { credentials: 'include' })
-    if (res.ok) { const d = await res.json(); teaches.value = d.teaches; learns.value = d.learns }
+    if (res.ok) {
+      const d = await res.json()
+      teaches.value = d.teaches || []
+      learns.value = d.learns || []
+      if (typeof localStorage !== 'undefined') {
+        try { localStorage.setItem('skillloop_cached_teach_skills', JSON.stringify(teaches.value)) } catch (e) {}
+      }
+    }
   } catch(e) { console.error(e) }
 }
 

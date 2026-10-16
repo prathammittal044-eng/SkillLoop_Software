@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -90,6 +90,18 @@ const showMobileNav = computed(() => {
   // On chat page, let chat take 100% full screen for typing
   if (p === '/chat') return false
   return true
+})
+
+onMounted(() => {
+  // Proactively wake up backend on first load and keep it warm
+  const pingBackend = () => {
+    try {
+      fetch('/api/test', { priority: 'low' }).catch(() => {})
+    } catch (e) {}
+  }
+  pingBackend()
+  // Keep warm every 8 minutes (Render sleeps after 15 minutes)
+  setInterval(pingBackend, 8 * 60 * 1000)
 })
 </script>
 

@@ -2,6 +2,7 @@
 const apiBase = process.env.API_BASE_URL || 'http://127.0.0.1:5000'
 
 export default defineNuxtConfig({
+  ssr: false,
   compatibilityDate: '2024-11-01',
   srcDir: '.',
   runtimeConfig: {
