@@ -56,13 +56,14 @@ from turn_config import turn_bp
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Build allowed origins list: localhost, Cloudflare Pages (*.pages.dev), Vercel, and Hugging Face
+# Build allowed origins list: localhost, Cloudflare (*.pages.dev, *.workers.dev), Vercel, and Hugging Face
 _ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5000",
     re.compile(r"^https://.*\.pages\.dev$"),
+    re.compile(r"^https://.*\.workers\.dev$"),
     re.compile(r"^https://.*\.vercel\.app$"),
     re.compile(r"^https://.*\.hf\.space$"),
 ]
