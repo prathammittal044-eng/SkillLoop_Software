@@ -5,6 +5,12 @@ export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: '2024-11-01',
   srcDir: '.',
+  nitro: {
+    preset: process.env.NITRO_PRESET || 'cloudflare-pages',
+    prerender: {
+      autoSubfolderIndex: false
+    }
+  },
   runtimeConfig: {
     public: {
       apiBase: process.env.API_BASE_URL || ''

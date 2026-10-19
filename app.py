@@ -31,6 +31,7 @@ def _load_dotenv(path='.env'):
 
 _load_dotenv()
 
+import re
 import random
 import sqlite3
 import json as _json
@@ -55,18 +56,20 @@ from turn_config import turn_bp
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Build allowed origins list: always include localhost, and add Vercel domain in production
+# Build allowed origins list: localhost, Cloudflare Pages (*.pages.dev), Vercel, and Hugging Face
 _ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5000",
+    re.compile(r"^https://.*\.pages\.dev$"),
+    re.compile(r"^https://.*\.vercel\.app$"),
+    re.compile(r"^https://.*\.hf\.space$"),
 ]
-# Accept the FRONTEND_URL env var (set this in Render to your Vercel URL)
+# Accept explicit FRONTEND_URL if configured
 _FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
 if _FRONTEND_URL:
     _ALLOWED_ORIGINS.append(_FRONTEND_URL.rstrip('/'))
-# Also allow any *.vercel.app domain for preview deployments
 CORS(app, supports_credentials=True, origins=_ALLOWED_ORIGINS)
 
 # Register modular Chat blueprint

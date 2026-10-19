@@ -1,8 +1,13 @@
 import os
 from datetime import timedelta
 
-# Detect production (Render sets RENDER_EXTERNAL_URL automatically)
-_IS_PRODUCTION = bool(os.environ.get('RENDER_EXTERNAL_URL') or os.environ.get('IS_PRODUCTION'))
+# Detect production (Render, Hugging Face Spaces, or explicit IS_PRODUCTION)
+_IS_PRODUCTION = bool(
+    os.environ.get('RENDER_EXTERNAL_URL')
+    or os.environ.get('IS_PRODUCTION')
+    or os.environ.get('SPACE_ID')
+    or os.environ.get('SPACE_HOST')
+)
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'skillloop-secret-key-2026'
