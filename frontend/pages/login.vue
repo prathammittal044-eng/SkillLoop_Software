@@ -154,16 +154,17 @@ const loading = ref(false)
 const showPassword = ref(false)
 
 // Helper: returns the correct base URL for API calls
-// On Vercel (production), relative /api/* paths go through Nuxt's routeRules proxy to Render
-// On localhost, same thing - relative paths proxied to Flask on port 5000
-const apiUrl = (path) => path
+const apiUrl = (path) => {
+  const base = (config.public?.apiBase || 'https://zoggy-skillloop-backend.hf.space').toString().trim().replace(/\/+$/, '')
+  return `${base}${path}`
+}
 
 onMounted(async () => {
   // If user already has an active session, automatically redirect to dashboard
   try {
     const res = await fetch(apiUrl('/api/user/me'), { credentials: 'include' })
     if (res.ok) {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (data.user) {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('skillloop_auth_active', 'true')
@@ -179,7 +180,9 @@ const handleLogin = async () => {
   error.value = null
   loading.value = true
   try {
-    const res = await fetch(apiUrl('/api/login'), {
+    const targetEndpoint = apiUrl('/api/login')
+    console.log('[SkillLoop] Logging in via:', targetEndpoint)
+    const res = await fetch(targetEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -189,7 +192,7 @@ const handleLogin = async () => {
         remember_me: rememberMe.value
       })
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     if (res.ok) {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('skillloop_auth_active', 'true')
@@ -197,10 +200,11 @@ const handleLogin = async () => {
       const target = route.query.redirect || '/dashboard'
       await navigateTo(target)
     } else {
-      error.value = data.error || 'Invalid credentials. Please try again.'
+      error.value = data.error || `Server error (${res.status}): ${res.statusText || 'Invalid credentials. Please try again.'}`
     }
   } catch (e) {
-    error.value = 'Unable to connect to the server. Please try again.'
+    console.error('[SkillLoop] Login request failed:', e)
+    error.value = `Connection failed: ${e.message || 'Please check your internet connection or server status.'}`
   } finally {
     loading.value = false
   }

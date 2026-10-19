@@ -80,8 +80,40 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useRuntimeConfig } from '#imports'
 
 const route = useRoute()
+const config = useRuntimeConfig()
+const apiBase = (config.public?.apiBase || 'https://zoggy-skillloop-backend.hf.space').toString().trim().replace(/\/+$/, '')
+
+// Patch window.fetch globally across all pages so relative /api/ and /uploads/ route to Hugging Face
+if (typeof window !== 'undefined' && window.fetch && !window.__SKILLLOOP_FETCH_PATCHED__) {
+  window.__SKILLLOOP_FETCH_PATCHED__ = true
+  const originalFetch = window.fetch
+  window.fetch = function (input, init) {
+    if (typeof input === 'string') {
+      if (input.startsWith('/api/') || input.startsWith('/uploads/')) {
+        input = `${apiBase}${input}`
+        init = { ...init, credentials: init?.credentials || 'include' }
+      }
+    } else if (input instanceof URL) {
+      if (input.pathname.startsWith('/api/') || input.pathname.startsWith('/uploads/')) {
+        input = new URL(input.pathname + input.search, apiBase)
+        init = { ...init, credentials: init?.credentials || 'include' }
+      }
+    } else if (typeof Request !== 'undefined' && input instanceof Request) {
+      const url = new URL(input.url)
+      if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/')) {
+        const targetUrl = new URL(url.pathname + url.search, apiBase)
+        input = new Request(targetUrl.toString(), {
+          ...input,
+          credentials: input.credentials || 'include'
+        })
+      }
+    }
+    return originalFetch.call(this, input, init)
+  }
+}
 
 const showMobileNav = computed(() => {
   const p = route.path

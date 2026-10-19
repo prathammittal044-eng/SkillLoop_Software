@@ -200,7 +200,7 @@ const handleRegister = async () => {
       credentials: 'include',
       body: JSON.stringify(form)
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
 
     if (res.ok) {
       if (typeof localStorage !== 'undefined') {
@@ -208,10 +208,11 @@ const handleRegister = async () => {
       }
       window.location.href = '/dashboard'
     } else {
-      error.value = data.error || 'Registration failed. Please try again.'
+      error.value = data.error || `Registration failed (${res.status}): ${res.statusText || 'Please try again.'}`
     }
   } catch (e) {
-    error.value = 'Network error. Please check your connection.'
+    console.error('[SkillLoop] Registration error:', e)
+    error.value = `Network error: ${e.message || 'Please check your connection and try again.'}`
   } finally {
     loading.value = false
   }
