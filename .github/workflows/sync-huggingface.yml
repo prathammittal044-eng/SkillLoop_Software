@@ -35,7 +35,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
           # Clone the Hugging Face Space repository
-          git clone "https://Zoggy:${HF_TOKEN}@huggingface.co/spaces/Zoggy/skillloop-backend" hf_space
+          git clone "https://Zoggy:${HF_TOKEN}@huggingface.co/spaces/Zoggy/skillloop-backend.git" hf_space
 
           # Copy updated backend files into the Hugging Face repository
           cp app.py hf_space/
