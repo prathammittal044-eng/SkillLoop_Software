@@ -20,11 +20,14 @@ export default defineNuxtConfig({
     static: true,
     cloudflare: {
       deployConfig: false
+    },
+    output: {
+      publicDir: 'dist'
     }
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_BASE_URL || ''
+      apiBase: process.env.API_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://zoggy-skillloop-backend.hf.space' : '')
     }
   },
   vite: {
