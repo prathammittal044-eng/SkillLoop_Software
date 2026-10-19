@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const apiBase = process.env.API_BASE_URL || 'http://127.0.0.1:5000'
 
@@ -5,6 +8,14 @@ export default defineNuxtConfig({
   ssr: false,
   compatibilityDate: '2024-11-01',
   srcDir: '.',
+  hooks: {
+    close(nuxt) {
+      const p1 = path.resolve(nuxt.options.rootDir, '.output/public/_redirects')
+      const p2 = path.resolve(nuxt.options.rootDir, 'dist/_redirects')
+      if (fs.existsSync(p1)) fs.unlinkSync(p1)
+      if (fs.existsSync(p2)) fs.unlinkSync(p2)
+    }
+  },
   nitro: {
     static: true,
     cloudflare: {
