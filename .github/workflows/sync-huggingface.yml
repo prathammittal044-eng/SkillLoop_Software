@@ -17,6 +17,9 @@ on:
       - '.github/workflows/sync-huggingface.yml'
   workflow_dispatch:
 
+env:
+  GIT_LFS_SKIP_SMUDGE: "1"
+
 jobs:
   sync-to-huggingface:
     runs-on: ubuntu-latest
@@ -26,35 +29,57 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Clone Hugging Face Space and Sync Files
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Hugging Face Hub CLI
+        run: pip install -U "huggingface_hub[cli]"
+
+      - name: Upload Backend Files to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GIT_LFS_SKIP_SMUDGE: "1"
         run: |
-          # Configure Git identity for the commit
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          python - << 'EOF'
+          import os
+          from huggingface_hub import HfApi, CommitOperationAdd
 
-          # Clone the Hugging Face Space repository
-          git clone "https://Zoggy:${HF_TOKEN}@huggingface.co/spaces/Zoggy/skillloop-backend.git" hf_space
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              raise ValueError("HF_TOKEN secret is missing or empty!")
 
-          # Copy updated backend files into the Hugging Face repository
-          cp app.py hf_space/
-          cp chat_events.py hf_space/
-          cp chat_routes.py hf_space/
-          cp config.py hf_space/
-          cp database.py hf_space/
-          cp institutions.py hf_space/
-          cp requirements.txt hf_space/
-          cp seed.py hf_space/
-          cp turn_config.py hf_space/
+          api = HfApi(token=token)
+          repo_id = "Zoggy/skillloop-backend"
 
-          # Commit and push to Hugging Face if changes exist
-          cd hf_space
-          git add app.py chat_events.py chat_routes.py config.py database.py institutions.py requirements.txt seed.py turn_config.py
-          if git diff --staged --quiet; then
-            echo "No backend changes detected to sync."
-          else
-            git commit -m "Auto-sync from GitHub commit: ${{ github.sha }}"
-            git push origin main
-            echo "Successfully synced updated backend to Hugging Face Space!"
-          fi
+          backend_files = [
+              "app.py",
+              "chat_events.py",
+              "chat_routes.py",
+              "config.py",
+              "database.py",
+              "institutions.py",
+              "requirements.txt",
+              "seed.py",
+              "turn_config.py"
+          ]
+
+          operations = []
+          for filename in backend_files:
+              if os.path.exists(filename):
+                  print(f"Staging {filename} for upload...")
+                  operations.append(CommitOperationAdd(path_in_repo=filename, path_or_fileobj=filename))
+
+          if operations:
+              print(f"Pushing {len(operations)} backend files to Hugging Face Space: {repo_id}")
+              api.create_commit(
+                  repo_id=repo_id,
+                  repo_type="space",
+                  operations=operations,
+                  commit_message=f"Auto-sync backend from GitHub: ${{ github.sha }}"
+              )
+              print("Successfully synced backend to Hugging Face Space!")
+          else:
+              print("No backend files found to sync.")
+          EOF

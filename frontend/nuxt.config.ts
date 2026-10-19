@@ -20,9 +20,6 @@ export default defineNuxtConfig({
     static: true,
     cloudflare: {
       deployConfig: false
-    },
-    output: {
-      publicDir: 'dist'
     }
   },
   runtimeConfig: {
