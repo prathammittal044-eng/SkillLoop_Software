@@ -1,0 +1,60 @@
+name: Sync Backend to Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app.py'
+      - 'chat_events.py'
+      - 'chat_routes.py'
+      - 'config.py'
+      - 'database.py'
+      - 'institutions.py'
+      - 'requirements.txt'
+      - 'seed.py'
+      - 'turn_config.py'
+      - '.github/workflows/sync-huggingface.yml'
+  workflow_dispatch:
+
+jobs:
+  sync-to-huggingface:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Hugging Face Space and Sync Files
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Configure Git identity for the commit
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone the Hugging Face Space repository
+          git clone "https://Zoggy:${HF_TOKEN}@huggingface.co/spaces/Zoggy/skillloop-backend" hf_space
+
+          # Copy updated backend files into the Hugging Face repository
+          cp app.py hf_space/
+          cp chat_events.py hf_space/
+          cp chat_routes.py hf_space/
+          cp config.py hf_space/
+          cp database.py hf_space/
+          cp institutions.py hf_space/
+          cp requirements.txt hf_space/
+          cp seed.py hf_space/
+          cp turn_config.py hf_space/
+
+          # Commit and push to Hugging Face if changes exist
+          cd hf_space
+          git add app.py chat_events.py chat_routes.py config.py database.py institutions.py requirements.txt seed.py turn_config.py
+          if git diff --staged --quiet; then
+            echo "No backend changes detected to sync."
+          else
+            git commit -m "Auto-sync from GitHub commit: ${{ github.sha }}"
+            git push origin main
+            echo "Successfully synced updated backend to Hugging Face Space!"
+          fi
