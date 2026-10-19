@@ -1,3 +1,20 @@
+try:
+    import spaces
+    import gradio as gr
+
+    @spaces.GPU
+    def _noop(x):
+        return x
+
+    gr.Interface(fn=_noop, inputs="text", outputs="text").launch(
+        server_name="127.0.0.1",
+        server_port=7861,
+        prevent_thread_lock=True,
+        quiet=True
+    )
+except Exception as e:
+    print(f"[ZeroGPU Init] {e}", flush=True)
+
 import os
 
 def _load_dotenv(path='.env'):
